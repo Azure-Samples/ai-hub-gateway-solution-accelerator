@@ -2,16 +2,12 @@
 # AI Hub Gateway Landing Zone accelerator
 The AI Hub Gateway Landing Zone is a solution accelerator that provides a set of guidelines and best practices for implementing a central AI API gateway to empower various line-of-business units in an organization to leverage Azure AI services.
 
-### V2 of the AI Hub Gateway Landing Zone solution accelerator is now available!  🚀
-
-The V2 version of the solution accelerator provides a more comprehensive and robust solution for implementing a central AI API gateway to empower various line-of-business units in an organization to leverage Azure AI services. 
-
 ## ![user-story](./assets/user-story.png) User Story
 The AI Hub Gateway Landing Zone architecture designed to be a central hub for AI services, providing a single point of entry for AI services, and enabling the organization to manage and govern AI services in a consistent manner. 
 
 ![AI Hub Gateway Landing Zone](./assets/architecture-1-0-6.png)
 
->NOTE: The V2 version is still work in progress and I'm working on adding more features and capabilities to the solution accelerator.
+>NOTE: The V2 version is still work in progress and more features and capabilities will be added to the solution accelerator.
 
 ### Key features
 
