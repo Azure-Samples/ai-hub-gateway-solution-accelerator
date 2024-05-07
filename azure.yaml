@@ -1,0 +1,4 @@
+# Application name
+name: ai-hub-gateway-landing-zone
+infra:
+  provider: bicep

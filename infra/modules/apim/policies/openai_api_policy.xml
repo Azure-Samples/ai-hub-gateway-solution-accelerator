@@ -1,0 +1,342 @@
+<policies>
+    <inbound>
+        <base />
+        <!-- AAD Authorization -->
+        <!-- Enable AAD is named value set to true -->
+        <set-variable name="entra-validate" value="{{entra-auth}}" />
+        <choose>
+            <when condition="@(context.Variables.GetValueOrDefault("entra-auth") == "true")">
+                <validate-jwt header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="Unauthorized" require-expiration-time="true" require-scheme="Bearer" require-signed-tokens="true">
+                    <openid-config url="https://login.microsoftonline.com/{{tenant-id}}/v2.0/.well-known/openid-configuration" />
+                    <audiences>
+                        <audience>{{audience}}</audience>
+                    </audiences>
+                    <issuers>
+                        <issuer>https://sts.windows.net/{{tenant-id}}/</issuer>
+                    </issuers>
+                    <required-claims>
+                        <claim name="appid">
+                            <value>{{client-id}}</value>
+                        </claim>
+                    </required-claims>
+                </validate-jwt>
+            </when>
+        </choose>
+        
+        <!-- Detecting streaming request -->
+        <choose>
+            <when condition="@(context.Request.Body.As<JObject>(true)[" stream"] != null && context.Request.Body.As<JObject>(true)[" stream"].Type != JTokenType.Null)">
+                <set-variable name="isStream" value="@{
+                var content = (context.Request.Body?.As<JObject>(true));
+                string streamValue = content["stream"].ToString();
+                return streamValue;
+            }" />
+            </when>
+        </choose>
+
+        <!-- Deleting api-key header to it is not passed to OpenAI endpoint-->
+        <set-header name="api-key" exists-action="delete" />
+        
+        <!-- Getting OpenAI clusters configuration -->
+        <cache-lookup-value key="@("oaClusters" + context.Deployment.Region + context.Api.Revision)" variable-name="oaClusters" />
+        <!-- If we can't find the configuration cached, it will be loaded -->
+        <choose>
+            <when condition="@(context.Variables.ContainsKey("oaClusters") == false)">
+                <set-variable name="oaClusters" value="@{
+                        // route is an Azure OpenAI API endpoints
+                        JArray routes = new JArray();
+                        // cluster is a group of routes that are capable of serving a specific deployment name (model and version)
+                        JArray clusters = new JArray();
+                        // Update the below if condition when using multiple APIM gateway regions/SHGW to get different configuartions for each region
+                        if(context.Deployment.Region == "West Europe" || true)
+                        {
+                            // Adding all Azure OpenAI endpoints routes (which are set as APIM Backend)
+                            routes.Add(new JObject()
+                            {
+                                { "name", "EastUS" },
+                                { "location", "eastus" },
+                                { "backend-id", "openai-backend-0" },
+                                { "priority", 1},
+                                { "isThrottling", false }, 
+                                { "retryAfter", DateTime.MinValue } 
+                            });
+
+                            routes.Add(new JObject()
+                            {
+                                { "name", "NorthCentralUS" },
+                                { "location", "northcentralus" },
+                                { "backend-id", "openai-backend-1" },
+                                { "priority", 1},
+                                { "isThrottling", false },
+                                { "retryAfter", DateTime.MinValue }
+                            });
+
+                            routes.Add(new JObject()
+                            {
+                                { "name", "EastUS2" },
+                                { "location", "eastus2" },
+                                { "backend-id", "openai-backend-2" },
+                                { "priority", 1},
+                                { "isThrottling", false },
+                                { "retryAfter", DateTime.MinValue }
+                            });
+
+                            // For each deployment name, create a cluster with the routes that can serve it
+                            // It is important in you OpenAI deployments to use the same name across instances
+                            clusters.Add(new JObject()
+                            {
+                                { "deploymentName", "chat" },
+                                { "routes", new JArray(routes[0], routes[1], routes[2]) }
+                            });
+
+                            clusters.Add(new JObject()
+                            {
+                                { "deploymentName", "embedding" },
+                                { "routes", new JArray(routes[0], routes[1], routes[2]) }
+                            });
+
+                            //If you want to add additional speical models like DALL-E or GPT-4, you can add them here
+                            //In this cluster, DALL-E is served by one OpenAI endpoint route and GPT-4 is served by two OpenAI endpoint routes
+                            //clusters.Add(new JObject()
+                            //{
+                            //    { "deploymentName", "dall-e-3" },
+                            //    { "routes", new JArray(routes[0]) }
+                            //});
+
+                            //clusters.Add(new JObject()
+                            //{
+                            //    { "deploymentName", "gpt-4" },
+                            //    { "routes", new JArray(routes[0], routes[1]) }
+                            //});
+                            
+                        }
+                        else
+                        {
+                            //No clusters found for selected region, either return error (defult behavior) or set default cluster in the else section
+                        }
+                        
+                        return clusters;   
+                    }" />
+                <!-- Add cluster configurations to cache -->
+                <cache-store-value key="@("oaClusters" + context.Deployment.Region + context.Api.Revision)" value="@((JArray)context.Variables["oaClusters"])" duration="86400" />
+            </when>
+        </choose>
+        <!-- Getting OpenAI routes configuration based on deployment name, region and api revision -->
+        <cache-lookup-value key="@(context.Request.MatchedParameters["deployment-id"] + "Routes" + context.Deployment.Region + context.Api.Revision)" variable-name="routes" />
+        <!-- If we can't find the configuration, it will be loaded -->
+        <choose>
+            <when condition="@(context.Variables.ContainsKey("routes") == false)">
+                <set-variable name="routes" value="@{
+                        string deploymentName = context.Request.MatchedParameters["deployment-id"];
+                        JArray clusters = (JArray)context.Variables["oaClusters"];
+                        JObject cluster = (JObject)clusters.FirstOrDefault(o => o["deploymentName"]?.Value<string>() == deploymentName);
+                        if(cluster == null)
+                        {
+                            //Error: No cluster matched the requested deployment name
+                            return new JArray() { new JObject()
+                                {
+                                    { "name", deploymentName },
+                                    { "location", "NA" },
+                                    { "url", "No routes found for the deployment (" + deploymentName + ") in the region (" + context.Deployment.Region + ")" }
+                                }
+                            };
+                        }
+                        JArray routes = (JArray)cluster["routes"];
+                        return routes;
+                    }" />
+                <!-- If no routes found for deployment, return bad request with content of routes variable -->
+                <choose>
+                    <when condition="@(((JArray)context.Variables["routes"]).ToString().Contains("No routes"))">
+                        <return-response>
+                            <set-status code="400" reason="No routes" />
+                            <set-body>@(((JArray)context.Variables["routes"]).ToString())</set-body>
+                        </return-response>
+                    </when>
+                </choose>
+                <!-- Add cluster configurations to cache -->
+                <cache-store-value key="@(context.Request.MatchedParameters["deployment-id"] + "Routes" + context.Deployment.Region + context.Api.Revision)" value="@((JArray)context.Variables["routes"])" duration="86400" />
+            </when>
+        </choose>
+        <set-variable name="routeIndex" value="-1" />
+        <set-variable name="remainingRoutes" value="1" />
+        <!-- Backend Managed Identity -->
+        <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="msi-access-token" client-id="{{uami-client-id}}" ignore-error="false" />
+        <set-header name="Authorization" exists-action="override">
+            <value>@("Bearer " + (string)context.Variables["msi-access-token"])</value>
+        </set-header>
+        <set-variable name="backendIndex" value="-1" />
+        <set-variable name="remainingBackends" value="1" />
+    </inbound>
+    <backend>
+        <retry condition="@(context.Response != null && (context.Response.StatusCode == 429 || context.Response.StatusCode >= 500) && ((Int32)context.Variables["remainingRoutes"]) > 0)" count="3" interval="0">
+            <!-- Before picking the route, let's verify if there is any that should be set to not throttling anymore -->
+            <set-variable name="routes" value="@{
+                    JArray routes = (JArray)context.Variables["routes"];
+                    
+                    for (int i = 0; i < routes.Count; i++)
+                    {
+                        JObject route = (JObject)routes[i];
+    
+                        if (route.Value<bool>("isThrottling") && DateTime.Now >= route.Value<DateTime>("retryAfter"))
+                        {
+                            route["isThrottling"] = false;
+                            route["retryAfter"] = DateTime.MinValue;
+                        }
+                    }
+    
+                    return routes; 
+                }" />
+            <cache-store-value key="@(context.Request.MatchedParameters["deployment-id"] + "Routes" + context.Deployment.Region + context.Api.Revision)" value="@((JArray)context.Variables["routes"])" duration="86400" />
+            <!-- This is the main logic to pick the route to be used -->
+            <set-variable name="routeIndex" value="@{
+                    JArray routes = (JArray)context.Variables["routes"];
+                    int selectedPriority = Int32.MaxValue;
+                    List<int> availableRoutesIndexes = new List<int>();
+    
+                    for (int i = 0; i < routes.Count; i++)
+                    {
+                        JObject route = (JObject)routes[i];
+    
+                        if (!route.Value<bool>("isThrottling"))
+                        {
+                            int routePriority = route.Value<int>("priority");
+    
+                            if (routePriority < selectedPriority)
+                            {
+                                selectedPriority = routePriority;
+                                availableRoutesIndexes.Clear();
+                                availableRoutesIndexes.Add(i);
+                            } 
+                            else if (routePriority == selectedPriority)
+                            {
+                                availableRoutesIndexes.Add(i);
+                            }
+                        }
+                    }
+    
+                    if (availableRoutesIndexes.Count == 1)
+                    {
+                        return availableRoutesIndexes[0];
+                    }
+                
+                    if (availableRoutesIndexes.Count > 0)
+                    {
+                        //Returns a random route from the list if we have more than one available with the same priority
+                        return availableRoutesIndexes[new Random().Next(0, availableRoutesIndexes.Count)];
+                    }
+                    else
+                    {
+                        //If there are no available routes, the request will be sent to the first one
+                        return 0;    
+                    }
+                    }" />
+            <set-variable name="backendId" value="@(((JObject)((JArray)context.Variables["routes"])[(Int32)context.Variables["routeIndex"]]).Value<string>("backend-id"))" />
+            <set-variable name="routeLocation" value="@(((JObject)((JArray)context.Variables["routes"])[(Int32)context.Variables["routeIndex"]]).Value<string>("location"))" />
+            <set-variable name="routeName" value="@(((JObject)((JArray)context.Variables["routes"])[(Int32)context.Variables["routeIndex"]]).Value<string>("name"))" />
+            <set-variable name="deploymentName" value="@(context.Request.MatchedParameters["deployment-id"])" />
+            <set-backend-service backend-id="@((string)context.Variables["backendId"])" />
+            <forward-request buffer-request-body="true" />
+            <choose>
+                <!-- In case we got 429 or 5xx from a route, update the list with its status -->
+                <when condition="@(context.Response != null && (context.Response.StatusCode == 429 || context.Response.StatusCode >= 500) )">
+                    <cache-lookup-value key="@(context.Request.MatchedParameters["deployment-id"] + "Routes" + context.Deployment.Region + context.Api.Revision)" variable-name="routes" />
+                    <set-variable name="routes" value="@{
+                            JArray routes = (JArray)context.Variables["routes"];
+                            int currentrouteIndex = context.Variables.GetValueOrDefault<int>("routeIndex");
+                            int retryAfter = Convert.ToInt32(context.Response.Headers.GetValueOrDefault("Retry-After", "-1"));
+    
+                            if (retryAfter == -1)
+                            {
+                                retryAfter = Convert.ToInt32(context.Response.Headers.GetValueOrDefault("x-ratelimit-reset-requests", "-1"));
+                            }
+    
+                            if (retryAfter == -1)
+                            {
+                                retryAfter = Convert.ToInt32(context.Response.Headers.GetValueOrDefault("x-ratelimit-reset-tokens", "10"));
+                            }
+    
+                            JObject route = (JObject)routes[currentrouteIndex];
+                            route["isThrottling"] = true;
+                            route["retryAfter"] = DateTime.Now.AddSeconds(retryAfter);
+    
+                            return routes;      
+                        }" />
+                    <cache-store-value key="@(context.Request.MatchedParameters["deployment-id"] + "Routes" + context.Deployment.Region + context.Api.Revision)" value="@((JArray)context.Variables["routes"])" duration="86400" />
+                    <set-variable name="remainingRoutes" value="@{
+                            JArray routes = (JArray)context.Variables["routes"];
+    
+                            int remainingRoutes = 0;
+    
+                            for (int i = 0; i < routes.Count; i++)
+                            {
+                                JObject route = (JObject)routes[i];
+    
+                                if (!route.Value<bool>("isThrottling"))
+                                {
+                                    remainingRoutes++;
+                                }
+                            }
+    
+                            return remainingRoutes;
+                        }" />
+                </when>
+            </choose>
+        </retry>
+    </backend>
+    <outbound>
+        <base />
+        <!-- Usage logs for non-streaming requests only (usage for streaming is not supported yet) -->
+        <choose>
+            <when condition="@(context.Variables.GetValueOrDefault<string>("isStream","false").Equals("false", StringComparison.OrdinalIgnoreCase))">
+                <!-- Set the response body as a variable to be used in various policies -->
+                <set-variable name="responseBody" value="@(context.Response.Body.As<JObject>())" />
+                
+                <!-- Log OpenAI usage to EventHub -->
+                <choose>
+                    <when condition="@(context.Response.StatusCode == 200)">
+                        <log-to-eventhub logger-id="usage-eventhub-logger">@{
+                        //Avoid reading response body as it can only be ready once, instead, before calling this fragement, a variable call responseBody will be set in the outbound policy
+                        //var responseBody = context.Response.Body?.As<JObject>(true); //Avoid this one
+                        var responseBody = (JObject)context.Variables["responseBody"]; //It is set in the outbound policy before calling the fragment
+                        return new JObject(
+                            new JProperty("id", responseBody?["id"]?.ToString() ?? Guid.NewGuid().ToString()),
+                            new JProperty("timestamp", DateTime.UtcNow.ToString()),
+                            new JProperty("appId", context.Request.Headers.GetValueOrDefault("Authorization",string.Empty).Split(' ').LastOrDefault()?.AsJwt()?.Claims.GetValueOrDefault("appid", "NA")),
+                            new JProperty("subscriptionId", context.Subscription?.Id?.ToString() ?? "Portal-Admin"),
+                            new JProperty("productName", context.Product?.Name?.ToString() ?? "Portal-Admin"),
+                            new JProperty("targetService", responseBody?["object"]?.ToString() ?? "NA"),
+                            new JProperty("model", responseBody?["model"]?.ToString() ?? "NA"),
+                            new JProperty("gatewayName", context.Deployment?.ServiceName ?? "NA"),
+                            new JProperty("gatewayRegion", context.Deployment?.Region ?? "NA"),
+                            new JProperty("aiGatewayId", context.Deployment?.Gateway?.Id ?? "NA"),
+                            new JProperty("RequestIp", context.Request?.IpAddress ?? "NA"),
+                            new JProperty("operationName", context.Operation?.Name ?? "NA"),
+                            new JProperty("sessionId", (string)context.Variables.GetValueOrDefault<string>("sessionId", "NA")),
+                            new JProperty("endUserId", (string)context.Variables.GetValueOrDefault<string>("endUserId", "NA")),
+                            new JProperty("backendId", (string)context.Variables.GetValueOrDefault<string>("backendId", "NA")),
+                            new JProperty("routeLocation", (string)context.Variables.GetValueOrDefault<string>("routeLocation", "NA")),
+                            new JProperty("routeName", (string)context.Variables.GetValueOrDefault<string>("routeName", "NA")),
+                            new JProperty("deploymentName", (string)context.Variables.GetValueOrDefault<string>("deploymentName", "NA")),
+                            new JProperty("promptTokens", responseBody?["usage"]?["prompt_tokens"]?.ToString() ?? "0"),
+                            new JProperty("responseTokens", responseBody?["usage"]?["completion_tokens"]?.ToString() ?? "0"),
+                            new JProperty("totalTokens", responseBody?["usage"]?["total_tokens"]?.ToString() ?? "1")
+                    ).ToString();
+                    }</log-to-eventhub>
+                    </when>
+                </choose>
+                <!-- This will return the used backend URL in the HTTP header response. Remove it if you don't want to expose this data -->
+                <!--
+        <set-header name="x-openai-backend-id" exists-action="override">
+            <value>@(context.Variables.GetValueOrDefault<string>("backend-id", "none"))</value>
+        </set-header>
+        -->
+                <set-body>@{
+            return ((JObject)context.Variables["responseBody"]).ToString();
+        }</set-body>
+            </when>
+        </choose>
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

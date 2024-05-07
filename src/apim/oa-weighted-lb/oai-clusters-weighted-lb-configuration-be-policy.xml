@@ -1,0 +1,32 @@
+<fragment>
+	<retry condition="@(context.Response != null && (context.Response.StatusCode == 429 || context.Response.StatusCode >= 500) && ((Int32)context.Variables["remainingRoutes"]) > 0)" count="3" interval="0">
+		<set-variable name="routeIndex" value="@{
+            Random random = new Random();
+            int totalWeight = (Int32)context.Variables["totalWeight"];
+            JArray cumulativeWeights = (JArray)context.Variables["cumulativeWeights"];
+            int randomWeight = random.Next(1, totalWeight + 1);
+            int nextRouteIndex = 0;
+            for (int i = 0; i < cumulativeWeights.Count; i++)
+            {
+                if (randomWeight <= cumulativeWeights[i].Value<int>())
+                {
+                    nextRouteIndex = i;
+                    break;
+                }
+            }
+            return nextRouteIndex;
+        }" />
+
+        
+		<!-- This is the main logic to pick the route to be used -->
+		
+                
+		<set-variable name="routeUrl" value="@(((JObject)((JArray)context.Variables["routes"])[(Int32)context.Variables["routeIndex"]]).Value<string>("url") + "/openai")" />
+        <set-variable name="routeLocation" value="@(((JObject)((JArray)context.Variables["routes"])[(Int32)context.Variables["routeIndex"]]).Value<string>("location"))" />
+        <set-variable name="routeName" value="@(((JObject)((JArray)context.Variables["routes"])[(Int32)context.Variables["routeIndex"]]).Value<string>("name"))" />
+        <set-variable name="deploymentName" value="@(context.Request.MatchedParameters["deployment-id"])" />
+		<set-backend-service base-url="@((string)context.Variables["routeUrl"])" />
+		<forward-request buffer-request-body="true" />
+		
+	</retry>
+</fragment>

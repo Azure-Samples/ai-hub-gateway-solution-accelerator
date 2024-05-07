@@ -1,0 +1,26 @@
+<!--
+    Policy at All operations - Azure OpenAI API
+-->
+<policies>
+    <inbound>
+        <base />
+        <include-fragment fragment-id="oai-blocked-streaming-in-policy" />
+        <set-header name="api-key" exists-action="delete" />
+        <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+        <include-fragment fragment-id="oai-clusters-lb-configuration-in-policy" />
+    </inbound>
+    <backend>
+        <include-fragment fragment-id="oai-clusters-lb-configuration-be-policy" />
+    </backend>
+    <outbound>
+        <base />
+        <set-variable name="responseBody" value="@(context.Response.Body.As<JObject>())" />
+        <include-fragment fragment-id="oai-usage-eventhub-out-policy" />
+        <set-body>@{
+            return ((JObject)context.Variables["responseBody"]).ToString();
+        }</set-body>
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

@@ -1,0 +1,28 @@
+<policies>
+    <inbound>
+        <base />
+        <!-- TPM rate limit for specific product (only with non-streaming requests -->
+        <choose>
+            <when condition="@(!(context.Request.Body.As<JObject>(true)[" stream"] != null && context.Request.Body.As<JObject>(true)[" stream"].Type != JTokenType.Null))">
+                <rate-limit-by-key calls="100" renewal-period="60" counter-key="@(String.Concat(context.Subscription.Id,"tpm"))" increment-condition="@(context.Response.StatusCode >= 200 && context.Response.StatusCode < 400)" increment-count="@(((JObject)context.Variables["responseBody"]).SelectToken("usage.total_tokens")?.ToObject<int>() ?? 0)" remaining-calls-header-name="remainingTPM" total-calls-header-name="totalTPM" />
+            </when>
+        </choose>
+        <!-- Restrict access for this product to specific models -->
+        <choose>
+            <when condition="@(!new [] { "gpt-4", "embedding" }.Contains(context.Request.MatchedParameters["deployment-id"] ?? String.Empty))">
+                <return-response>
+                    <set-status code="401" reason="Unauthorized" />
+                </return-response>
+            </when>
+        </choose>
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>
