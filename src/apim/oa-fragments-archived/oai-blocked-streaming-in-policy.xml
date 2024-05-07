@@ -1,0 +1,52 @@
+<<<<<<< HEAD:src/apim/oa-fragments/oai-blocked-streaming-in-policy.xml
+<fragment>
+    <choose>
+        <when condition="@(context.Request.Body.As<JObject>(true)[" stream"] != null && context.Request.Body.As<JObject>(true)[" stream"].Type != JTokenType.Null)">
+            <set-variable name="isStream"
+                value="@{
+            var content = (context.Request.Body?.As<JObject>(true));
+            string streamValue = content["stream"].ToString();
+            return streamValue;
+        }" />
+        </when>
+    </choose>
+    <!-- Blocks streaming completions and returns 404 -->
+    <choose>
+        <when condition="@(context.Variables.GetValueOrDefault<string>(" isStream"," false").Equals(" true", StringComparison.OrdinalIgnoreCase))">
+            <return-response>
+                <set-status code="404" reason="BlockStreaming" />
+                <set-header name="Microsoft-Azure-Api-Management-Correlation-Id"
+                    exists-action="override">
+                    <value>@{return Guid.NewGuid().ToString();}</value>
+                </set-header>
+                <set-body>Streaming chat completions are not allowed by this organization.</set-body>
+            </return-response>
+        </when>
+    </choose>
+=======
+<fragment>
+    <choose>
+        <when condition="@(context.Request.Body.As<JObject>(true)[" stream"] != null && context.Request.Body.As<JObject>(true)[" stream"].Type != JTokenType.Null)">
+            <set-variable name="isStream"
+                value="@{
+            var content = (context.Request.Body?.As<JObject>(true));
+            string streamValue = content["stream"].ToString();
+            return streamValue;
+        }" />
+        </when>
+    </choose>
+    <!-- Blocks streaming completions and returns 404 -->
+    <choose>
+        <when condition="@(context.Variables.GetValueOrDefault<string>(" isStream"," false").Equals(" true", StringComparison.OrdinalIgnoreCase))">
+            <return-response>
+                <set-status code="404" reason="BlockStreaming" />
+                <set-header name="Microsoft-Azure-Api-Management-Correlation-Id"
+                    exists-action="override">
+                    <value>@{return Guid.NewGuid().ToString();}</value>
+                </set-header>
+                <set-body>Streaming chat completions are not allowed by this organization.</set-body>
+            </return-response>
+        </when>
+    </choose>
+>>>>>>> azd-deployment:src/apim/oa-fragments-archived/oai-blocked-streaming-in-policy.xml
+</fragment>
