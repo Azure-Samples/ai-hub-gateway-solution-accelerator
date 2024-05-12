@@ -56,16 +56,18 @@ This guide provides insights into customizing API Management policies to enable 
 
 The `routes` variable is crucial as it defines the OpenAI endpoints and their priorities. This example demonstrates setting up various endpoints with priorities and throttling status. 
 
-   - Each cluster will reference supported route from this json array
+    - Each cluster will reference supported route from this json array
     - Each route will have a friendly name, location, priority, and throttling status.
 
 This sample deployment, creates 3 OpenAI instances in 3 different regions (EastUS, NorthCentralUS, EastUS2) and assigns them to the same priority level (which mean they will all be available for routing).
 
-You can also see that this sample configuration is using a single region deployment of APIM gateway indicated by the always true condition `if(context.Deployment.Region == "West Europe" || true)`. 
+You can also see that this sample configuration is using a single region deployment of APIM gateway indicated by the always true condition ```if(context.Deployment.Region == "West Europe" || true)```. 
 
 This is to show how you can configure different routing configuration based on the region of the APIM gateway.
 
 >**NOTE**: Before making any changes to the policy, please ensure creating **new API revision** first to test the new configuration and avoid any impact on the existing traffic.
+
+Primary APIM policy for [OpenAI can be found here](../infra/modules/apim/policies/openai_api_policy.xml).
 
 ```xml
 <set-variable name="oaClusters" value="@{
@@ -144,6 +146,23 @@ This is to show how you can configure different routing configuration based on t
     return clusters;   
 }" />
 ```
+
+### Not found routes
+
+This policy is designed to through ```400 Bad Request``` when the requested deployment name is not found in the clusters configuration.
+
+```xml
+<!-- If no routes found for deployment, return bad request with content of routes variable -->
+<choose>
+    <when condition="@(((JArray)context.Variables["routes"]).ToString().Contains("No routes"))">
+        <return-response>
+            <set-status code="400" reason="No routes" />
+            <set-body>@(((JArray)context.Variables["routes"]).ToString())</set-body>
+        </return-response>
+    </when>
+</choose>
+```
+
 ### Safe configuration changes
 
 **Caching**: caching the clusters and routes allow it to be shared across multiple API calls.
@@ -222,6 +241,7 @@ This outbound policy fragment contains the main usage tracking logic for the con
 It sends the usage data to the configured Event Hub logger to allow for usage tracking and charge-back.
 
 To use this policy, you need first to configure the Event Hub logger connection string and name.
+
 ```ps1
 # API Management service-specific details
 $apimServiceName = "apim-ai-gateway"

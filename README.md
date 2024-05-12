@@ -57,7 +57,7 @@ For local development, you'll need:
 
 ### How to deploy?
 
-It is recommended to check first the [main.bicep] file that includes the deployment configuration and parameters.
+It is recommended to check first the [main.bicep](./infra/main.bicep) file that includes the deployment configuration and parameters.
 
 Make sure you have enough OpenAI capacity for gpt-35-turbo and embedding in the selected regions.
 
