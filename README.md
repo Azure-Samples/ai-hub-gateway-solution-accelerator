@@ -90,7 +90,7 @@ When you are happy with the configuration, you can deploy the solution using the
 azd auth login
 
 # Setup new environment
-azd env new ai-hug-gateway-dev
+azd env new ai-hub-gateway-dev
 
 # Deploy the solution accelerator
 azd up
