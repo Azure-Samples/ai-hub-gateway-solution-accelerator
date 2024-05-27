@@ -47,14 +47,114 @@ param openAiInstances object = {
   openAi1: {
     name: 'openai1'
     location: 'eastus'
+    deployments: [
+      {
+        name: chatGptDeploymentName
+        model: {
+          format: 'OpenAI'
+          name: chatGptModelName
+          version: chatGptModelVersion
+        }
+        scaleSettings: {
+          scaleType: 'Standard'
+        }
+      }
+      {
+        name: embeddingGptDeploymentName
+        model: {
+          format: 'OpenAI'
+          name: embeddingGptModelName
+          version: embeddingGptModelVersion
+        }
+        sku: {
+          name: 'Standard'
+          capacity: deploymentCapacity
+        }
+      }
+      {
+        name: 'gpt-4o'
+        model: {
+          format: 'OpenAI'
+          name: 'gpt-4o'
+          version: '2024-05-13'
+        }
+        sku: {
+          name: 'GlobalStandard'
+          capacity: deploymentCapacity
+        }
+      }
+      {
+        name: 'dall-e-3'
+        location: 'eastus'
+        model: {
+          format: 'OpenAI'
+          name: 'dall-e-3'
+          version: '3.0'
+        }
+        sku: {
+          name: 'Standard'
+          capacity: 1
+        }
+      }
+    ]
   }
   openAi2: {
     name: 'openai2'
     location: 'northcentralus'
+    deployments: [
+      {
+        name: chatGptDeploymentName
+        model: {
+          format: 'OpenAI'
+          name: chatGptModelName
+          version: chatGptModelVersion
+        }
+        scaleSettings: {
+          scaleType: 'Standard'
+        }
+      }
+      {
+        name: embeddingGptDeploymentName
+        model: {
+          format: 'OpenAI'
+          name: embeddingGptModelName
+          version: embeddingGptModelVersion
+        }
+        sku: {
+          name: 'Standard'
+          capacity: deploymentCapacity
+        }
+      }
+    ]
   }
   openAi3: {
     name: 'openai3'
     location: 'eastus2'
+    deployments: [
+      {
+        name: chatGptDeploymentName
+        model: {
+          format: 'OpenAI'
+          name: chatGptModelName
+          version: chatGptModelVersion
+        }
+        scaleSettings: {
+          scaleType: 'Standard'
+        }
+      }
+      {
+        name: embeddingGptDeploymentName
+        model: {
+          format: 'OpenAI'
+          name: embeddingGptModelName
+          version: embeddingGptModelVersion
+        }
+        sku: {
+          name: 'Standard'
+          capacity: deploymentCapacity
+        }
+      }
+    ]
   }
 }
 
@@ -150,31 +250,7 @@ module openAis 'modules/ai/cognitiveservices.bicep' = [for (config, i) in items(
       name: openAiSkuName
     }
     deploymentCapacity: deploymentCapacity
-    deployments: [
-      {
-        name: chatGptDeploymentName
-        model: {
-          format: 'OpenAI'
-          name: chatGptModelName
-          version: chatGptModelVersion
-        }
-        scaleSettings: {
-          scaleType: 'Standard'
-        }
-      }
-      {
-        name: embeddingGptDeploymentName
-        model: {
-          format: 'OpenAI'
-          name: embeddingGptModelName
-          version: embeddingGptModelVersion
-        }
-        sku: {
-          name: 'Standard'
-          capacity: deploymentCapacity
-        }
-      }
-    ]
+    deployments: config.value.deployments
   }
 }]
 

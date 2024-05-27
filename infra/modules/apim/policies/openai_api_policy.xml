@@ -95,6 +95,18 @@
                                 { "routes", new JArray(routes[0], routes[1], routes[2]) }
                             });
 
+                            clusters.Add(new JObject()
+                            {
+                                { "deploymentName", "dall-e-3" },
+                                { "routes", new JArray(routes[0]) }
+                            });
+
+                            clusters.Add(new JObject()
+                            {
+                                { "deploymentName", "gpt-4o" },
+                                { "routes", new JArray(routes[0]) }
+                            });
+
                             //If you want to add additional speical models like DALL-E or GPT-4, you can add them here
                             //In this cluster, DALL-E is served by one OpenAI endpoint route and GPT-4 is served by two OpenAI endpoint routes
                             //clusters.Add(new JObject()

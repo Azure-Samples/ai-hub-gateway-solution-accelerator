@@ -88,7 +88,7 @@ resource apimOpenaiApi 'Microsoft.ApiManagement/service/apis@2022-08-01' = {
       header: 'api-key'
     }
     format: 'openapi'
-    value: loadTextContent('./openai-api/oai-api-spec-2024-02-01.yaml')
+    value: string(loadYamlContent('./openai-api/oai-api-spec-2024-05-01-preview.yaml'))
     protocols: [
       'https'
     ]
