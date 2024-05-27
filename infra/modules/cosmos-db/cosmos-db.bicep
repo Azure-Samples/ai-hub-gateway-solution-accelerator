@@ -42,6 +42,9 @@ param databaseName string = 'ai-usage-db'
 @description('The name for the container')
 param containerName string = 'ai-usage-container'
 
+@description('The name for the container')
+param pricingContainerName string = 'model-pricing'
+
 @minValue(400)
 @maxValue(1000000)
 @description('The throughput for the container')
@@ -114,7 +117,29 @@ resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
         indexingMode: 'consistent'
         automatic: true
       }
-      defaultTtl: 86400
+    }
+    options: {
+      throughput: throughput
+    }
+  }
+}
+
+resource modelPricingContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-02-15-preview' = {
+  parent: database
+  name: pricingContainerName
+  properties: {
+    resource: {
+      id: pricingContainerName
+      partitionKey: {
+        paths: [
+          '/model'
+        ]
+        kind: 'Hash'
+      }
+      indexingPolicy: {
+        indexingMode: 'consistent'
+        automatic: true
+      }
     }
     options: {
       throughput: throughput

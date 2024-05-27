@@ -1,0 +1,57 @@
+[
+    {
+        "id": "1",
+        "model": "ada",
+        "alternativeName": "embedding",
+        "isActive": true,
+        "CostPerInputUnit": 0.0001,
+        "CostPerOutputUnit": 0,
+        "CostUnit": 1000,
+        "Currency": "USD",
+        "region": "ALL"
+    },
+    {
+        "id": "2",
+        "model": "gpt-35-turbo",
+        "alternativeName": "chat",
+        "isActive": true,
+        "CostPerInputUnit": 0.0015,
+        "CostPerOutputUnit": 0.002,
+        "CostUnit": 1000,
+        "Currency": "USD",
+        "region": "ALL"
+    },
+    {
+        "id": "3",
+        "model": "gpt-4",
+        "alternativeName": "gpt-4",
+        "isActive": true,
+        "CostPerInputUnit": 0.03,
+        "CostPerOutputUnit": 0.06,
+        "CostUnit": 1000,
+        "Currency": "USD",
+        "region": "ALL"
+    },
+    {
+        "id": "4",
+        "model": "gpt-4o",
+        "alternativeName": "gpt-4o",
+        "isActive": true,
+        "CostPerInputUnit": 0.005,
+        "CostPerOutputUnit": 0.015,
+        "CostUnit": 1000,
+        "Currency": "USD",
+        "region": "ALL"
+    },
+    {
+        "id": "5",
+        "model": "dall-e-3",
+        "alternativeName": "dall-e-3",
+        "isActive": true,
+        "CostPerInputUnit": 4,
+        "CostPerOutputUnit": 0,
+        "CostUnit": 100,
+        "Currency": "USD",
+        "region": "ALL"
+    }
+]
