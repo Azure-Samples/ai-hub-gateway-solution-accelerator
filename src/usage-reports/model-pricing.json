@@ -2,7 +2,7 @@
     {
         "id": "1",
         "model": "ada",
-        "alternativeName": "embedding",
+        "deploymentName": "embedding",
         "isActive": true,
         "CostPerInputUnit": 0.0001,
         "CostPerOutputUnit": 0,
@@ -15,7 +15,7 @@
     {
         "id": "2",
         "model": "gpt-35-turbo",
-        "alternativeName": "chat",
+        "deploymentName": "chat",
         "isActive": true,
         "CostPerInputUnit": 0.0015,
         "CostPerOutputUnit": 0.002,
@@ -28,7 +28,7 @@
     {
         "id": "3",
         "model": "gpt-4",
-        "alternativeName": "gpt-4",
+        "deploymentName": "gpt-4",
         "isActive": true,
         "CostPerInputUnit": 0.03,
         "CostPerOutputUnit": 0.06,
@@ -41,7 +41,7 @@
     {
         "id": "4",
         "model": "gpt-4o",
-        "alternativeName": "gpt-4o",
+        "deploymentName": "gpt-4o",
         "isActive": true,
         "CostPerInputUnit": 0.005,
         "CostPerOutputUnit": 0.015,
@@ -54,7 +54,7 @@
     {
         "id": "5",
         "model": "dall-e-3",
-        "alternativeName": "dall-e-3",
+        "deploymentName": "dall-e-3",
         "isActive": true,
         "CostPerInputUnit": 4,
         "CostPerOutputUnit": 0,
@@ -67,7 +67,7 @@
     {
         "id": "6",
         "model": "ai-search",
-        "alternativeName": "ai-search-business",
+        "deploymentName": "ai-search-business",
         "isActive": true,
         "CostPerInputUnit": 0,
         "CostPerOutputUnit": 1,
