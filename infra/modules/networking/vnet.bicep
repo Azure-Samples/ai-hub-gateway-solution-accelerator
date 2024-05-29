@@ -282,21 +282,20 @@ resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLin
 }]
 
 // Public IP 
-resource pipAppGateway 'Microsoft.Network/publicIPAddresses@2023-04-01' = {
-  name: appGatewayPIPName
-  location: location
-  sku: {
-    name: 'Standard'
-  }
-  zones: ['1', '2', '3']
-  properties: {
-    publicIPAddressVersion: 'IPv4'
-    publicIPAllocationMethod: 'Static'
-    dnsSettings: {
-      domainNameLabel: appGatewayPIPName
-    }
-  }
-}
+// resource pipAppGateway 'Microsoft.Network/publicIPAddresses@2023-04-01' = {
+//   name: appGatewayPIPName
+//   location: location
+//   sku: {
+//     name: 'Standard'
+//   }
+//   properties: {
+//     publicIPAddressVersion: 'IPv4'
+//     publicIPAllocationMethod: 'Static'
+//     dnsSettings: {
+//       domainNameLabel: appGatewayPIPName
+//     }
+//   }
+// }
 
 output virtualNetworkId string = virtualNetwork.id
 output vnetName string = virtualNetwork.name
