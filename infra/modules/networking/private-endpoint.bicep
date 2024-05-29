@@ -17,6 +17,10 @@ resource privateEndpointDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' e
 resource privateEndpoint 'Microsoft.Network/privateEndpoints@2022-09-01' = {
   name: name
   location: location
+  dependsOn: [
+    privateEndpointSubnet
+    privateEndpointDnsZone
+  ]
   properties: {
     subnet: {
       id: privateEndpointSubnet.id

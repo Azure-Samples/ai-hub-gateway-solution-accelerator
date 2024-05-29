@@ -5,6 +5,13 @@ param tags object = {}
 
 param logAnalyticsWorkspaceId string
 
+// Networking
+param privateLinkScopeName string
+
+resource privateLinkScope 'microsoft.insights/privateLinkScopes@2021-07-01-preview' existing = {
+  name: privateLinkScopeName
+}
+
 resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: name
   location: location
@@ -13,8 +20,16 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   properties: {
     Application_Type: 'web'
     WorkspaceResourceId: logAnalyticsWorkspaceId
-    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForIngestion: 'Disabled'
     publicNetworkAccessForQuery: 'Enabled'
+  }
+}
+
+resource appInsightsScopedResource 'Microsoft.Insights/privateLinkScopes/scopedResources@2021-07-01-preview' = {
+  parent: privateLinkScope
+  name: '${applicationInsights.name}-connection'
+  properties: {
+    linkedResourceId: applicationInsights.id
   }
 }
 

@@ -13,11 +13,7 @@ namespace AI.Hub.Gateway.UsageIngestion
     public static class AIUsageIngestion
     {
     [FunctionName("AIUsageEventHub")]
-        public static async Task Run([EventHubTrigger("ai-usage", Connection = "EventHubConnection")] EventData[] events,
-                [CosmosDB(
-                    databaseName: "ai-usage-db",
-                    containerName: "ai-usage-container",
-                    Connection = "CosmosDBConnection")] IAsyncCollector<JObject> usage,
+        public static async Task Run([EventHubTrigger("%EventHubName%", Connection = "EventHubConnection")] EventData[] events,
          ILogger log)
         {
             var exceptions = new List<Exception>();
@@ -27,10 +23,10 @@ namespace AI.Hub.Gateway.UsageIngestion
                 try
                 {
                     // Replace these two lines with your processing logic.
-                    log.LogInformation($"C# Event Hub trigger function processed a message: {eventData.EventBody}");
+                    log.LogInformation($"C# Event Hub trigger for a message: {eventData.EventBody}");
                     var eventString = eventData.EventBody.ToString();
                     var eventObject = JObject.Parse(eventString);
-                    usage.AddAsync(eventObject).Wait();
+                    //usage.AddAsync(eventObject).Wait();
                     await Task.Yield();
                 }
                 catch (Exception e)

@@ -12,6 +12,7 @@ param eventHubName string
 param vnetName string
 param functionAppSubnetId string
 
+param cosmosDBEndpoint string
 
 param location string = resourceGroup().location
 
@@ -121,7 +122,9 @@ resource functionAppSettings 'Microsoft.Web/sites/config@2020-12-01' = {
       EventHubConnection__clientId: functionAppmanagedIdentity.properties.clientId
       EventHubConnection__credential: 'managedidentity'
       EventHubConnection__fullyQualifiedNamespace: '${eventHubNamespaceName}.servicebus.windows.net'
-      //EventHubConnection: eventHubConnectionString
       EventHubName: eventHubName
+
+      //CosmosDB
+      CosmosDBEndpont: cosmosDBEndpoint
   }  
 }

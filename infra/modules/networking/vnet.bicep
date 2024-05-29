@@ -2,7 +2,7 @@ param name string
 param location string = resourceGroup().location
 param appGatewaySubnetName string
 param appGatewayNsgName string
-param apimManagementPIPName string
+param appGatewayPIPName string
 param apimSubnetName string
 param apimNsgName string
 param privateEndpointSubnetName string
@@ -282,8 +282,8 @@ resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLin
 }]
 
 // Public IP 
-resource pipAPIMManagement 'Microsoft.Network/publicIPAddresses@2023-04-01' = {
-  name: apimManagementPIPName
+resource pipAppGateway 'Microsoft.Network/publicIPAddresses@2023-04-01' = {
+  name: appGatewayPIPName
   location: location
   sku: {
     name: 'Standard'
@@ -293,7 +293,7 @@ resource pipAPIMManagement 'Microsoft.Network/publicIPAddresses@2023-04-01' = {
     publicIPAddressVersion: 'IPv4'
     publicIPAllocationMethod: 'Static'
     dnsSettings: {
-      domainNameLabel: apimManagementPIPName
+      domainNameLabel: appGatewayPIPName
     }
   }
 }
@@ -306,3 +306,4 @@ output privateEndpointSubnetName string = virtualNetwork::privateEndpointSubnet.
 output privateEndpointSubnetId string = virtualNetwork::privateEndpointSubnet.id
 output functionAppSubnetName string = virtualNetwork::functionAppSubnet.name
 output functionAppSubnetId string = virtualNetwork::functionAppSubnet.id
+output location string = virtualNetwork.location
