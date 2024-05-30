@@ -59,6 +59,8 @@ param usageProcessingFunctionAppName string = ''
 @description('Name of the Function App resource. Leave blank to use default naming conventions.')
 param storageAccountName string = ''
 
+@description('Provision stream analytics job, turn it on only if you need it. Azure Function App will be provisioned to process usage data from Event Hub.')
+param provisionStreamAnalytics bool = false
 
 //Networking - VNet
 param vnetName string = ''
@@ -393,7 +395,7 @@ module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
   }
 }
 
-module streamAnalyticsJob './modules/stream-analytics/stream-analytics.bicep' = {
+module streamAnalyticsJob './modules/stream-analytics/stream-analytics.bicep' = if(provisionStreamAnalytics) {
   name: 'stream-analytics-job'
   scope: resourceGroup
   params: {
@@ -434,8 +436,10 @@ module functionApp './modules/functionapp/functionapp.bicep' = {
     eventHubNamespaceName: eventHub.outputs.eventHubNamespaceName
     eventHubName: eventHub.outputs.eventHubName
     cosmosDBEndpoint: cosmosDb.outputs.cosmosDbEndpoint
+    cosmosDatabaseName: cosmosDb.outputs.cosmosDbDatabaseName
+    cosmosContainerName: cosmosDb.outputs.cosmosDbContainerName
     vnetName: vnet.outputs.vnetName
-    functionAppSubnetId: vnet.outputs.functionAppSubnetId     
+    functionAppSubnetId: vnet.outputs.functionAppSubnetId
   }
 }
 

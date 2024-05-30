@@ -13,13 +13,15 @@ param vnetName string
 param functionAppSubnetId string
 
 param cosmosDBEndpoint string
+param cosmosDatabaseName string
+param cosmosContainerName string
 
 param location string = resourceGroup().location
 
 var functionPlanOS = 'Linux'
 var functionRuntime  = 'dotnet-isolated'
-var dotnetFrameworkVersion  = '6.0'
-var linuxFxVersion  = 'DOTNET-ISOLATED|6.0'
+var dotnetFrameworkVersion  = '8.0'
+var linuxFxVersion  = 'DOTNET-ISOLATED|8.0'
 var isReserved = functionPlanOS == 'Linux'
 
 
@@ -125,6 +127,9 @@ resource functionAppSettings 'Microsoft.Web/sites/config@2020-12-01' = {
       EventHubName: eventHubName
 
       //CosmosDB
-      CosmosDBEndpont: cosmosDBEndpoint
+      CosmosAccountEndpoint: cosmosDBEndpoint
+      CosmosDatabaseName: cosmosDatabaseName
+      CosmosContainerName: cosmosContainerName
+      CosmosManagedIdentityId: functionAppmanagedIdentity.properties.clientId
   }  
 }

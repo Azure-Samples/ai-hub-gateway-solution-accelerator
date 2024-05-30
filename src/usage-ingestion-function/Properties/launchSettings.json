@@ -1,8 +1,8 @@
 {
   "profiles": {
-    "usage_ingestion_function": {
+    "usage_ingestion_func": {
       "commandName": "Project",
-      "commandLineArgs": "--port 7058",
+      "commandLineArgs": "--port 7291",
       "launchBrowser": false
     }
   }
