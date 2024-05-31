@@ -16,10 +16,13 @@ The AI Hub Gateway Landing Zone architecture designed to be a central hub for AI
 #### Recent release updates:
 >**About**: here you can see the recent updates to the gateway implementation
 
+Now this solution accelerator is updated to be **enterprise ready** with the following features:
+
 - **New gpt-4o Global Deployment** is now part of the OpenAI resource provisioning
 - **Azure OpenAI API spec version** was updated to ```2024-05-01-preview``` to bring APIs for audio and batch among other advancements (note it is backward compatible with previous versions)
 - **AI usage reports enhancements** with Cosmos Db now include a container for ```model-pricing``` which include the $ pricing for AI models tokens ([sample data can be found here](src\usage-reports\model-pricing.json)), along with updated PowerBI dashboard design.
 - **Private connectivity** now can be enabled by setting APIM deployment to External or Internal (require SKU to be either Developer or Premium) and it will provision all included Azure resources like (Azure OpenAI, Cosmos, Event Hub,...) with private endpoints.
+- **Usage ingestion** is now implemented with Azure Function to support ingesting usage data from Event Hub to Cosmos Db with full private connectivity support.
 
 The AI Hub Gateway Landing Zone provides the following features:
 
@@ -40,14 +43,18 @@ This solution accelerator provides a one-click deploy option to deploy the AI Hu
 
 ### What is being deployed?
 
+![Azure components](./assets/azure-resources-diagram.svg)
+
 The one-click deploy option will deploy the following components in your Azure subscription:
 1. **Azure API Management**: Azure API Management is a fully managed service that powers most of the GenAI gateway capabilities.
 2. **Application Insights**: Application Insights is an extensible Application Performance Management (APM) service that will provides critical insights on the gateway operational performance. It will also include a dashboard for the key metrics.
 3. **Event Hub**: Event Hub is a fully managed, real-time data ingestion service that’s simple, trusted, and scalable and it is used to stream usage and charge-back data to target data and charge back platforms.
 4. **Azure OpenAI**: 3 instances of Azure OpenAI across 3 regions. Azure OpenAI is a cloud deployment of cutting edge generative models from OpenAI (like ChatGPT, DALL.E and more).
 5. **Cosmos DB**: Azure Cosmos DB is a fully managed NoSQL database for storing usage and charge-back data.
-6. **Azure Stream Analytics**: Azure Stream Analytics is a fully managed real-time event processing service that will be used to process the usage and charge-back data from Event Hub and push it to Cosmos DB.
+6. **Azure Function App**: to support real-time event processing service that will be used to process the usage and charge-back data from Event Hub and push it to Cosmos DB.
 7. **User Managed Identity**: A user managed identity to be used by the Azure API Management to access the Azure OpenAI services/Event Hub and another for Azure Stream Analytics to access Event Hub and Cosmos DB.
+8. **Virtual Network**: A virtual network to host the Azure API Management and the other Azure resources.
+9. **Private Endpoints & Private DNS Zones**: Private endpoints for Azure OpenAI, Cosmos DB, Azure Function, Azure Monitor and Event Hub to enable private connectivity.
 
 ### Prerequisites
 
