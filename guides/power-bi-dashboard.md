@@ -10,7 +10,7 @@ In this accelerator, we will be using Power BI to create a dashboard that will d
 
 - Make sure that you can access the Cosmos DB from your local machine (you might need to allow you public IP to access Cosmos DB).
 
-![Cosmos DB Firewall](../images/cosmos-db-firewall.png) 
+![Cosmos DB Firewall](../assets/cosmos-db-firwall.png) 
 
 - Insert initial data into the model-pricing container (sample data for the model-pricing container can be found in the [/src/usage-reports/model-pricing.json](../src/usage-reports/model-pricing.json)).
 
@@ -35,6 +35,8 @@ In order to link the dashboard to the Cosmos DB, you need to update the connecti
 ![Edit Data](../assets/power-bi-data-source-adv-editor.png)
 
 3. Replace the Cosmos DB endpoint with the one you have deployed.
+
+![Edit Data AI Usage](../assets/power-bi-data-source-adv-editor-update.png)
 
 4. Repeat the same for model-pricing data table.
 
