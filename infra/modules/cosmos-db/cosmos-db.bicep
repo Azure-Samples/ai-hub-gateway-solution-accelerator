@@ -77,6 +77,12 @@ var locations = [
   }
 ]
 
+// Networking
+param cosmosPrivateEndpointName string
+param vNetName string
+param privateEndpointSubnetName string
+param cosmosDnsZoneName string
+
 resource account 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview' = {
   name: toLower(accountName)
   location: location
@@ -88,6 +94,7 @@ resource account 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview' = {
     databaseAccountOfferType: 'Standard'
     enableAutomaticFailover: systemManagedFailover
     disableKeyBasedMetadataWriteAccess: true
+    publicNetworkAccess: 'Enabled'
   }
 }
 
@@ -147,8 +154,24 @@ resource modelPricingContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabas
   }
 }
 
+module privateEndpoint '../networking/private-endpoint.bicep' = {
+  name: '${accountName}-privateEndpoint'
+  params: {
+    groupIds: [
+      'sql'
+    ]
+    dnsZoneName: cosmosDnsZoneName
+    name: cosmosPrivateEndpointName
+    subnetName: privateEndpointSubnetName
+    privateLinkServiceId: account.id
+    vNetName: vNetName
+    location: location
+  }
+}
+
 output location string = location
 output cosmosDbAccountName string = account.name
 output cosmosDbDatabaseName string = database.name
 output cosmosDbContainerName string = container.name
 output resourceId string = database.id
+output cosmosDbEndpoint string = 'https://${account.name}.documents.azure.com:443/'

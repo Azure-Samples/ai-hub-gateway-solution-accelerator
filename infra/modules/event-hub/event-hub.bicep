@@ -3,7 +3,12 @@ param location string = resourceGroup().location
 param sku string = 'Standard'
 param capacity int = 1
 param tags object = {}
+param eventHubName string = 'ai-usage'
 
+param eventHubPrivateEndpointName string
+param vNetName string
+param privateEndpointSubnetName string
+param eventHubDnsZoneName string
 resource eventHubNamespace 'Microsoft.EventHub/namespaces@2021-01-01-preview' = {
   name: name
   location: location
@@ -26,6 +31,21 @@ resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2021-01-01-preview' =
     messageRetentionInDays: 7
     partitionCount: 2
     status: 'Active'
+  }
+}
+
+module privateEndpoint '../networking/private-endpoint.bicep' = {
+  name: '${eventHubName}-privateEndpoint'
+  params: {
+    groupIds: [
+      'namespace'
+    ]
+    dnsZoneName: eventHubDnsZoneName
+    name: eventHubPrivateEndpointName
+    subnetName: privateEndpointSubnetName
+    privateLinkServiceId: eventHubNamespace.id
+    vNetName: vNetName
+    location: location
   }
 }
 

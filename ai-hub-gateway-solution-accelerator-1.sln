@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.002.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{C01B12BC-8A75-4D67-9EA9-7B997077F474}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "usage-ingestion-func", "src\usage-ingestion-func\usage-ingestion-func.csproj", "{DAD4D402-C622-4A12-AD23-27AB80EBAD17}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DAD4D402-C622-4A12-AD23-27AB80EBAD17}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DAD4D402-C622-4A12-AD23-27AB80EBAD17}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DAD4D402-C622-4A12-AD23-27AB80EBAD17}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DAD4D402-C622-4A12-AD23-27AB80EBAD17}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{DAD4D402-C622-4A12-AD23-27AB80EBAD17} = {C01B12BC-8A75-4D67-9EA9-7B997077F474}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7C8BF2DD-EADC-4C27-AB22-2D9728A0DF7E}
+	EndGlobalSection
+EndGlobal
