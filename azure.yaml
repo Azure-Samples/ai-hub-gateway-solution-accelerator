@@ -2,3 +2,8 @@
 name: ai-hub-gateway-landing-zone
 infra:
   provider: bicep
+services:
+  usageProcessingFunctionApp:
+    project: ./src/usage-ingestion-function
+    language: dotnet
+    host: function

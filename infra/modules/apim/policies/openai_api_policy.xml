@@ -95,6 +95,18 @@
                                 { "routes", new JArray(routes[0], routes[1], routes[2]) }
                             });
 
+                            clusters.Add(new JObject()
+                            {
+                                { "deploymentName", "dall-e-3" },
+                                { "routes", new JArray(routes[0]) }
+                            });
+
+                            clusters.Add(new JObject()
+                            {
+                                { "deploymentName", "gpt-4o" },
+                                { "routes", new JArray(routes[0]) }
+                            });
+
                             //If you want to add additional speical models like DALL-E or GPT-4, you can add them here
                             //In this cluster, DALL-E is served by one OpenAI endpoint route and GPT-4 is served by two OpenAI endpoint routes
                             //clusters.Add(new JObject()
@@ -317,7 +329,7 @@
                             new JProperty("routeLocation", (string)context.Variables.GetValueOrDefault<string>("routeLocation", "NA")),
                             new JProperty("routeName", (string)context.Variables.GetValueOrDefault<string>("routeName", "NA")),
                             new JProperty("deploymentName", (string)context.Variables.GetValueOrDefault<string>("deploymentName", "NA")),
-                            new JProperty("promptTokens", responseBody?["usage"]?["prompt_tokens"]?.ToString() ?? "0"),
+                            new JProperty("promptTokens", responseBody?["usage"]?["prompt_tokens"]?.ToString() ?? "1"),
                             new JProperty("responseTokens", responseBody?["usage"]?["completion_tokens"]?.ToString() ?? "0"),
                             new JProperty("totalTokens", responseBody?["usage"]?["total_tokens"]?.ToString() ?? "1")
                     ).ToString();

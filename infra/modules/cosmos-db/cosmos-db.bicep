@@ -42,6 +42,9 @@ param databaseName string = 'ai-usage-db'
 @description('The name for the container')
 param containerName string = 'ai-usage-container'
 
+@description('The name for the container')
+param pricingContainerName string = 'model-pricing'
+
 @minValue(400)
 @maxValue(1000000)
 @description('The throughput for the container')
@@ -74,6 +77,12 @@ var locations = [
   }
 ]
 
+// Networking
+param cosmosPrivateEndpointName string
+param vNetName string
+param privateEndpointSubnetName string
+param cosmosDnsZoneName string
+
 resource account 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview' = {
   name: toLower(accountName)
   location: location
@@ -85,6 +94,7 @@ resource account 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview' = {
     databaseAccountOfferType: 'Standard'
     enableAutomaticFailover: systemManagedFailover
     disableKeyBasedMetadataWriteAccess: true
+    publicNetworkAccess: 'Enabled'
   }
 }
 
@@ -114,11 +124,48 @@ resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
         indexingMode: 'consistent'
         automatic: true
       }
-      defaultTtl: 86400
     }
     options: {
       throughput: throughput
     }
+  }
+}
+
+resource modelPricingContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-02-15-preview' = {
+  parent: database
+  name: pricingContainerName
+  properties: {
+    resource: {
+      id: pricingContainerName
+      partitionKey: {
+        paths: [
+          '/model'
+        ]
+        kind: 'Hash'
+      }
+      indexingPolicy: {
+        indexingMode: 'consistent'
+        automatic: true
+      }
+    }
+    options: {
+      throughput: throughput
+    }
+  }
+}
+
+module privateEndpoint '../networking/private-endpoint.bicep' = {
+  name: '${accountName}-privateEndpoint'
+  params: {
+    groupIds: [
+      'sql'
+    ]
+    dnsZoneName: cosmosDnsZoneName
+    name: cosmosPrivateEndpointName
+    subnetName: privateEndpointSubnetName
+    privateLinkServiceId: account.id
+    vNetName: vNetName
+    location: location
   }
 }
 
@@ -127,3 +174,4 @@ output cosmosDbAccountName string = account.name
 output cosmosDbDatabaseName string = database.name
 output cosmosDbContainerName string = container.name
 output resourceId string = database.id
+output cosmosDbEndpoint string = 'https://${account.name}.documents.azure.com:443/'

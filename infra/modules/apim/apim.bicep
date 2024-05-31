@@ -19,6 +19,10 @@ param audience string = 'https://cognitiveservices.azure.com/.default'
 param eventHubName string
 param eventHubEndpoint string
 
+// Networking
+param apimNetworkType string = 'External'
+param apimSubnetId string
+
 
 var openAiApiBackendId = 'openai-backend'
 var openAiApiUamiNamedValue = 'uami-client-id'
@@ -56,6 +60,10 @@ resource apimService 'Microsoft.ApiManagement/service@2021-08-01' = {
   properties: {
     publisherEmail: publisherEmail
     publisherName: publisherName
+    virtualNetworkType: apimNetworkType
+    virtualNetworkConfiguration: {
+      subnetResourceId: apimSubnetId
+    }
     // Custom properties are not supported for Consumption SKU
     customProperties: sku == 'Consumption' ? {} : {
       'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Ciphers.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA': 'false'
@@ -88,7 +96,7 @@ resource apimOpenaiApi 'Microsoft.ApiManagement/service/apis@2022-08-01' = {
       header: 'api-key'
     }
     format: 'openapi'
-    value: loadTextContent('./openai-api/oai-api-spec-2024-02-01.yaml')
+    value: string(loadYamlContent('./openai-api/oai-api-spec-2024-05-01-preview.yaml'))
     protocols: [
       'https'
     ]

@@ -1,0 +1,80 @@
+[
+    {
+        "id": "1",
+        "model": "ada",
+        "deploymentName": "embedding",
+        "isActive": true,
+        "CostPerInputUnit": 0.0001,
+        "CostPerOutputUnit": 0,
+        "CostUnit": 1000,
+        "BaseCost": 0,
+        "Currency": "USD",
+        "CalculationMethod": "tokens",
+        "region": "ALL"
+    },
+    {
+        "id": "2",
+        "model": "gpt-35-turbo",
+        "deploymentName": "chat",
+        "isActive": true,
+        "CostPerInputUnit": 0.0015,
+        "CostPerOutputUnit": 0.002,
+        "CostUnit": 1000,
+        "BaseCost": 0,
+        "Currency": "USD",
+        "CalculationMethod": "tokens",
+        "region": "ALL"
+    },
+    {
+        "id": "3",
+        "model": "gpt-4",
+        "deploymentName": "gpt-4",
+        "isActive": true,
+        "CostPerInputUnit": 0.03,
+        "CostPerOutputUnit": 0.06,
+        "CostUnit": 1000,
+        "BaseCost": 0,
+        "Currency": "USD",
+        "CalculationMethod": "tokens",
+        "region": "ALL"
+    },
+    {
+        "id": "4",
+        "model": "gpt-4o",
+        "deploymentName": "gpt-4o",
+        "isActive": true,
+        "CostPerInputUnit": 0.005,
+        "CostPerOutputUnit": 0.015,
+        "CostUnit": 1000,
+        "BaseCost": 0,
+        "Currency": "USD",
+        "CalculationMethod": "tokens",
+        "region": "ALL"
+    },
+    {
+        "id": "5",
+        "model": "dall-e-3",
+        "deploymentName": "dall-e-3",
+        "isActive": true,
+        "CostPerInputUnit": 4,
+        "CostPerOutputUnit": 0,
+        "CostUnit": 100,
+        "BaseCost": 0,
+        "Currency": "USD",
+        "CalculationMethod": "tokens",
+        "region": "ALL"
+    },
+    {
+        "id": "6",
+        "model": "ai-search",
+        "deploymentName": "ai-search-business",
+        "isActive": true,
+        "CostPerInputUnit": 0,
+        "CostPerOutputUnit": 1,
+        "CostUnit": 1,
+        "BaseCost": 590,
+        "Currency": "USD",
+        "CalculationMethod": "percentage",
+        "region": "ALL"
+    }
+]
