@@ -211,15 +211,6 @@ azd env new ai-hub-gateway-dev
 azd up
 ```
 
-Once the deployments complete, you can head to Azure Stream Analytics and start the job to process the data from Event Hub to Cosmos DB.
-
-```bash
-
-# Start the Stream Analytics job
-az stream-analytics job start --name "REPLACE" --resource-group "REPLACE"
-
-```
-
 After that, you can start using the AI Hub Gateway Landing Zone through the Azure API Management on Azure Portal:
 
 ![apim-test](./assets/apim-test.png)
