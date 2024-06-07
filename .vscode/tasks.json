@@ -12,7 +12,7 @@
 			"type": "process",
 			"problemMatcher": "$msCompile",
 			"options": {
-				"cwd": "${workspaceFolder}/src\\usage-ingestion-func"
+				"cwd": "${workspaceFolder}/src\\usage-ingestion-function"
 			}
 		},
 		{
@@ -31,7 +31,7 @@
 			},
 			"problemMatcher": "$msCompile",
 			"options": {
-				"cwd": "${workspaceFolder}/src\\usage-ingestion-func"
+				"cwd": "${workspaceFolder}/src\\usage-ingestion-function"
 			}
 		},
 		{
@@ -47,7 +47,7 @@
 			"type": "process",
 			"problemMatcher": "$msCompile",
 			"options": {
-				"cwd": "${workspaceFolder}/src\\usage-ingestion-func"
+				"cwd": "${workspaceFolder}/src\\usage-ingestion-function"
 			}
 		},
 		{
@@ -64,14 +64,14 @@
 			"dependsOn": "clean release (functions)",
 			"problemMatcher": "$msCompile",
 			"options": {
-				"cwd": "${workspaceFolder}/src\\usage-ingestion-func"
+				"cwd": "${workspaceFolder}/src\\usage-ingestion-function"
 			}
 		},
 		{
 			"type": "func",
 			"dependsOn": "build (functions)",
 			"options": {
-				"cwd": "${workspaceFolder}/src\\usage-ingestion-func/bin/Debug/net8.0"
+				"cwd": "${workspaceFolder}/src\\usage-ingestion-function/bin/Debug/net8.0"
 			},
 			"command": "host start",
 			"isBackground": true,
