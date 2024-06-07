@@ -374,6 +374,9 @@ module eventHub './modules/event-hub/event-hub.bicep' = {
     privateEndpointSubnetName: vnet.outputs.privateEndpointSubnetName
     eventHubDnsZoneName: eventHubPrivateDnsZoneName
   }
+  dependsOn: [
+    vnet
+  ]
 }
 
 module apim './modules/apim/apim.bicep' = {
@@ -395,6 +398,11 @@ module apim './modules/apim/apim.bicep' = {
     apimSubnetId: vnet.outputs.apimSubnetId
     apimNetworkType: apimNetworkType
   }
+  dependsOn: [
+    vnet
+    apimManagedIdentity
+    eventHub
+  ]
 }
 
 module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
@@ -409,6 +417,9 @@ module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
     cosmosPrivateEndpointName: '${abbrs.documentDBDatabaseAccounts}pe-${resourceToken}'
     privateEndpointSubnetName: vnet.outputs.privateEndpointSubnetName
   }
+  dependsOn: [
+    vnet
+  ]
 }
 
 module streamAnalyticsJob './modules/stream-analytics/stream-analytics.bicep' = if(provisionStreamAnalytics) {
@@ -435,7 +446,16 @@ module storageAccount './modules/functionapp/storageaccount.bicep' = {
     tags: tags
     storageAccountName: !empty(storageAccountName) ? storageAccountName : 'funcusage${resourceToken}'
     functionAppManagedIdentityName: usageManagedIdentity.outputs.managedIdentityName
+    vNetName: vnet.outputs.vnetName
+    privateEndpointSubnetName: vnet.outputs.privateEndpointSubnetName
+    storageBlobDnsZoneName: storageBlobPrivateDnsZoneName
+    storageFileDnsZoneName: storageFilePrivateDnsZoneName
+    storageBlobPrivateEndpointName: '${abbrs.storageStorageAccounts}blob-pe-${resourceToken}'
+    storageFilePrivateEndpointName: '${abbrs.storageStorageAccounts}file-pe-${resourceToken}'
   }
+  dependsOn: [
+    vnet
+  ]
 }
 
 module functionApp './modules/functionapp/functionapp.bicep' = {
@@ -457,6 +477,14 @@ module functionApp './modules/functionapp/functionapp.bicep' = {
     vnetName: vnet.outputs.vnetName
     functionAppSubnetId: vnet.outputs.functionAppSubnetId
   }
+  dependsOn: [
+    vnet
+    storageAccount
+    usageManagedIdentity
+    monitoring
+    eventHub
+    cosmosDb
+  ]
 }
 
 output APIM_NAME string = apim.outputs.apimName

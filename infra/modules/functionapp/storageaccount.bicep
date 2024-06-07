@@ -3,6 +3,14 @@ param location string = resourceGroup().location
 param tags object = {}
 param functionAppManagedIdentityName string
 
+//Networking
+param vNetName string
+param privateEndpointSubnetName string
+param storageBlobDnsZoneName string
+param storageBlobPrivateEndpointName string
+param storageFileDnsZoneName string
+param storageFilePrivateEndpointName string
+
 // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#storage-blob-data-owner
 var storageBlobDataOwnerRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
 
@@ -30,6 +38,13 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   properties: {
     supportsHttpsTrafficOnly: true
     defaultToOAuthAuthentication: true
+    accessTier: 'Hot'
+    networkAcls: {
+      bypass: 'None'
+      virtualNetworkRules: []
+      ipRules: []
+      defaultAction: 'Deny'
+    }
   }
 }
 
@@ -41,5 +56,36 @@ resource storageAccountFunctionAppRoleAssignment 'Microsoft.Authorization/roleAs
   }
   scope: storageAccount
 }
+
+module privateEndpointBlob '../networking/private-endpoint.bicep' = {
+  name: '${storageAccountName}-blob-privateEndpoint'
+  params: {
+    groupIds: [
+      'blob'
+    ]
+    dnsZoneName: storageBlobDnsZoneName
+    name: storageBlobPrivateEndpointName
+    subnetName: privateEndpointSubnetName
+    privateLinkServiceId: storageAccount.id
+    vNetName: vNetName
+    location: location
+  }
+}
+
+module privateEndpointFile '../networking/private-endpoint.bicep' = {
+  name: '${storageAccountName}-file-privateEndpoint'
+  params: {
+    groupIds: [
+      'file'
+    ]
+    dnsZoneName: storageFileDnsZoneName
+    name: storageFilePrivateEndpointName
+    subnetName: privateEndpointSubnetName
+    privateLinkServiceId: storageAccount.id
+    vNetName: vNetName
+    location: location
+  }
+}
+
 
 output storageAccountName string = storageAccount.name
