@@ -74,18 +74,28 @@ param appGatewaySubnetName string = ''
 param appGatewayNsgName string = ''
 param appGatewayPublicIpName string = ''
 
+// Networking - Address Space
+param vnetAddressPrefix string = '10.170.0.0/21'
+param apimSubnetPrefix string = '10.170.1.0/26'
+param privateEndpointSubnetPrefix string = '10.170.1.64/26'
+param functionAppSubnetPrefix string = '10.170.1.128/26'
+
 // Networking - Private DNS
 var openAiPrivateDnsZoneName = 'privatelink.openai.azure.com'
 var keyVaultPrivateDnsZoneName = 'privatelink.vaultcore.azure.net'
 var monitorPrivateDnsZoneName = 'privatelink.monitor.azure.com'
 var eventHubPrivateDnsZoneName = 'privatelink.servicebus.windows.net'
 var cosmosDbPrivateDnsZoneName = 'privatelink.documents.azure.com'
+var storageBlobPrivateDnsZoneName = 'privatelink.blob.core.windows.net'
+var storageFilePrivateDnsZoneName = 'privatelink.file.core.windows.net'
 var privateDnsZoneNames = [
   openAiPrivateDnsZoneName
   keyVaultPrivateDnsZoneName
   monitorPrivateDnsZoneName
   eventHubPrivateDnsZoneName 
   cosmosDbPrivateDnsZoneName
+  storageBlobPrivateDnsZoneName
+  storageFilePrivateDnsZoneName
 ]
 
 // You can add more OpenAI instances by adding more objects to the openAiInstances object
@@ -245,7 +255,6 @@ var abbrs = loadJsonContent('./abbreviations.json')
 // Generate a unique token for resources
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 
-
 // Organize resources in a resource group
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: !empty(resourceGroupName) ? resourceGroupName : '${abbrs.resourcesResourceGroups}${environmentName}'
@@ -272,9 +281,13 @@ module vnet './modules/networking/vnet.bicep' = {
     privateEndpointNsgName: !empty(privateEndpointNsgName) ? privateEndpointNsgName : 'nsg-pe-${resourceToken}'
     functionAppSubnetName: !empty(functionAppSubnetName) ? functionAppSubnetName : 'snet-functionapp'
     functionAppNsgName: !empty(functionAppNsgName) ? functionAppNsgName : 'nsg-functionapp-${resourceToken}'
-    appGatewaySubnetName: !empty(appGatewaySubnetName) ? appGatewaySubnetName : 'snet-appgateway'
-    appGatewayNsgName: !empty(appGatewayNsgName) ? appGatewayNsgName : 'nsg-appgateway-${resourceToken}'
-    appGatewayPIPName: !empty(appGatewayPublicIpName) ? appGatewayPublicIpName : 'pip-appgateway-${resourceToken}'
+    // appGatewaySubnetName: !empty(appGatewaySubnetName) ? appGatewaySubnetName : 'snet-appgateway'
+    // appGatewayNsgName: !empty(appGatewayNsgName) ? appGatewayNsgName : 'nsg-appgateway-${resourceToken}'
+    // appGatewayPIPName: !empty(appGatewayPublicIpName) ? appGatewayPublicIpName : 'pip-appgateway-${resourceToken}'
+    vnetAddressPrefix: vnetAddressPrefix
+    apimSubnetAddressPrefix: apimSubnetPrefix
+    privateEndpointSubnetAddressPrefix: privateEndpointSubnetPrefix
+    functionAppSubnetAddressPrefix: functionAppSubnetPrefix
     location: location
     tags: tags
     privateDnsZoneNames: privateDnsZoneNames
@@ -317,6 +330,9 @@ module monitoring './modules/monitor/monitoring.bicep' = {
     privateEndpointSubnetName: vnet.outputs.privateEndpointSubnetName
     applicationInsightsDnsZoneName: monitorPrivateDnsZoneName
   }
+  dependsOn: [
+    vnet
+  ]
 }
 
 @batchSize(1)

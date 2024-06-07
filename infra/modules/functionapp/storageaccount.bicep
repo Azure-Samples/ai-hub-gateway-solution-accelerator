@@ -27,6 +27,10 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
     name: storageAccountType
   }
   kind: 'StorageV2'
+  properties: {
+    supportsHttpsTrafficOnly: true
+    defaultToOAuthAuthentication: true
+  }
 }
 
 resource storageAccountFunctionAppRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {

@@ -24,7 +24,6 @@ var dotnetFrameworkVersion  = '8.0'
 var linuxFxVersion  = 'DOTNET-ISOLATED|8.0'
 var isReserved = functionPlanOS == 'Linux'
 
-
 resource functionAppmanagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' existing = {
   name: functionAppIdentityName
 }

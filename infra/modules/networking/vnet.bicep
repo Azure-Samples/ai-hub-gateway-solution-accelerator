@@ -1,8 +1,5 @@
 param name string
 param location string = resourceGroup().location
-param appGatewaySubnetName string
-param appGatewayNsgName string
-param appGatewayPIPName string
 param apimSubnetName string
 param apimNsgName string
 param privateEndpointSubnetName string
@@ -10,56 +7,63 @@ param privateEndpointNsgName string
 param functionAppSubnetName string
 param functionAppNsgName string
 param privateDnsZoneNames array
+param vnetAddressPrefix string
+param apimSubnetAddressPrefix string
+param privateEndpointSubnetAddressPrefix string
+param functionAppSubnetAddressPrefix string
 param tags object = {}
 
-resource appGatewayNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
-  name: appGatewayNsgName
-  location: location
-  tags: union(tags, { 'azd-service-name': appGatewayNsgName })
-  properties: {
-    securityRules: [
-      {
-        name: 'AllowPublicAccess'
-        properties: {
-            protocol: 'Tcp'
-            sourcePortRange: '*'
-            destinationPortRange: '443'
-            sourceAddressPrefix: 'Internet'
-            destinationAddressPrefix: 'VirtualNetwork'
-            access: 'Allow'
-            priority: 3000
-            direction: 'Inbound'
-        }
-      }
-      {
-        name: 'AllowHealthProbes'
-        properties: {
-          protocol: '*'
-          sourcePortRange: '*'
-          destinationPortRange: '65200-65535'
-          sourceAddressPrefix: 'GatewayManager'
-          destinationAddressPrefix: '*'
-          access: 'Allow'
-          priority: 3010
-          direction: 'Inbound'
-        }
-      }
-      {
-        name: 'AllowAzureLoadBalancer'
-        properties: {
-          protocol: '*'
-          sourcePortRange: '*'
-          destinationPortRange: '*'
-          sourceAddressPrefix: 'AzureLoadBalancer'
-          destinationAddressPrefix: '*'
-          access: 'Allow'
-          priority: 3020
-          direction: 'Inbound'
-        }
-      }
-    ]
-  }
-}
+// param appGatewaySubnetName string
+// param appGatewayNsgName string
+// param appGatewayPIPName string
+// resource appGatewayNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
+//   name: appGatewayNsgName
+//   location: location
+//   tags: union(tags, { 'azd-service-name': appGatewayNsgName })
+//   properties: {
+//     securityRules: [
+//       {
+//         name: 'AllowPublicAccess'
+//         properties: {
+//             protocol: 'Tcp'
+//             sourcePortRange: '*'
+//             destinationPortRange: '443'
+//             sourceAddressPrefix: 'Internet'
+//             destinationAddressPrefix: 'VirtualNetwork'
+//             access: 'Allow'
+//             priority: 3000
+//             direction: 'Inbound'
+//         }
+//       }
+//       {
+//         name: 'AllowHealthProbes'
+//         properties: {
+//           protocol: '*'
+//           sourcePortRange: '*'
+//           destinationPortRange: '65200-65535'
+//           sourceAddressPrefix: 'GatewayManager'
+//           destinationAddressPrefix: '*'
+//           access: 'Allow'
+//           priority: 3010
+//           direction: 'Inbound'
+//         }
+//       }
+//       {
+//         name: 'AllowAzureLoadBalancer'
+//         properties: {
+//           protocol: '*'
+//           sourcePortRange: '*'
+//           destinationPortRange: '*'
+//           sourceAddressPrefix: 'AzureLoadBalancer'
+//           destinationAddressPrefix: '*'
+//           access: 'Allow'
+//           priority: 3020
+//           direction: 'Inbound'
+//         }
+//       }
+//     ]
+//   }
+// }
 
 resource apimNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
   name: apimNsgName
@@ -200,23 +204,23 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
   properties: {
     addressSpace: {
       addressPrefixes: [
-        '10.170.0.0/16'
+        vnetAddressPrefix
       ]
     }
     subnets: [
-      {
-        name: appGatewaySubnetName
-        properties: {
-          addressPrefix: '10.170.0.0/24'
-          networkSecurityGroup: appGatewayNsg.id == '' ? null : {
-            id: appGatewayNsg.id 
-          }
-        }
-      }
+      // {
+      //   name: appGatewaySubnetName
+      //   properties: {
+      //     addressPrefix: '10.170.0.0/24'
+      //     networkSecurityGroup: appGatewayNsg.id == '' ? null : {
+      //       id: appGatewayNsg.id 
+      //     }
+      //   }
+      // }
       {
         name: apimSubnetName
         properties: {
-          addressPrefix: '10.170.1.0/24'
+          addressPrefix: apimSubnetAddressPrefix
           networkSecurityGroup: apimNsg.id == '' ? null : {
             id: apimNsg.id 
           }
@@ -225,7 +229,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
       {
         name: privateEndpointSubnetName
         properties: {
-          addressPrefix: '10.170.2.0/24'
+          addressPrefix: privateEndpointSubnetAddressPrefix
           networkSecurityGroup: privateEndpointNsg.id == '' ? null : {
             id: privateEndpointNsg.id
           }
@@ -234,7 +238,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
       {
         name: functionAppSubnetName
         properties: {
-          addressPrefix: '10.170.3.0/24'
+          addressPrefix: functionAppSubnetAddressPrefix
           networkSecurityGroup: functionAppNsg.id == '' ? null : {
             id: functionAppNsg.id
           }
@@ -253,9 +257,9 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
     ]
   }
 
-  resource appGatewaySubnet 'subnets' existing = {
-    name: appGatewaySubnetName
-  }
+  // resource appGatewaySubnet 'subnets' existing = {
+  //   name: appGatewaySubnetName
+  // }
 
   resource apimSubnet 'subnets' existing = {
     name: apimSubnetName
