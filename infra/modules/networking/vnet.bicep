@@ -6,6 +6,7 @@ param privateEndpointSubnetName string
 param privateEndpointNsgName string
 param functionAppSubnetName string
 param functionAppNsgName string
+param apimRouteTableName string
 param privateDnsZoneNames array
 param vnetAddressPrefix string
 param apimSubnetAddressPrefix string
@@ -197,6 +198,24 @@ resource functionAppNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
   }
 }
 
+resource apimRouteTable 'Microsoft.Network/routeTables@2023-11-01' = {
+  name: apimRouteTableName
+  location: location
+  tags: union(tags, { 'azd-service-name': apimRouteTableName })
+  properties: {
+    routes: [
+      {
+        name: 'apim-management'
+        properties: {
+          addressPrefix: 'ApiManagement'
+          nextHopType: 'Internet'
+        }
+      }
+      // Add additional routes as required
+    ]
+  }
+}
+
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
   name: name
   location: location
@@ -224,6 +243,9 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
           networkSecurityGroup: apimNsg.id == '' ? null : {
             id: apimNsg.id 
           }
+          routeTable: {
+            id: apimRouteTable.id
+          }
         }
       }
       {
@@ -233,6 +255,8 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
           networkSecurityGroup: privateEndpointNsg.id == '' ? null : {
             id: privateEndpointNsg.id
           }
+          privateEndpointNetworkPolicies: 'Disabled'
+          privateLinkServiceNetworkPolicies: 'Enabled'
         }
       }
       {
@@ -256,6 +280,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
       }
     ]
   }
+  
 
   // resource appGatewaySubnet 'subnets' existing = {
   //   name: appGatewaySubnetName

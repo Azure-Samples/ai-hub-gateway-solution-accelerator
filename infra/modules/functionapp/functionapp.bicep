@@ -49,8 +49,9 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2022-03-01' = {
     family: 'EP'
   }
   kind: 'elastic'
-  properties: {    
-    reserved: isReserved    
+  properties: {
+    maximumElasticWorkerCount: 20
+    reserved: isReserved
   }
 }
 
@@ -91,14 +92,14 @@ resource functionAppSiteConfig 'Microsoft.Web/sites/config@2022-09-01' = {
   properties: {
     linuxFxVersion: linuxFxVersion
     detailedErrorLoggingEnabled: true
-    vnetRouteAllEnabled: true  
+    vnetRouteAllEnabled: true
     ftpsState: 'FtpsOnly'
     minTlsVersion: '1.2'
     scmMinTlsVersion: '1.2'
-    minimumElasticInstanceCount: 1      
-    vnetName: vnetName   
+    minimumElasticInstanceCount: 1
+    vnetName: vnetName
     publicNetworkAccess: 'Enabled'  
-    functionsRuntimeScaleMonitoringEnabled: true 
+    functionsRuntimeScaleMonitoringEnabled: true
     netFrameworkVersion: dotnetFrameworkVersion
   }
 }
@@ -114,10 +115,10 @@ resource functionAppSettings 'Microsoft.Web/sites/config@2020-12-01' = {
       //AzureWebJobsStorage__accountname: storageAccountName      
       FUNCTIONS_EXTENSION_VERSION:  '~4'
       FUNCTIONS_WORKER_RUNTIME: functionRuntime
-      WEBSITE_CONTENTAZUREFILECONNECTIONSTRING: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
+      WEBSITE_CONTENTAZUREFILECONNECTIONSTRING: storageAccountConnectionString
       WEBSITE_CONTENTSHARE: toLower(functionAppName)
-      WEBSITE_VNET_ROUTE_ALL: '1'    
-      
+      WEBSITE_VNET_ROUTE_ALL: '1'
+      WEBSITE_CONTENTOVERVNET: '1'
       //EventHub Input Trigger Settings With Managed Identity
       //https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference?tabs=eventhubs&pivots=programming-language-csharp#common-properties-for-identity-based-connections
       EventHubConnection__clientId: functionAppmanagedIdentity.properties.clientId

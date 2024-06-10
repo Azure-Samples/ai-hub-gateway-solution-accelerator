@@ -6,6 +6,8 @@ param functionApplicationInsightsDashboardName string
 param location string = resourceGroup().location
 param tags object = {}
 
+param createDashboard bool
+
 // Networking
 var privateLinkScopeName = 'ampls-monitoring'
 param vNetName string
@@ -43,6 +45,7 @@ module apimApplicationInsights 'applicationinsights.bicep' = {
     dashboardName: apimApplicationInsightsDashboardName
     logAnalyticsWorkspaceId: logAnalytics.outputs.id
     privateLinkScopeName: privateLinkScopeName
+    createDashboard: createDashboard
   }
 }
 
@@ -56,6 +59,7 @@ module functionApplicationInsights 'applicationinsights.bicep' = {
     dashboardName: functionApplicationInsightsDashboardName
     logAnalyticsWorkspaceId: logAnalytics.outputs.id
     privateLinkScopeName: privateLinkScopeName
+    createDashboard: createDashboard
   }
 }
 

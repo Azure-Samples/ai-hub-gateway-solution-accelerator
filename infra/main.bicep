@@ -32,6 +32,9 @@ param openAIExternalNetworkAccess string = 'Disabled'
 @description('Name of the Log Analytics workspace. Leave blank to use default naming conventions.')
 param logAnalyticsName string = ''
 
+@description('Create Application Insights dashboard. Turn it on only if you need it.')
+param createAppInsightsDashboard bool = false
+
 @description('Name of the Application Insights dashboard. Leave blank to use default naming conventions.')
 param applicationInsightsDashboardName string = ''
 
@@ -74,9 +77,9 @@ param apimNsgName string = ''
 param privateEndpointNsgName string = ''
 param functionAppNsgName string = ''
 
-param appGatewaySubnetName string = ''
-param appGatewayNsgName string = ''
-param appGatewayPublicIpName string = ''
+// param appGatewaySubnetName string = ''
+// param appGatewayNsgName string = ''
+// param appGatewayPublicIpName string = ''
 
 // Networking - Address Space
 param vnetAddressPrefix string = '10.170.0.0/24'
@@ -295,6 +298,7 @@ module vnet './modules/networking/vnet.bicep' = {
     location: location
     tags: tags
     privateDnsZoneNames: privateDnsZoneNames
+    apimRouteTableName: 'rt-apim-${resourceToken}'
   }
 }
 
@@ -333,6 +337,7 @@ module monitoring './modules/monitor/monitoring.bicep' = {
     vNetName: vnet.outputs.vnetName
     privateEndpointSubnetName: vnet.outputs.privateEndpointSubnetName
     applicationInsightsDnsZoneName: monitorPrivateDnsZoneName
+    createDashboard: createAppInsightsDashboard
   }
   dependsOn: [
     vnet
