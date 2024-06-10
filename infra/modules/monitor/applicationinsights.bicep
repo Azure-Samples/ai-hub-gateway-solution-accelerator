@@ -5,6 +5,8 @@ param tags object = {}
 
 param logAnalyticsWorkspaceId string
 
+param createDashboard bool
+
 // Networking
 param privateLinkScopeName string
 
@@ -33,7 +35,7 @@ resource appInsightsScopedResource 'Microsoft.Insights/privateLinkScopes/scopedR
   }
 }
 
-module applicationInsightsDashboard 'applicationinsights-dashboard.bicep' = {
+module applicationInsightsDashboard 'applicationinsights-dashboard.bicep' = if(createDashboard) {
   name: 'application-insights-dashboard'
   params: {
     name: dashboardName

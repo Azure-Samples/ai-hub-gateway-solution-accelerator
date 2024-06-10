@@ -82,6 +82,7 @@ param cosmosPrivateEndpointName string
 param vNetName string
 param privateEndpointSubnetName string
 param cosmosDnsZoneName string
+param publicAccess string = 'Disabled'
 
 resource account 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview' = {
   name: toLower(accountName)
@@ -94,7 +95,7 @@ resource account 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview' = {
     databaseAccountOfferType: 'Standard'
     enableAutomaticFailover: systemManagedFailover
     disableKeyBasedMetadataWriteAccess: true
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: publicAccess
   }
 }
 

@@ -1,19 +1,32 @@
 ## Primary components deployment
 
-Below is a high-level guide to deploy the AI Hub Gateway Landing Zone main components.
+Below is a high-level guide to deploy the AI Hub Gateway accelerator main components.
 
+![components](../assets/azure-resources-diagram-standard.svg)
 
 ### <a name="networking-components">Networking components</a>
 
-For the AI Hub Gateway Landing Zone to be deployed, you will need to have/identify the following components:
+Default behavior of the infrastructure script (in Bicep), provision the following networking components:
+
 - **Virtual network & subnet**: A virtual network to host the AI Hub Gateway Landing Zone.
-    - APIM to be deployed in **internal mode** requires a subnet with /27 or larger with NSG that allows the critical rules.
-    - **Private endpoints subnet(s)**: Private endpoints for the AI services to be exposed through the AI Hub Gateway Landing Zone. Usually a /27 or larger subnet would be sufficient.
-- **Private DNS zone**: A private DNS zone to resolve the private endpoints.
+    - **APIM subnet** to be deployed in internal/external mode requires a subnet with /27 or larger with **required Network Security Group (NSG)** that allows the critical rules.
+    - **Private endpoints subnet(s)**: Private endpoints for the AI services, Cosmos DB, Event Hub, Monitor, Storage to be exposed through the AI Hub Gateway Landing Zone. Usually a /27 or larger subnet would be sufficient.
+    - **Azure Function** subnet to be used for injecting the function runtime into the VNet so it can access both Cosmos DB and Event Hub private endpoints. This subnet is delegated to ```Microsoft.Web/serverFarms```.
+- **Private DNS zones**: Private DNS zones to resolve the private endpoints.
     - Internal APIM relies on **private DNS** to resolve the APIM endpoints, so a Azure Private DNS zone or other DNS solution is required.
-    - **Private endpoints DNS zone**: A private DNS zone to resolve the private endpoints for the connected Azure AI services.
+    - **Private endpoints DNS zone**: A private DNS zone to resolve the private endpoints for the connected Azure PaaS services.
+      - 'privatelink.openai.azure.com'
+      - 'privatelink.vaultcore.azure.net'
+      - 'privatelink.monitor.azure.com'
+      - 'privatelink.servicebus.windows.net'
+      - 'privatelink.documents.azure.com'
+      - 'privatelink.blob.core.windows.net'
+      - 'privatelink.file.core.windows.net'
+
+Additional networking consideration that you might need to take into account:
 - **ExpressRoute or VPN**: If you are planning to connect to on-premises or other clouds, you will need to have an ExpressRoute or VPN connection.
 - **DMZ appliances**: If you are planning to expose backend and gateway services on the internet, you need to have a Web Application Firewall (like Azure Front Door & Application Gateway) and network firewall (like Azure Firewall) to govern both ingress and egress traffic.
+- **Custom Domains** for APIM specially if it is in "internal mode" to allow its private DNS resolution without conflicting with any external APIM instances that you may have (by default, all APIM instances uses *.azure-api.net domain regardless if being external or internal).
 
 ### Azure API Management (APIM)
 APIM is the central component of the AI Hub Gateway Landing Zone. 
@@ -59,13 +72,13 @@ When deployment of primary components is completed, you will have the following 
 - **Application Insights**
 - **Event Hub**
 
-Network wiring also will be established to allow the gateway to access the AI services through private endpoints, internet access through DMZ appliances and backend systems through private network.
+Network wiring also will be established to allow the gateway to access the AI services through private endpoints, internet access through DMZ appliances and backend systems through private network should be planned.
 
 with the additional components deployed, you will have the following components identified:
-- **Azure OpenAI** endpoints
-- **Azure AI Search** endpoints
-- **Backend services** updated endpoints and keys
-- **Usage & charge-back** data pipeline (like pushing data to Cosmos DB and Synapse Analytics)
+- **Azure OpenAI** instances (by default 3 across 3 regions)
+- **Cosmos DB** for ingesting AI usage metrics 
+- **Azure Functions + Storage** for processing AI usage metrics from event hub to cosmos db.
+- **Managed identities** for APIM to access the AI services and for Azure Function to access Cosmos DB and Event Hub.
 
 ## Azure API Management configuration
 To configure Azure API Management to expose the AI services through the AI Hub Gateway Landing Zone, you will need to configure the following:

@@ -32,6 +32,9 @@ param openAIExternalNetworkAccess string = 'Disabled'
 @description('Name of the Log Analytics workspace. Leave blank to use default naming conventions.')
 param logAnalyticsName string = ''
 
+@description('Create Application Insights dashboard. Turn it on only if you need it.')
+param createAppInsightsDashboard bool = false
+
 @description('Name of the Application Insights dashboard. Leave blank to use default naming conventions.')
 param applicationInsightsDashboardName string = ''
 
@@ -59,20 +62,33 @@ param usageProcessingFunctionAppName string = ''
 @description('Name of the Function App resource. Leave blank to use default naming conventions.')
 param storageAccountName string = ''
 
+@description('Name of the Storage Account file share used by Azure Function')
+param functionContentShareName string = 'usage-function-content'
+
 @description('Provision stream analytics job, turn it on only if you need it. Azure Function App will be provisioned to process usage data from Event Hub.')
 param provisionStreamAnalytics bool = false
 
 //Networking - VNet
+param bringYourOwnVnet bool = true
 param vnetName string = ''
 param apimSubnetName string = ''
-param apimNsgName string = ''
 param privateEndpointSubnetName string = ''
-param privateEndpointNsgName string = ''
 param functionAppSubnetName string = ''
+
+param bringYourOwnNsg bool = false
+param apimNsgName string = ''
+param privateEndpointNsgName string = ''
 param functionAppNsgName string = ''
-param appGatewaySubnetName string = ''
-param appGatewayNsgName string = ''
-param appGatewayPublicIpName string = ''
+
+// param appGatewaySubnetName string = ''
+// param appGatewayNsgName string = ''
+// param appGatewayPublicIpName string = ''
+
+// Networking - Address Space
+param vnetAddressPrefix string = '10.170.0.0/24'
+param apimSubnetPrefix string = '10.170.0.0/26'
+param privateEndpointSubnetPrefix string = '10.170.0.64/26'
+param functionAppSubnetPrefix string = '10.170.0.128/26'
 
 // Networking - Private DNS
 var openAiPrivateDnsZoneName = 'privatelink.openai.azure.com'
@@ -80,12 +96,16 @@ var keyVaultPrivateDnsZoneName = 'privatelink.vaultcore.azure.net'
 var monitorPrivateDnsZoneName = 'privatelink.monitor.azure.com'
 var eventHubPrivateDnsZoneName = 'privatelink.servicebus.windows.net'
 var cosmosDbPrivateDnsZoneName = 'privatelink.documents.azure.com'
+var storageBlobPrivateDnsZoneName = 'privatelink.blob.core.windows.net'
+var storageFilePrivateDnsZoneName = 'privatelink.file.core.windows.net'
 var privateDnsZoneNames = [
   openAiPrivateDnsZoneName
   keyVaultPrivateDnsZoneName
   monitorPrivateDnsZoneName
   eventHubPrivateDnsZoneName 
   cosmosDbPrivateDnsZoneName
+  storageBlobPrivateDnsZoneName
+  storageFilePrivateDnsZoneName
 ]
 
 // You can add more OpenAI instances by adding more objects to the openAiInstances object
@@ -245,7 +265,6 @@ var abbrs = loadJsonContent('./abbreviations.json')
 // Generate a unique token for resources
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 
-
 // Organize resources in a resource group
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: !empty(resourceGroupName) ? resourceGroupName : '${abbrs.resourcesResourceGroups}${environmentName}'
@@ -272,12 +291,17 @@ module vnet './modules/networking/vnet.bicep' = {
     privateEndpointNsgName: !empty(privateEndpointNsgName) ? privateEndpointNsgName : 'nsg-pe-${resourceToken}'
     functionAppSubnetName: !empty(functionAppSubnetName) ? functionAppSubnetName : 'snet-functionapp'
     functionAppNsgName: !empty(functionAppNsgName) ? functionAppNsgName : 'nsg-functionapp-${resourceToken}'
-    appGatewaySubnetName: !empty(appGatewaySubnetName) ? appGatewaySubnetName : 'snet-appgateway'
-    appGatewayNsgName: !empty(appGatewayNsgName) ? appGatewayNsgName : 'nsg-appgateway-${resourceToken}'
-    appGatewayPIPName: !empty(appGatewayPublicIpName) ? appGatewayPublicIpName : 'pip-appgateway-${resourceToken}'
+    // appGatewaySubnetName: !empty(appGatewaySubnetName) ? appGatewaySubnetName : 'snet-appgateway'
+    // appGatewayNsgName: !empty(appGatewayNsgName) ? appGatewayNsgName : 'nsg-appgateway-${resourceToken}'
+    // appGatewayPIPName: !empty(appGatewayPublicIpName) ? appGatewayPublicIpName : 'pip-appgateway-${resourceToken}'
+    vnetAddressPrefix: vnetAddressPrefix
+    apimSubnetAddressPrefix: apimSubnetPrefix
+    privateEndpointSubnetAddressPrefix: privateEndpointSubnetPrefix
+    functionAppSubnetAddressPrefix: functionAppSubnetPrefix
     location: location
     tags: tags
     privateDnsZoneNames: privateDnsZoneNames
+    apimRouteTableName: 'rt-apim-${resourceToken}'
   }
 }
 
@@ -316,7 +340,11 @@ module monitoring './modules/monitor/monitoring.bicep' = {
     vNetName: vnet.outputs.vnetName
     privateEndpointSubnetName: vnet.outputs.privateEndpointSubnetName
     applicationInsightsDnsZoneName: monitorPrivateDnsZoneName
+    createDashboard: createAppInsightsDashboard
   }
+  dependsOn: [
+    vnet
+  ]
 }
 
 @batchSize(1)
@@ -358,6 +386,9 @@ module eventHub './modules/event-hub/event-hub.bicep' = {
     privateEndpointSubnetName: vnet.outputs.privateEndpointSubnetName
     eventHubDnsZoneName: eventHubPrivateDnsZoneName
   }
+  dependsOn: [
+    vnet
+  ]
 }
 
 module apim './modules/apim/apim.bicep' = {
@@ -379,6 +410,11 @@ module apim './modules/apim/apim.bicep' = {
     apimSubnetId: vnet.outputs.apimSubnetId
     apimNetworkType: apimNetworkType
   }
+  dependsOn: [
+    vnet
+    apimManagedIdentity
+    eventHub
+  ]
 }
 
 module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
@@ -393,6 +429,9 @@ module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
     cosmosPrivateEndpointName: '${abbrs.documentDBDatabaseAccounts}pe-${resourceToken}'
     privateEndpointSubnetName: vnet.outputs.privateEndpointSubnetName
   }
+  dependsOn: [
+    vnet
+  ]
 }
 
 module streamAnalyticsJob './modules/stream-analytics/stream-analytics.bicep' = if(provisionStreamAnalytics) {
@@ -419,7 +458,17 @@ module storageAccount './modules/functionapp/storageaccount.bicep' = {
     tags: tags
     storageAccountName: !empty(storageAccountName) ? storageAccountName : 'funcusage${resourceToken}'
     functionAppManagedIdentityName: usageManagedIdentity.outputs.managedIdentityName
+    vNetName: vnet.outputs.vnetName
+    privateEndpointSubnetName: vnet.outputs.privateEndpointSubnetName
+    storageBlobDnsZoneName: storageBlobPrivateDnsZoneName
+    storageFileDnsZoneName: storageFilePrivateDnsZoneName
+    storageBlobPrivateEndpointName: '${abbrs.storageStorageAccounts}blob-pe-${resourceToken}'
+    storageFilePrivateEndpointName: '${abbrs.storageStorageAccounts}file-pe-${resourceToken}'
+    functionContentShareName: functionContentShareName
   }
+  dependsOn: [
+    vnet
+  ]
 }
 
 module functionApp './modules/functionapp/functionapp.bicep' = {
@@ -440,7 +489,16 @@ module functionApp './modules/functionapp/functionapp.bicep' = {
     cosmosContainerName: cosmosDb.outputs.cosmosDbContainerName
     vnetName: vnet.outputs.vnetName
     functionAppSubnetId: vnet.outputs.functionAppSubnetId
+    functionContentShareName: functionContentShareName
   }
+  dependsOn: [
+    vnet
+    storageAccount
+    usageManagedIdentity
+    monitoring
+    eventHub
+    cosmosDb
+  ]
 }
 
 output APIM_NAME string = apim.outputs.apimName
