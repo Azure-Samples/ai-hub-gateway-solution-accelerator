@@ -3,6 +3,7 @@ param functionAppName string
 param tags object = {}
 param azdserviceName string
 param storageAccountName string
+param functionContentShareName string
 
 param functionAppIdentityName string
 
@@ -70,7 +71,7 @@ resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
     enabled: true
     serverFarmId: hostingPlan.id
     reserved: isReserved       
-    virtualNetworkSubnetId: functionAppSubnetId    
+    virtualNetworkSubnetId: functionAppSubnetId
   }
 }
 
@@ -116,7 +117,7 @@ resource functionAppSettings 'Microsoft.Web/sites/config@2020-12-01' = {
       FUNCTIONS_EXTENSION_VERSION:  '~4'
       FUNCTIONS_WORKER_RUNTIME: functionRuntime
       WEBSITE_CONTENTAZUREFILECONNECTIONSTRING: storageAccountConnectionString
-      WEBSITE_CONTENTSHARE: toLower(functionAppName)
+      WEBSITE_CONTENTSHARE: functionContentShareName
       WEBSITE_VNET_ROUTE_ALL: '1'
       WEBSITE_CONTENTOVERVNET: '1'
       //EventHub Input Trigger Settings With Managed Identity
@@ -131,5 +132,8 @@ resource functionAppSettings 'Microsoft.Web/sites/config@2020-12-01' = {
       CosmosDatabaseName: cosmosDatabaseName
       CosmosContainerName: cosmosContainerName
       CosmosManagedIdentityId: functionAppmanagedIdentity.properties.clientId
-  }  
+  }
+  dependsOn: [
+    storageAccount
+  ]
 }

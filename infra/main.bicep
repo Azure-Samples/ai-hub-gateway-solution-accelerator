@@ -62,6 +62,9 @@ param usageProcessingFunctionAppName string = ''
 @description('Name of the Function App resource. Leave blank to use default naming conventions.')
 param storageAccountName string = ''
 
+@description('Name of the Storage Account file share used by Azure Function')
+param functionContentShareName string = 'usage-function-content'
+
 @description('Provision stream analytics job, turn it on only if you need it. Azure Function App will be provisioned to process usage data from Event Hub.')
 param provisionStreamAnalytics bool = false
 
@@ -461,6 +464,7 @@ module storageAccount './modules/functionapp/storageaccount.bicep' = {
     storageFileDnsZoneName: storageFilePrivateDnsZoneName
     storageBlobPrivateEndpointName: '${abbrs.storageStorageAccounts}blob-pe-${resourceToken}'
     storageFilePrivateEndpointName: '${abbrs.storageStorageAccounts}file-pe-${resourceToken}'
+    functionContentShareName: functionContentShareName
   }
   dependsOn: [
     vnet
@@ -485,6 +489,7 @@ module functionApp './modules/functionapp/functionapp.bicep' = {
     cosmosContainerName: cosmosDb.outputs.cosmosDbContainerName
     vnetName: vnet.outputs.vnetName
     functionAppSubnetId: vnet.outputs.functionAppSubnetId
+    functionContentShareName: functionContentShareName
   }
   dependsOn: [
     vnet

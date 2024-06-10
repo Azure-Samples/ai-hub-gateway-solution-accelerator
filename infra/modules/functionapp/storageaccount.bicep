@@ -14,6 +14,8 @@ param storageFilePrivateEndpointName string
 // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#storage-blob-data-owner
 var storageBlobDataOwnerRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
 
+param functionContentShareName string
+
 resource functionAppmanagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' existing = {
   name: functionAppManagedIdentityName
 }
@@ -45,6 +47,13 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
       defaultAction: 'Deny'
     }
   }
+}
+
+resource share 'Microsoft.Storage/storageAccounts/fileServices/shares@2022-05-01' = {
+  name: '${storageAccountName}/default/${functionContentShareName}'
+  dependsOn: [
+    storageAccount
+  ]
 }
 
 resource storageAccountFunctionAppRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
