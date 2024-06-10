@@ -456,6 +456,7 @@ module storageAccount './modules/functionapp/storageaccount.bicep' = {
     storageFileDnsZoneName: storageFilePrivateDnsZoneName
     storageBlobPrivateEndpointName: '${abbrs.storageStorageAccounts}blob-pe-${resourceToken}'
     storageFilePrivateEndpointName: '${abbrs.storageStorageAccounts}file-pe-${resourceToken}'
+    functionSubnetId: vnet.outputs.functionAppSubnetId
   }
   dependsOn: [
     vnet

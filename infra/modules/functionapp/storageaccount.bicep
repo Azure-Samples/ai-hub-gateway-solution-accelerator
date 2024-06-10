@@ -1,7 +1,9 @@
 param storageAccountName string
 param location string = resourceGroup().location
 param tags object = {}
+
 param functionAppManagedIdentityName string
+param functionSubnetId string
 
 //Networking
 param vNetName string
@@ -10,7 +12,6 @@ param storageBlobDnsZoneName string
 param storageBlobPrivateEndpointName string
 param storageFileDnsZoneName string
 param storageFilePrivateEndpointName string
-
 // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#storage-blob-data-owner
 var storageBlobDataOwnerRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
 
@@ -41,7 +42,12 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
     accessTier: 'Hot'
     networkAcls: {
       bypass: 'None'
-      virtualNetworkRules: []
+      virtualNetworkRules: [
+        {
+          id: functionSubnetId
+          action: 'Allow'
+        }
+      ]
       ipRules: []
       defaultAction: 'Deny'
     }
