@@ -50,7 +50,7 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   }
   kind: 'elastic'
   properties: {
-    maximumElasticWorkerCount: 20
+    maximumElasticWorkerCount: 10
     reserved: isReserved
   }
 }

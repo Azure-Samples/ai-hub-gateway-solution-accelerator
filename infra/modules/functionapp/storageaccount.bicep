@@ -3,7 +3,6 @@ param location string = resourceGroup().location
 param tags object = {}
 
 param functionAppManagedIdentityName string
-param functionSubnetId string
 
 //Networking
 param vNetName string
@@ -39,11 +38,10 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   properties: {
     supportsHttpsTrafficOnly: true
     publicNetworkAccess: 'Disabled'
+    allowBlobPublicAccess: false
     accessTier: 'Hot'
     networkAcls: {
       bypass: 'None'
-      virtualNetworkRules: []
-      ipRules: []
       defaultAction: 'Deny'
     }
   }
