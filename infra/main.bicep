@@ -80,9 +80,9 @@ param appGatewayPublicIpName string = ''
 
 // Networking - Address Space
 param vnetAddressPrefix string = '10.170.0.0/24'
-param apimSubnetPrefix string = '10.170.1.0/26'
-param privateEndpointSubnetPrefix string = '10.170.1.64/26'
-param functionAppSubnetPrefix string = '10.170.1.128/26'
+param apimSubnetPrefix string = '10.170.0.0/26'
+param privateEndpointSubnetPrefix string = '10.170.0.64/26'
+param functionAppSubnetPrefix string = '10.170.0.128/26'
 
 // Networking - Private DNS
 var openAiPrivateDnsZoneName = 'privatelink.openai.azure.com'
