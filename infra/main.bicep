@@ -63,19 +63,23 @@ param storageAccountName string = ''
 param provisionStreamAnalytics bool = false
 
 //Networking - VNet
+param bringYourOwnVnet bool = true
 param vnetName string = ''
 param apimSubnetName string = ''
-param apimNsgName string = ''
 param privateEndpointSubnetName string = ''
-param privateEndpointNsgName string = ''
 param functionAppSubnetName string = ''
+
+param bringYourOwnNsg bool = false
+param apimNsgName string = ''
+param privateEndpointNsgName string = ''
 param functionAppNsgName string = ''
+
 param appGatewaySubnetName string = ''
 param appGatewayNsgName string = ''
 param appGatewayPublicIpName string = ''
 
 // Networking - Address Space
-param vnetAddressPrefix string = '10.170.0.0/21'
+param vnetAddressPrefix string = '10.170.0.0/24'
 param apimSubnetPrefix string = '10.170.1.0/26'
 param privateEndpointSubnetPrefix string = '10.170.1.64/26'
 param functionAppSubnetPrefix string = '10.170.1.128/26'
