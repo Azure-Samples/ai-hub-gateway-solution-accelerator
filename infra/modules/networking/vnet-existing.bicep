@@ -1,5 +1,7 @@
 param name string
 param location string = resourceGroup().location
+param useExistingSubnets bool
+param vnetRG string
 param apimSubnetName string
 param apimNsgName string
 param privateEndpointSubnetName string
@@ -8,65 +10,12 @@ param functionAppSubnetName string
 param functionAppNsgName string
 param apimRouteTableName string
 param privateDnsZoneNames array
-param vnetAddressPrefix string
 param apimSubnetAddressPrefix string
 param privateEndpointSubnetAddressPrefix string
 param functionAppSubnetAddressPrefix string
 param tags object = {}
 
-// param appGatewaySubnetName string
-// param appGatewayNsgName string
-// param appGatewayPIPName string
-// resource appGatewayNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
-//   name: appGatewayNsgName
-//   location: location
-//   tags: union(tags, { 'azd-service-name': appGatewayNsgName })
-//   properties: {
-//     securityRules: [
-//       {
-//         name: 'AllowPublicAccess'
-//         properties: {
-//             protocol: 'Tcp'
-//             sourcePortRange: '*'
-//             destinationPortRange: '443'
-//             sourceAddressPrefix: 'Internet'
-//             destinationAddressPrefix: 'VirtualNetwork'
-//             access: 'Allow'
-//             priority: 3000
-//             direction: 'Inbound'
-//         }
-//       }
-//       {
-//         name: 'AllowHealthProbes'
-//         properties: {
-//           protocol: '*'
-//           sourcePortRange: '*'
-//           destinationPortRange: '65200-65535'
-//           sourceAddressPrefix: 'GatewayManager'
-//           destinationAddressPrefix: '*'
-//           access: 'Allow'
-//           priority: 3010
-//           direction: 'Inbound'
-//         }
-//       }
-//       {
-//         name: 'AllowAzureLoadBalancer'
-//         properties: {
-//           protocol: '*'
-//           sourcePortRange: '*'
-//           destinationPortRange: '*'
-//           sourceAddressPrefix: 'AzureLoadBalancer'
-//           destinationAddressPrefix: '*'
-//           access: 'Allow'
-//           priority: 3020
-//           direction: 'Inbound'
-//         }
-//       }
-//     ]
-//   }
-// }
-
-resource apimNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
+resource apimNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = if(!useExistingSubnets) {
   name: apimNsgName
   location: location
   tags: union(tags, { 'azd-service-name': apimNsgName })
@@ -180,7 +129,7 @@ resource apimNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
   }
 }
 
-resource privateEndpointNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
+resource privateEndpointNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = if(!useExistingSubnets) {
   name: privateEndpointNsgName
   location: location
   tags: union(tags, { 'azd-service-name': privateEndpointNsgName })
@@ -189,7 +138,7 @@ resource privateEndpointNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01'
   }
 }
 
-resource functionAppNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
+resource functionAppNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = if(!useExistingSubnets) {
   name: functionAppNsgName
   location: location
   tags: union(tags, { 'azd-service-name': functionAppNsgName })
@@ -198,7 +147,7 @@ resource functionAppNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
   }
 }
 
-resource apimRouteTable 'Microsoft.Network/routeTables@2023-11-01' = {
+resource apimRouteTable 'Microsoft.Network/routeTables@2023-11-01' = if(!useExistingSubnets) {
   name: apimRouteTableName
   location: location
   tags: union(tags, { 'azd-service-name': apimRouteTableName })
@@ -216,86 +165,68 @@ resource apimRouteTable 'Microsoft.Network/routeTables@2023-11-01' = {
   }
 }
 
-resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
+resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' existing = {
   name: name
-  location: location
-  tags: union(tags, { 'azd-service-name': name })
-  properties: {
-    addressSpace: {
-      addressPrefixes: [
-        vnetAddressPrefix
+  scope: resourceGroup(vnetRG)
+}
+
+module apimSubnet './subnet.bicep' = {
+  name: apimSubnetName
+  params: {
+    vnetName: virtualNetwork.name
+    name: apimSubnetName
+    vnetRG: vnetRG
+    properties: {
+      addressPrefix: apimSubnetAddressPrefix
+      networkSecurityGroup: apimNsg.id == '' ? null : {
+        id: apimNsg.id 
+      }
+      routeTable: apimRouteTable.id == '' ? null : {
+        id: apimRouteTable.id
+      }
+    }
+  }
+}
+
+module privateEndpointSubnet './subnet.bicep' = {
+  name: privateEndpointSubnetName
+  params: {
+    vnetName: virtualNetwork.name
+    name: privateEndpointSubnetName
+    vnetRG: vnetRG
+    properties: {
+      addressPrefix: privateEndpointSubnetAddressPrefix
+      networkSecurityGroup: privateEndpointNsg.id == '' ? null : {
+        id: privateEndpointNsg.id 
+      }
+      privateEndpointNetworkPolicies: 'Disabled'
+      privateLinkServiceNetworkPolicies: 'Enabled'
+    }
+  }
+}
+
+module functionAppSubnet './subnet.bicep' = {
+  name: functionAppSubnetName
+  params: {
+    vnetName: virtualNetwork.name
+    name: functionAppSubnetName
+    vnetRG: vnetRG
+    properties: {
+      addressPrefix: functionAppSubnetAddressPrefix
+      networkSecurityGroup: functionAppNsg.id == '' ? null : {
+        id: functionAppNsg.id 
+      }
+      privateEndpointNetworkPolicies: 'Enabled'
+      privateLinkServiceNetworkPolicies: 'Enabled'
+      delegations: [
+        {
+          name: 'Microsoft.Web/serverFarms'
+          properties: {
+            serviceName: 'Microsoft.Web/serverFarms'
+          }
+        }
       ]
     }
-    subnets: [
-      // {
-      //   name: appGatewaySubnetName
-      //   properties: {
-      //     addressPrefix: '10.170.0.0/24'
-      //     networkSecurityGroup: appGatewayNsg.id == '' ? null : {
-      //       id: appGatewayNsg.id 
-      //     }
-      //   }
-      // }
-      {
-        name: apimSubnetName
-        properties: {
-          addressPrefix: apimSubnetAddressPrefix
-          networkSecurityGroup: apimNsg.id == '' ? null : {
-            id: apimNsg.id 
-          }
-          routeTable: {
-            id: apimRouteTable.id
-          }
-        }
-      }
-      {
-        name: privateEndpointSubnetName
-        properties: {
-          addressPrefix: privateEndpointSubnetAddressPrefix
-          networkSecurityGroup: privateEndpointNsg.id == '' ? null : {
-            id: privateEndpointNsg.id
-          }
-          privateEndpointNetworkPolicies: 'Disabled'
-          privateLinkServiceNetworkPolicies: 'Enabled'
-        }
-      }
-      {
-        name: functionAppSubnetName
-        properties: {
-          addressPrefix: functionAppSubnetAddressPrefix
-          networkSecurityGroup: functionAppNsg.id == '' ? null : {
-            id: functionAppNsg.id
-          }
-          privateEndpointNetworkPolicies: 'Enabled'
-          privateLinkServiceNetworkPolicies: 'Enabled'
-          delegations: [
-            {
-              name: 'Microsoft.Web/serverFarms'
-              properties: {
-                serviceName: 'Microsoft.Web/serverFarms'
-              }
-            }
-          ]
-        }
-      }
-    ]
-  }
-  
-
-  // resource appGatewaySubnet 'subnets' existing = {
-  //   name: appGatewaySubnetName
-  // }
-
-  resource apimSubnet 'subnets' existing = {
-    name: apimSubnetName
-  }
-
-  resource privateEndpointSubnet 'subnets' existing = {
-    name: privateEndpointSubnetName
-  }
-
-  resource functionAppSubnet 'subnets' existing = {
-    name: functionAppSubnetName
   }
 }
 
@@ -310,29 +241,13 @@ resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLin
   }
 }]
 
-// Public IP 
-// resource pipAppGateway 'Microsoft.Network/publicIPAddresses@2023-04-01' = {
-//   name: appGatewayPIPName
-//   location: location
-//   sku: {
-//     name: 'Standard'
-//   }
-//   properties: {
-//     publicIPAddressVersion: 'IPv4'
-//     publicIPAllocationMethod: 'Static'
-//     dnsSettings: {
-//       domainNameLabel: appGatewayPIPName
-//     }
-//   }
-// }
-
 output virtualNetworkId string = virtualNetwork.id
 output vnetName string = virtualNetwork.name
-output apimSubnetName string = virtualNetwork::apimSubnet.name
-output apimSubnetId string = virtualNetwork::apimSubnet.id
-output privateEndpointSubnetName string = virtualNetwork::privateEndpointSubnet.name
-output privateEndpointSubnetId string = virtualNetwork::privateEndpointSubnet.id
-output functionAppSubnetName string = virtualNetwork::functionAppSubnet.name
-output functionAppSubnetId string = virtualNetwork::functionAppSubnet.id
+output apimSubnetName string = apimSubnet.name
+output apimSubnetId string = '${virtualNetwork.id}/subnets/${apimSubnetName}'
+output privateEndpointSubnetName string = privateEndpointSubnet.name
+output privateEndpointSubnetId string = '${virtualNetwork.id}/subnets/${privateEndpointSubnetName}'
+output functionAppSubnetName string = functionAppSubnet.name
+output functionAppSubnetId string = '${virtualNetwork.id}/subnets/${functionAppSubnetName}'
 output location string = virtualNetwork.location
-output vnetRG string = resourceGroup().name
+output vnetRG string = vnetRG

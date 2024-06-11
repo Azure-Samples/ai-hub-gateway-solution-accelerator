@@ -10,7 +10,7 @@ param functionAppIdentityName string
 param applicationInsightsName string
 param eventHubNamespaceName string
 param eventHubName string
-param vnetName string
+//param vnetName string
 param functionAppSubnetId string
 
 param cosmosDBEndpoint string
@@ -98,7 +98,7 @@ resource functionAppSiteConfig 'Microsoft.Web/sites/config@2022-09-01' = {
     minTlsVersion: '1.2'
     scmMinTlsVersion: '1.2'
     minimumElasticInstanceCount: 1
-    vnetName: vnetName
+    //vnetName: vnetName
     publicNetworkAccess: 'Enabled'  
     functionsRuntimeScaleMonitoringEnabled: true
     netFrameworkVersion: dotnetFrameworkVersion

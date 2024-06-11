@@ -14,6 +14,20 @@ param storageFilePrivateEndpointName string
 // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#storage-blob-data-owner
 var storageBlobDataOwnerRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
 
+// Use existing network/dns zone
+param dnsZoneRG string
+param vNetRG string
+resource vnet 'Microsoft.Network/virtualNetworks@2022-01-01' existing = {
+  name: vNetName
+  scope: resourceGroup(vNetRG)
+}
+
+// Get existing subnet
+resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-01-01' existing = {
+  name: privateEndpointSubnetName
+  parent: vnet
+}
+
 param functionContentShareName string
 
 resource functionAppmanagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' existing = {
@@ -73,10 +87,10 @@ module privateEndpointBlob '../networking/private-endpoint.bicep' = {
     ]
     dnsZoneName: storageBlobDnsZoneName
     name: storageBlobPrivateEndpointName
-    subnetName: privateEndpointSubnetName
     privateLinkServiceId: storageAccount.id
-    vNetName: vNetName
     location: location
+    dnsZoneRG: dnsZoneRG
+    privateEndpointSubnetId: subnet.id
   }
 }
 
@@ -88,10 +102,10 @@ module privateEndpointFile '../networking/private-endpoint.bicep' = {
     ]
     dnsZoneName: storageFileDnsZoneName
     name: storageFilePrivateEndpointName
-    subnetName: privateEndpointSubnetName
     privateLinkServiceId: storageAccount.id
-    vNetName: vNetName
     location: location
+    dnsZoneRG: dnsZoneRG
+    privateEndpointSubnetId: subnet.id
   }
 }
 

@@ -1,29 +1,27 @@
 param name string
-param subnetName string
-param vNetName string
 param privateLinkServiceId string
 param groupIds array
 param dnsZoneName string
 param location string
 
-resource privateEndpointSubnet 'Microsoft.Network/virtualNetworks/subnets@2022-09-01' existing = {
-  name: '${vNetName}/${subnetName}'
-}
+param privateEndpointSubnetId string
+param dnsZoneRG string
+
 
 resource privateEndpointDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
   name: dnsZoneName
+  scope: resourceGroup(dnsZoneRG)
 }
 
 resource privateEndpoint 'Microsoft.Network/privateEndpoints@2022-09-01' = {
   name: name
   location: location
   dependsOn: [
-    privateEndpointSubnet
     privateEndpointDnsZone
   ]
   properties: {
     subnet: {
-      id: privateEndpointSubnet.id
+      id: privateEndpointSubnetId
     }
     privateLinkServiceConnections: [
       {
