@@ -1,5 +1,5 @@
 {
-    "azureFunctions.deploySubpath": "src\\usage-ingestion-func/bin/Release/net8.0/publish",
+    "azureFunctions.deploySubpath": "src\\usage-ingestion-function/bin/Release/net8.0/publish",
     "azureFunctions.projectLanguage": "C#",
     "azureFunctions.projectRuntime": "~4",
     "debug.internalConsoleOptions": "neverOpen",
