@@ -69,13 +69,13 @@ param functionContentShareName string = 'usage-function-content'
 param provisionStreamAnalytics bool = false
 
 //Networking - VNet
-param useExistingVnet bool = false
-param existingVnetRG string = ''
+param useExistingVnet bool = true
+param existingVnetRG string = 'ai-hub-gateway-vnet'
 param useExistingSubnets bool = false
-param vnetName string = ''
-param apimSubnetName string = ''
-param privateEndpointSubnetName string = ''
-param functionAppSubnetName string = ''
+param vnetName string = 'vnet-ai-hub-gateway'
+param apimSubnetName string = 'apim'
+param privateEndpointSubnetName string = 'pe'
+param functionAppSubnetName string = 'func'
 
 param apimNsgName string = ''
 param privateEndpointNsgName string = ''
@@ -307,6 +307,9 @@ module vnet './modules/networking/vnet.bicep' = if(!useExistingVnet) {
     privateDnsZoneNames: privateDnsZoneNames
     apimRouteTableName: 'rt-apim-${resourceToken}'
   }
+  dependsOn: [
+    dnsDeployment
+  ]
 }
 
 module vnetExisting './modules/networking/vnet-existing.bicep' = if(useExistingVnet) {
@@ -329,8 +332,10 @@ module vnetExisting './modules/networking/vnet-existing.bicep' = if(useExistingV
     apimRouteTableName: 'rt-apim-${resourceToken}'
     useExistingSubnets: useExistingSubnets
     vnetRG: existingVnetRG
-    
   }
+  dependsOn: [
+    dnsDeployment
+  ]
 }
 
 module apimManagedIdentity './modules/security/managed-identity-apim.bicep' = {
@@ -370,10 +375,11 @@ module monitoring './modules/monitor/monitoring.bicep' = {
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
     applicationInsightsDnsZoneName: monitorPrivateDnsZoneName
     createDashboard: createAppInsightsDashboard
-    dnsZoneRG: dnsZoneRG
+    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
   }
   dependsOn: [
     vnet
+    vnetExisting
   ]
 }
 
@@ -386,8 +392,8 @@ module openAis 'modules/ai/cognitiveservices.bicep' = [for (config, i) in items(
     location: config.value.location
     tags: tags
     managedIdentityName: apimManagedIdentity.outputs.managedIdentityName
-    vNetName: vnet.outputs.vnetName
-    vNetLocation: vnet.outputs.location
+    vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
+    vNetLocation: useExistingVnet ? vnetExisting.outputs.location : vnet.outputs.location
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
     openAiPrivateEndpointName: '${config.value.name}-pe-${resourceToken}'
     publicNetworkAccess: openAIExternalNetworkAccess
@@ -397,11 +403,12 @@ module openAis 'modules/ai/cognitiveservices.bicep' = [for (config, i) in items(
     }
     deploymentCapacity: deploymentCapacity
     deployments: config.value.deployments
-    dnsZoneRG: dnsZoneRG
+    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
   }
   dependsOn: [
     vnet
+    vnetExisting
     apimManagedIdentity
   ]
 }]
@@ -414,10 +421,10 @@ module eventHub './modules/event-hub/event-hub.bicep' = {
     location: location
     tags: tags
     eventHubPrivateEndpointName: 'eh-pe-${resourceToken}'
-    vNetName: vnet.outputs.vnetName
+    vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
     eventHubDnsZoneName: eventHubPrivateDnsZoneName
-    dnsZoneRG: dnsZoneRG
+    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
   }
   dependsOn: [
@@ -426,32 +433,32 @@ module eventHub './modules/event-hub/event-hub.bicep' = {
   ]
 }
 
-module apim './modules/apim/apim.bicep' = {
-  name: 'apim'
-  scope: resourceGroup
-  params: {
-    name: !empty(apimServiceName) ? apimServiceName : '${abbrs.apiManagementService}${resourceToken}'
-    location: location
-    tags: tags
-    applicationInsightsName: monitoring.outputs.applicationInsightsName
-    openAiUris: [for i in range(0, length(openAiInstances)): openAis[i].outputs.openAiEndpointUri]
-    managedIdentityName: apimManagedIdentity.outputs.managedIdentityName
-    entraAuth: entraAuth
-    clientAppId: entraAuth ? entraClientId : null 
-    tenantId: entraAuth ? entraTenantId : null
-    audience: entraAuth ? entraAudience : null
-    eventHubName: eventHub.outputs.eventHubName
-    eventHubEndpoint: eventHub.outputs.eventHubEndpoint
-    apimSubnetId: useExistingVnet ? vnetExisting.outputs.apimSubnetId : vnet.outputs.apimSubnetId
-    apimNetworkType: apimNetworkType
-  }
-  dependsOn: [
-    vnet
-    vnetExisting
-    apimManagedIdentity
-    eventHub
-  ]
-}
+// module apim './modules/apim/apim.bicep' = {
+//   name: 'apim'
+//   scope: resourceGroup
+//   params: {
+//     name: !empty(apimServiceName) ? apimServiceName : '${abbrs.apiManagementService}${resourceToken}'
+//     location: location
+//     tags: tags
+//     applicationInsightsName: monitoring.outputs.applicationInsightsName
+//     openAiUris: [for i in range(0, length(openAiInstances)): openAis[i].outputs.openAiEndpointUri]
+//     managedIdentityName: apimManagedIdentity.outputs.managedIdentityName
+//     entraAuth: entraAuth
+//     clientAppId: entraAuth ? entraClientId : null 
+//     tenantId: entraAuth ? entraTenantId : null
+//     audience: entraAuth ? entraAudience : null
+//     eventHubName: eventHub.outputs.eventHubName
+//     eventHubEndpoint: eventHub.outputs.eventHubEndpoint
+//     apimSubnetId: useExistingVnet ? vnetExisting.outputs.apimSubnetId : vnet.outputs.apimSubnetId
+//     apimNetworkType: apimNetworkType
+//   }
+//   dependsOn: [
+//     vnet
+//     vnetExisting
+//     apimManagedIdentity
+//     eventHub
+//   ]
+// }
 
 module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
   name: 'cosmos-db'
@@ -460,11 +467,11 @@ module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
     accountName: !empty(cosmosDbAccountName) ? cosmosDbAccountName : '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
     location: location
     tags: tags
-    vNetName: vnet.outputs.vnetName
+    vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
     cosmosDnsZoneName: cosmosDbPrivateDnsZoneName
     cosmosPrivateEndpointName: '${abbrs.documentDBDatabaseAccounts}pe-${resourceToken}'
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
-    dnsZoneRG: dnsZoneRG
+    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
   }
   dependsOn: [
@@ -497,14 +504,14 @@ module storageAccount './modules/functionapp/storageaccount.bicep' = {
     tags: tags
     storageAccountName: !empty(storageAccountName) ? storageAccountName : 'funcusage${resourceToken}'
     functionAppManagedIdentityName: usageManagedIdentity.outputs.managedIdentityName
-    vNetName: vnet.outputs.vnetName
+    vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
     storageBlobDnsZoneName: storageBlobPrivateDnsZoneName
     storageFileDnsZoneName: storageFilePrivateDnsZoneName
     storageBlobPrivateEndpointName: '${abbrs.storageStorageAccounts}blob-pe-${resourceToken}'
     storageFilePrivateEndpointName: '${abbrs.storageStorageAccounts}file-pe-${resourceToken}'
     functionContentShareName: functionContentShareName
-    dnsZoneRG: dnsZoneRG
+    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
   }
   dependsOn: [
@@ -543,6 +550,6 @@ module functionApp './modules/functionapp/functionapp.bicep' = {
   ]
 }
 
-output APIM_NAME string = apim.outputs.apimName
-output APIM_AOI_PATH string = apim.outputs.apimOpenaiApiPath
-output APIM_GATEWAY_URL string = apim.outputs.apimGatewayUrl
+// output APIM_NAME string = apim.outputs.apimName
+// output APIM_AOI_PATH string = apim.outputs.apimOpenaiApiPath
+// output APIM_GATEWAY_URL string = apim.outputs.apimGatewayUrl

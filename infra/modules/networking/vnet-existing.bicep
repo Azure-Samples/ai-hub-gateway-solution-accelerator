@@ -170,65 +170,80 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' existing 
   scope: resourceGroup(vnetRG)
 }
 
-module apimSubnet './subnet.bicep' = {
+resource apimSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-11-01' existing = {
   name: apimSubnetName
-  params: {
-    vnetName: virtualNetwork.name
-    name: apimSubnetName
-    vnetRG: vnetRG
-    properties: {
-      addressPrefix: apimSubnetAddressPrefix
-      networkSecurityGroup: apimNsg.id == '' ? null : {
-        id: apimNsg.id 
-      }
-      routeTable: apimRouteTable.id == '' ? null : {
-        id: apimRouteTable.id
-      }
-    }
-  }
+  parent: virtualNetwork
 }
 
-module privateEndpointSubnet './subnet.bicep' = {
+resource privateEndpointSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-11-01' existing = {
   name: privateEndpointSubnetName
-  params: {
-    vnetName: virtualNetwork.name
-    name: privateEndpointSubnetName
-    vnetRG: vnetRG
-    properties: {
-      addressPrefix: privateEndpointSubnetAddressPrefix
-      networkSecurityGroup: privateEndpointNsg.id == '' ? null : {
-        id: privateEndpointNsg.id 
-      }
-      privateEndpointNetworkPolicies: 'Disabled'
-      privateLinkServiceNetworkPolicies: 'Enabled'
-    }
-  }
+  parent: virtualNetwork
 }
 
-module functionAppSubnet './subnet.bicep' = {
+resource functionAppSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-11-01' existing = {
   name: functionAppSubnetName
-  params: {
-    vnetName: virtualNetwork.name
-    name: functionAppSubnetName
-    vnetRG: vnetRG
-    properties: {
-      addressPrefix: functionAppSubnetAddressPrefix
-      networkSecurityGroup: functionAppNsg.id == '' ? null : {
-        id: functionAppNsg.id 
-      }
-      privateEndpointNetworkPolicies: 'Enabled'
-      privateLinkServiceNetworkPolicies: 'Enabled'
-      delegations: [
-        {
-          name: 'Microsoft.Web/serverFarms'
-          properties: {
-            serviceName: 'Microsoft.Web/serverFarms'
-          }
-        }
-      ]
-    }
-  }
+  parent: virtualNetwork
 }
+
+// module apimSubnet './subnet.bicep' = {
+//   name: apimSubnetName
+//   params: {
+//     vnetName: virtualNetwork.name
+//     name: apimSubnetName
+//     vnetRG: vnetRG
+//     properties: {
+//       addressPrefix: apimSubnetAddressPrefix
+//       networkSecurityGroup: apimNsg.id == '' ? null : {
+//         id: apimNsg.id 
+//       }
+//       routeTable: apimRouteTable.id == '' ? null : {
+//         id: apimRouteTable.id
+//       }
+//     }
+//   }
+// }
+
+// module privateEndpointSubnet './subnet.bicep' = {
+//   name: privateEndpointSubnetName
+//   params: {
+//     vnetName: virtualNetwork.name
+//     name: privateEndpointSubnetName
+//     vnetRG: vnetRG
+//     properties: {
+//       addressPrefix: privateEndpointSubnetAddressPrefix
+//       networkSecurityGroup: privateEndpointNsg.id == '' ? null : {
+//         id: privateEndpointNsg.id 
+//       }
+//       privateEndpointNetworkPolicies: 'Disabled'
+//       privateLinkServiceNetworkPolicies: 'Enabled'
+//     }
+//   }
+// }
+
+// module functionAppSubnet './subnet.bicep' = {
+//   name: functionAppSubnetName
+//   params: {
+//     vnetName: virtualNetwork.name
+//     name: functionAppSubnetName
+//     vnetRG: vnetRG
+//     properties: {
+//       addressPrefix: functionAppSubnetAddressPrefix
+//       networkSecurityGroup: functionAppNsg.id == '' ? null : {
+//         id: functionAppNsg.id 
+//       }
+//       privateEndpointNetworkPolicies: 'Enabled'
+//       privateLinkServiceNetworkPolicies: 'Enabled'
+//       delegations: [
+//         {
+//           name: 'Microsoft.Web/serverFarms'
+//           properties: {
+//             serviceName: 'Microsoft.Web/serverFarms'
+//           }
+//         }
+//       ]
+//     }
+//   }
+// }
 
 resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = [for privateDnsZoneName in privateDnsZoneNames: {
   name: '${privateDnsZoneName}/privateDnsZoneLink'
