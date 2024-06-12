@@ -9,10 +9,7 @@ param privateEndpointNsgName string
 param functionAppSubnetName string
 param functionAppNsgName string
 param apimRouteTableName string
-param privateDnsZoneNames array
-param apimSubnetAddressPrefix string
-param privateEndpointSubnetAddressPrefix string
-param functionAppSubnetAddressPrefix string
+
 param tags object = {}
 
 resource apimNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = if(!useExistingSubnets) {
@@ -185,76 +182,16 @@ resource functionAppSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-11-01
   parent: virtualNetwork
 }
 
-// module apimSubnet './subnet.bicep' = {
-//   name: apimSubnetName
-//   params: {
-//     vnetName: virtualNetwork.name
-//     name: apimSubnetName
-//     vnetRG: vnetRG
-//     properties: {
-//       addressPrefix: apimSubnetAddressPrefix
-//       networkSecurityGroup: apimNsg.id == '' ? null : {
-//         id: apimNsg.id 
-//       }
-//       routeTable: apimRouteTable.id == '' ? null : {
-//         id: apimRouteTable.id
-//       }
+// resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = [for privateDnsZoneName in privateDnsZoneNames: {
+//   name: '${privateDnsZoneName}/privateDnsZoneLink'
+//   location: 'global'
+//   properties: {
+//     virtualNetwork: {
+//       id: virtualNetwork.id
 //     }
+//     registrationEnabled: false
 //   }
-// }
-
-// module privateEndpointSubnet './subnet.bicep' = {
-//   name: privateEndpointSubnetName
-//   params: {
-//     vnetName: virtualNetwork.name
-//     name: privateEndpointSubnetName
-//     vnetRG: vnetRG
-//     properties: {
-//       addressPrefix: privateEndpointSubnetAddressPrefix
-//       networkSecurityGroup: privateEndpointNsg.id == '' ? null : {
-//         id: privateEndpointNsg.id 
-//       }
-//       privateEndpointNetworkPolicies: 'Disabled'
-//       privateLinkServiceNetworkPolicies: 'Enabled'
-//     }
-//   }
-// }
-
-// module functionAppSubnet './subnet.bicep' = {
-//   name: functionAppSubnetName
-//   params: {
-//     vnetName: virtualNetwork.name
-//     name: functionAppSubnetName
-//     vnetRG: vnetRG
-//     properties: {
-//       addressPrefix: functionAppSubnetAddressPrefix
-//       networkSecurityGroup: functionAppNsg.id == '' ? null : {
-//         id: functionAppNsg.id 
-//       }
-//       privateEndpointNetworkPolicies: 'Enabled'
-//       privateLinkServiceNetworkPolicies: 'Enabled'
-//       delegations: [
-//         {
-//           name: 'Microsoft.Web/serverFarms'
-//           properties: {
-//             serviceName: 'Microsoft.Web/serverFarms'
-//           }
-//         }
-//       ]
-//     }
-//   }
-// }
-
-resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = [for privateDnsZoneName in privateDnsZoneNames: {
-  name: '${privateDnsZoneName}/privateDnsZoneLink'
-  location: 'global'
-  properties: {
-    virtualNetwork: {
-      id: virtualNetwork.id
-    }
-    registrationEnabled: false
-  }
-}]
+// }]
 
 output virtualNetworkId string = virtualNetwork.id
 output vnetName string = virtualNetwork.name

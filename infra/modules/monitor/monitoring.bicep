@@ -16,6 +16,7 @@ param applicationInsightsDnsZoneName string
 
 // Use existing network/dns zone
 param dnsZoneRG string
+param dnsSubscriptionId string
 param vNetRG string
 resource vnet 'Microsoft.Network/virtualNetworks@2022-01-01' existing = {
   name: vNetName
@@ -89,6 +90,7 @@ module privateEndpoint '../networking/private-endpoint.bicep' = {
     location: location
     dnsZoneRG: dnsZoneRG
     privateEndpointSubnetId: subnet.id
+    dnsSubId: dnsSubscriptionId
   }
 }
 

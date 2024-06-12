@@ -81,10 +81,6 @@ param apimNsgName string = ''
 param privateEndpointNsgName string = ''
 param functionAppNsgName string = ''
 
-// param appGatewaySubnetName string = ''
-// param appGatewayNsgName string = ''
-// param appGatewayPublicIpName string = ''
-
 // Networking - Address Space
 param vnetAddressPrefix string = '10.170.0.0/24'
 param apimSubnetPrefix string = '10.170.0.0/26'
@@ -93,6 +89,7 @@ param functionAppSubnetPrefix string = '10.170.0.128/26'
 
 // Networking - Private DNS
 param dnsZoneRG string = ''
+param dnsSubscriptionId string = ''
 param useExistingDnsZones bool = false
 
 var openAiPrivateDnsZoneName = 'privatelink.openai.azure.com'
@@ -323,12 +320,8 @@ module vnetExisting './modules/networking/vnet-existing.bicep' = if(useExistingV
     privateEndpointNsgName: !empty(privateEndpointNsgName) ? privateEndpointNsgName : 'nsg-pe-${resourceToken}'
     functionAppSubnetName: !empty(functionAppSubnetName) ? functionAppSubnetName : 'snet-functionapp'
     functionAppNsgName: !empty(functionAppNsgName) ? functionAppNsgName : 'nsg-functionapp-${resourceToken}'
-    apimSubnetAddressPrefix: apimSubnetPrefix
-    privateEndpointSubnetAddressPrefix: privateEndpointSubnetPrefix
-    functionAppSubnetAddressPrefix: functionAppSubnetPrefix
     location: location
     tags: tags
-    privateDnsZoneNames: privateDnsZoneNames
     apimRouteTableName: 'rt-apim-${resourceToken}'
     useExistingSubnets: useExistingSubnets
     vnetRG: existingVnetRG
@@ -376,6 +369,7 @@ module monitoring './modules/monitor/monitoring.bicep' = {
     applicationInsightsDnsZoneName: monitorPrivateDnsZoneName
     createDashboard: createAppInsightsDashboard
     dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
+    dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
   dependsOn: [
     vnet
@@ -403,8 +397,9 @@ module openAis 'modules/ai/cognitiveservices.bicep' = [for (config, i) in items(
     }
     deploymentCapacity: deploymentCapacity
     deployments: config.value.deployments
-    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
+    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
+    dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
   dependsOn: [
     vnet
@@ -424,8 +419,9 @@ module eventHub './modules/event-hub/event-hub.bicep' = {
     vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
     eventHubDnsZoneName: eventHubPrivateDnsZoneName
-    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
+    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
+    dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
   dependsOn: [
     vnet
@@ -433,32 +429,32 @@ module eventHub './modules/event-hub/event-hub.bicep' = {
   ]
 }
 
-// module apim './modules/apim/apim.bicep' = {
-//   name: 'apim'
-//   scope: resourceGroup
-//   params: {
-//     name: !empty(apimServiceName) ? apimServiceName : '${abbrs.apiManagementService}${resourceToken}'
-//     location: location
-//     tags: tags
-//     applicationInsightsName: monitoring.outputs.applicationInsightsName
-//     openAiUris: [for i in range(0, length(openAiInstances)): openAis[i].outputs.openAiEndpointUri]
-//     managedIdentityName: apimManagedIdentity.outputs.managedIdentityName
-//     entraAuth: entraAuth
-//     clientAppId: entraAuth ? entraClientId : null 
-//     tenantId: entraAuth ? entraTenantId : null
-//     audience: entraAuth ? entraAudience : null
-//     eventHubName: eventHub.outputs.eventHubName
-//     eventHubEndpoint: eventHub.outputs.eventHubEndpoint
-//     apimSubnetId: useExistingVnet ? vnetExisting.outputs.apimSubnetId : vnet.outputs.apimSubnetId
-//     apimNetworkType: apimNetworkType
-//   }
-//   dependsOn: [
-//     vnet
-//     vnetExisting
-//     apimManagedIdentity
-//     eventHub
-//   ]
-// }
+module apim './modules/apim/apim.bicep' = {
+  name: 'apim'
+  scope: resourceGroup
+  params: {
+    name: !empty(apimServiceName) ? apimServiceName : '${abbrs.apiManagementService}${resourceToken}'
+    location: location
+    tags: tags
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    openAiUris: [for i in range(0, length(openAiInstances)): openAis[i].outputs.openAiEndpointUri]
+    managedIdentityName: apimManagedIdentity.outputs.managedIdentityName
+    entraAuth: entraAuth
+    clientAppId: entraAuth ? entraClientId : null 
+    tenantId: entraAuth ? entraTenantId : null
+    audience: entraAuth ? entraAudience : null
+    eventHubName: eventHub.outputs.eventHubName
+    eventHubEndpoint: eventHub.outputs.eventHubEndpoint
+    apimSubnetId: useExistingVnet ? vnetExisting.outputs.apimSubnetId : vnet.outputs.apimSubnetId
+    apimNetworkType: apimNetworkType
+  }
+  dependsOn: [
+    vnet
+    vnetExisting
+    apimManagedIdentity
+    eventHub
+  ]
+}
 
 module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
   name: 'cosmos-db'
@@ -471,8 +467,9 @@ module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
     cosmosDnsZoneName: cosmosDbPrivateDnsZoneName
     cosmosPrivateEndpointName: '${abbrs.documentDBDatabaseAccounts}pe-${resourceToken}'
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
-    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
+    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
+    dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
   dependsOn: [
     vnet
@@ -511,8 +508,9 @@ module storageAccount './modules/functionapp/storageaccount.bicep' = {
     storageBlobPrivateEndpointName: '${abbrs.storageStorageAccounts}blob-pe-${resourceToken}'
     storageFilePrivateEndpointName: '${abbrs.storageStorageAccounts}file-pe-${resourceToken}'
     functionContentShareName: functionContentShareName
-    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
+    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
+    dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
   dependsOn: [
     vnet
@@ -550,6 +548,6 @@ module functionApp './modules/functionapp/functionapp.bicep' = {
   ]
 }
 
-// output APIM_NAME string = apim.outputs.apimName
-// output APIM_AOI_PATH string = apim.outputs.apimOpenaiApiPath
-// output APIM_GATEWAY_URL string = apim.outputs.apimGatewayUrl
+output APIM_NAME string = apim.outputs.apimName
+output APIM_AOI_PATH string = apim.outputs.apimOpenaiApiPath
+output APIM_GATEWAY_URL string = apim.outputs.apimGatewayUrl
