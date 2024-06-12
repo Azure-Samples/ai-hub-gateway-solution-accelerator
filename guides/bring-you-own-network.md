@@ -232,14 +232,10 @@ var storageFilePrivateDnsZoneName = 'privatelink.file.core.windows.net'
 
 Depending on the setup you have for managing private dns zones, you have these options:
 
-- If the provisioner has ```Network Contributor``` role on the existing private zones, you can use the existing zones by updating the following information in the (main.bicep)[../infra/main.bicep]:
+- If the provisioner has ```Network Contributor``` role on the existing private zones, you can use the existing zones by updating the following information in the (main.bicep)[../infra/main.bicep] as outline in the next section
+- If the provisioner does not have the required permissions, leave both ```dnsZoneRG``` and ```dnsSubscriptionId``` empty and the script will create the required private zones so it can associate it with the private endpoint configurations. 
+    - In this case, you can update the central dns zones directly with the endpoints records or just configure the private endpoint directly to use the central zones.
 
-```bicep
-// Networking - Private DNS
-param dnsZoneRG string = 'REPLACE-WITH-EXISTING-DNS-ZONE-RG'
-param dnsSubscriptionId string = 'REPLACE-WITH-EXISTING-DNS-ZONE-SUBSCRIPTION-ID'
-
-```bicep
 
 ## Updating the main.bicep
 
@@ -258,6 +254,6 @@ param functionAppSubnetName string = 'REPLACE-WITH-EXISTING-FUNCTION-APP-SUBNET-
 
 // Networking - Private DNS
 param dnsZoneRG string = 'REPLACE-WITH-EXISTING-DNS-ZONE-RG'
-
+param dnsSubscriptionId string = 'REPLACE-WITH-EXISTING-DNS-ZONE-SUBSCRIPTION-ID'
 ```
 > NOTE: All above values should not be empty or the script will not behave as expected.

@@ -69,13 +69,13 @@ param functionContentShareName string = 'usage-function-content'
 param provisionStreamAnalytics bool = false
 
 //Networking - VNet
-param useExistingVnet bool = true
-param existingVnetRG string = 'ai-hub-gateway-vnet'
+param useExistingVnet bool = false
+param existingVnetRG string = ''
 param useExistingSubnets bool = false
-param vnetName string = 'vnet-ai-hub-gateway'
-param apimSubnetName string = 'apim'
-param privateEndpointSubnetName string = 'pe'
-param functionAppSubnetName string = 'func'
+param vnetName string = ''
+param apimSubnetName string = ''
+param privateEndpointSubnetName string = ''
+param functionAppSubnetName string = ''
 
 param apimNsgName string = ''
 param privateEndpointNsgName string = ''
@@ -90,7 +90,6 @@ param functionAppSubnetPrefix string = '10.170.0.128/26'
 // Networking - Private DNS
 param dnsZoneRG string = ''
 param dnsSubscriptionId string = ''
-param useExistingDnsZones bool = false
 
 var openAiPrivateDnsZoneName = 'privatelink.openai.azure.com'
 var keyVaultPrivateDnsZoneName = 'privatelink.vaultcore.azure.net'
