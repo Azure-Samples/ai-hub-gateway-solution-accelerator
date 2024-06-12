@@ -217,6 +217,7 @@ Example of the subnet definition:
 }
 ```
 
+### Private DNS Zones
 The following private zones are expected to be available in one resource group (it can be different resource group from the virtual network) and already linked to the virtual network:
 
 ```bicep
@@ -228,6 +229,17 @@ var cosmosDbPrivateDnsZoneName = 'privatelink.documents.azure.com'
 var storageBlobPrivateDnsZoneName = 'privatelink.blob.core.windows.net'
 var storageFilePrivateDnsZoneName = 'privatelink.file.core.windows.net'
 ```
+
+Depending on the setup you have for managing private dns zones, you have these options:
+
+- If the provisioner has ```Network Contributor``` role on the existing private zones, you can use the existing zones by updating the following information in the (main.bicep)[../infra/main.bicep]:
+
+```bicep
+// Networking - Private DNS
+param dnsZoneRG string = 'REPLACE-WITH-EXISTING-DNS-ZONE-RG'
+param dnsSubscriptionId string = 'REPLACE-WITH-EXISTING-DNS-ZONE-SUBSCRIPTION-ID'
+
+```bicep
 
 ## Updating the main.bicep
 
