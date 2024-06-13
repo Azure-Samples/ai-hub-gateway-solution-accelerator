@@ -23,7 +23,6 @@ param eventHubEndpoint string
 param apimNetworkType string = 'External'
 param apimSubnetId string
 
-
 var openAiApiBackendId = 'openai-backend'
 var openAiApiUamiNamedValue = 'uami-client-id'
 var openAiApiEntraNamedValue = 'entra-auth'

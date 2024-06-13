@@ -69,20 +69,16 @@ param functionContentShareName string = 'usage-function-content'
 param provisionStreamAnalytics bool = false
 
 //Networking - VNet
-param bringYourOwnVnet bool = true
+param useExistingVnet bool = false
+param existingVnetRG string = ''
 param vnetName string = ''
 param apimSubnetName string = ''
 param privateEndpointSubnetName string = ''
 param functionAppSubnetName string = ''
 
-param bringYourOwnNsg bool = false
 param apimNsgName string = ''
 param privateEndpointNsgName string = ''
 param functionAppNsgName string = ''
-
-// param appGatewaySubnetName string = ''
-// param appGatewayNsgName string = ''
-// param appGatewayPublicIpName string = ''
 
 // Networking - Address Space
 param vnetAddressPrefix string = '10.170.0.0/24'
@@ -91,6 +87,9 @@ param privateEndpointSubnetPrefix string = '10.170.0.64/26'
 param functionAppSubnetPrefix string = '10.170.0.128/26'
 
 // Networking - Private DNS
+param dnsZoneRG string = ''
+param dnsSubscriptionId string = ''
+
 var openAiPrivateDnsZoneName = 'privatelink.openai.azure.com'
 var keyVaultPrivateDnsZoneName = 'privatelink.vaultcore.azure.net'
 var monitorPrivateDnsZoneName = 'privatelink.monitor.azure.com'
@@ -280,7 +279,7 @@ module dnsDeployment './modules/networking/dns.bicep' = [for privateDnsZoneName 
   }
 }]
 
-module vnet './modules/networking/vnet.bicep' = {
+module vnet './modules/networking/vnet.bicep' = if(!useExistingVnet) {
   name: 'vnet'
   scope: resourceGroup
   params: {
@@ -303,6 +302,24 @@ module vnet './modules/networking/vnet.bicep' = {
     privateDnsZoneNames: privateDnsZoneNames
     apimRouteTableName: 'rt-apim-${resourceToken}'
   }
+  dependsOn: [
+    dnsDeployment
+  ]
+}
+
+module vnetExisting './modules/networking/vnet-existing.bicep' = if(useExistingVnet) {
+  name: 'vnetExisting'
+  scope: resourceGroup
+  params: {
+    name: vnetName
+    apimSubnetName: !empty(apimSubnetName) ? apimSubnetName : 'snet-apim'
+    privateEndpointSubnetName: !empty(privateEndpointSubnetName) ? privateEndpointSubnetName : 'snet-private-endpoint'
+    functionAppSubnetName: !empty(functionAppSubnetName) ? functionAppSubnetName : 'snet-functionapp'
+    vnetRG: existingVnetRG
+  }
+  dependsOn: [
+    dnsDeployment
+  ]
 }
 
 module apimManagedIdentity './modules/security/managed-identity-apim.bicep' = {
@@ -337,13 +354,17 @@ module monitoring './modules/monitor/monitoring.bicep' = {
     apimApplicationInsightsDashboardName: !empty(applicationInsightsDashboardName) ? applicationInsightsDashboardName : '${abbrs.portalDashboards}apim-${resourceToken}'
     functionApplicationInsightsName: !empty(funcApplicationInsightsName) ? funcApplicationInsightsName : '${abbrs.insightsComponents}func-${resourceToken}'
     functionApplicationInsightsDashboardName: !empty(funcAplicationInsightsDashboardName) ? funcAplicationInsightsDashboardName : '${abbrs.portalDashboards}func-${resourceToken}'
-    vNetName: vnet.outputs.vnetName
-    privateEndpointSubnetName: vnet.outputs.privateEndpointSubnetName
+    vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
+    vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
+    privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
     applicationInsightsDnsZoneName: monitorPrivateDnsZoneName
     createDashboard: createAppInsightsDashboard
+    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
+    dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
   dependsOn: [
     vnet
+    vnetExisting
   ]
 }
 
@@ -356,9 +377,9 @@ module openAis 'modules/ai/cognitiveservices.bicep' = [for (config, i) in items(
     location: config.value.location
     tags: tags
     managedIdentityName: apimManagedIdentity.outputs.managedIdentityName
-    vNetName: vnet.outputs.vnetName
-    vNetLocation: vnet.outputs.location
-    privateEndpointSubnetName: vnet.outputs.privateEndpointSubnetName
+    vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
+    vNetLocation: useExistingVnet ? vnetExisting.outputs.location : vnet.outputs.location
+    privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
     openAiPrivateEndpointName: '${config.value.name}-pe-${resourceToken}'
     publicNetworkAccess: openAIExternalNetworkAccess
     openAiDnsZoneName: openAiPrivateDnsZoneName
@@ -367,9 +388,13 @@ module openAis 'modules/ai/cognitiveservices.bicep' = [for (config, i) in items(
     }
     deploymentCapacity: deploymentCapacity
     deployments: config.value.deployments
+    vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
+    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
+    dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
   dependsOn: [
     vnet
+    vnetExisting
     apimManagedIdentity
   ]
 }]
@@ -382,12 +407,16 @@ module eventHub './modules/event-hub/event-hub.bicep' = {
     location: location
     tags: tags
     eventHubPrivateEndpointName: 'eh-pe-${resourceToken}'
-    vNetName: vnet.outputs.vnetName
-    privateEndpointSubnetName: vnet.outputs.privateEndpointSubnetName
+    vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
+    privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
     eventHubDnsZoneName: eventHubPrivateDnsZoneName
+    vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
+    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
+    dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
   dependsOn: [
     vnet
+    vnetExisting
   ]
 }
 
@@ -407,11 +436,12 @@ module apim './modules/apim/apim.bicep' = {
     audience: entraAuth ? entraAudience : null
     eventHubName: eventHub.outputs.eventHubName
     eventHubEndpoint: eventHub.outputs.eventHubEndpoint
-    apimSubnetId: vnet.outputs.apimSubnetId
+    apimSubnetId: useExistingVnet ? vnetExisting.outputs.apimSubnetId : vnet.outputs.apimSubnetId
     apimNetworkType: apimNetworkType
   }
   dependsOn: [
     vnet
+    vnetExisting
     apimManagedIdentity
     eventHub
   ]
@@ -424,13 +454,17 @@ module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
     accountName: !empty(cosmosDbAccountName) ? cosmosDbAccountName : '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
     location: location
     tags: tags
-    vNetName: vnet.outputs.vnetName
+    vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
     cosmosDnsZoneName: cosmosDbPrivateDnsZoneName
     cosmosPrivateEndpointName: '${abbrs.documentDBDatabaseAccounts}pe-${resourceToken}'
-    privateEndpointSubnetName: vnet.outputs.privateEndpointSubnetName
+    privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
+    vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
+    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
+    dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
   dependsOn: [
     vnet
+    vnetExisting
   ]
 }
 
@@ -458,16 +492,20 @@ module storageAccount './modules/functionapp/storageaccount.bicep' = {
     tags: tags
     storageAccountName: !empty(storageAccountName) ? storageAccountName : 'funcusage${resourceToken}'
     functionAppManagedIdentityName: usageManagedIdentity.outputs.managedIdentityName
-    vNetName: vnet.outputs.vnetName
-    privateEndpointSubnetName: vnet.outputs.privateEndpointSubnetName
+    vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
+    privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
     storageBlobDnsZoneName: storageBlobPrivateDnsZoneName
     storageFileDnsZoneName: storageFilePrivateDnsZoneName
     storageBlobPrivateEndpointName: '${abbrs.storageStorageAccounts}blob-pe-${resourceToken}'
     storageFilePrivateEndpointName: '${abbrs.storageStorageAccounts}file-pe-${resourceToken}'
     functionContentShareName: functionContentShareName
+    vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
+    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
+    dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
   dependsOn: [
     vnet
+    vnetExisting
   ]
 }
 
@@ -487,12 +525,12 @@ module functionApp './modules/functionapp/functionapp.bicep' = {
     cosmosDBEndpoint: cosmosDb.outputs.cosmosDbEndpoint
     cosmosDatabaseName: cosmosDb.outputs.cosmosDbDatabaseName
     cosmosContainerName: cosmosDb.outputs.cosmosDbContainerName
-    vnetName: vnet.outputs.vnetName
-    functionAppSubnetId: vnet.outputs.functionAppSubnetId
+    functionAppSubnetId: useExistingVnet ? vnetExisting.outputs.functionAppSubnetId : vnet.outputs.functionAppSubnetId
     functionContentShareName: functionContentShareName
   }
   dependsOn: [
     vnet
+    vnetExisting
     storageAccount
     usageManagedIdentity
     monitoring

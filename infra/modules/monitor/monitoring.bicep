@@ -14,6 +14,21 @@ param vNetName string
 param privateEndpointSubnetName string
 param applicationInsightsDnsZoneName string
 
+// Use existing network/dns zone
+param dnsZoneRG string
+param dnsSubscriptionId string
+param vNetRG string
+resource vnet 'Microsoft.Network/virtualNetworks@2022-01-01' existing = {
+  name: vNetName
+  scope: resourceGroup(vNetRG)
+}
+
+// Get existing subnet
+resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-01-01' existing = {
+  name: privateEndpointSubnetName
+  parent: vnet
+}
+
 resource privateLinkScope 'microsoft.insights/privateLinkScopes@2021-07-01-preview' = {
   name: privateLinkScopeName
   location: 'global'
@@ -71,11 +86,17 @@ module privateEndpoint '../networking/private-endpoint.bicep' = {
     ]
     dnsZoneName: applicationInsightsDnsZoneName
     name: '${privateLinkScopeName}-pe'
-    subnetName: privateEndpointSubnetName
     privateLinkServiceId: privateLinkScope.id
-    vNetName: vNetName
     location: location
+    dnsZoneRG: dnsZoneRG
+    privateEndpointSubnetId: subnet.id
+    dnsSubId: dnsSubscriptionId
   }
+  dependsOn: [
+    logAnalytics
+    apimApplicationInsights
+    functionApplicationInsights
+  ]
 }
 
 output applicationInsightsName string = apimApplicationInsights.outputs.name

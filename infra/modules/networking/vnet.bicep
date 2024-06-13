@@ -335,3 +335,4 @@ output privateEndpointSubnetId string = virtualNetwork::privateEndpointSubnet.id
 output functionAppSubnetName string = virtualNetwork::functionAppSubnet.name
 output functionAppSubnetId string = virtualNetwork::functionAppSubnet.id
 output location string = virtualNetwork.location
+output vnetRG string = resourceGroup().name
