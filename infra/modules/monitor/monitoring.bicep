@@ -92,6 +92,11 @@ module privateEndpoint '../networking/private-endpoint.bicep' = {
     privateEndpointSubnetId: subnet.id
     dnsSubId: dnsSubscriptionId
   }
+  dependsOn: [
+    logAnalytics
+    apimApplicationInsights
+    functionApplicationInsights
+  ]
 }
 
 output applicationInsightsName string = apimApplicationInsights.outputs.name
