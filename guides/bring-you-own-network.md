@@ -8,7 +8,7 @@ Keep in mind, that this accelerator is designed to be self-contained, which mean
 
 ## Prerequisites
 
-- All network resources must belong to the same subscription.
+- All network resources must belong to the same subscription (except for private DNS zones which may exist in a different subscription).
 - Virtual network must be configured fully with the required subnets (details are below)
 - Private endpoints relies to Azure Private DNS Zones, which they must be configured and connected to the DNS resolver of the virtual network.
 - [main.bicep](../infra/main.bicep) must be updated to reflect the existing network configurations (detailed later in the guide).
@@ -19,6 +19,27 @@ Keep in mind, that this accelerator is designed to be self-contained, which mean
         - As APIM is using 5 different endpoints (Gateway, Management, Portal, Developer and SCM), you need to create 5 different DNS records in the private DNS zone in azure-api.net private zone
         - This would be problematic if you have external APIM relying on public DNS as it will no longer be resolver as you integrate this is. One work around is to add to the private zone the public IP records for the external APIM endpoints that you may have.
 
+## Updating the [main.bicep](../infra/main.bicep) file
+
+The main.bicep file is the entry point for the deployment. It contains all the resources that will be deployed to the Azure subscription.
+
+Below is the areas that you need to update if you are bringing an existing network in the same subscription but in a different resource group:
+
+```bicep
+//Networking - VNet
+param useExistingVnet bool = true
+param existingVnetRG string = 'REPLACE-WITH-EXISTING-VNET-RG'
+param vnetName string = 'REPLACE-WITH-EXISTING-VNET-NAME'
+param apimSubnetName string = 'REPLACE-WITH-EXISTING-APIM-SUBNET-NAME'
+param privateEndpointSubnetName string = 'REPLACE-WITH-EXISTING-PRIVATE-ENDPOINT-SUBNET-NAME'
+param functionAppSubnetName string = 'REPLACE-WITH-EXISTING-FUNCTION-APP-SUBNET-NAME'
+
+// Networking - Private DNS
+// Leave empty if you want the script to create the private zones, but will not associate them with the selected virtual network (you need to do that manually or integrate with hub vnet DNS resolver)
+param dnsZoneRG string = 'REPLACE-WITH-EXISTING-DNS-ZONE-RG'
+param dnsSubscriptionId string = 'REPLACE-WITH-EXISTING-DNS-ZONE-SUBSCRIPTION-ID'
+```
+> NOTE: All above values should not be empty or the script will not behave as expected.
 
 ## Subnet requirements
 
@@ -235,25 +256,3 @@ Depending on the setup you have for managing private dns zones, you have these o
 - If the provisioner has ```Network Contributor``` role on the existing private zones, you can use the existing zones by updating the following information in the (main.bicep)[../infra/main.bicep] as outline in the next section
 - If the provisioner does not have the required permissions, leave both ```dnsZoneRG``` and ```dnsSubscriptionId``` empty and the script will create the required private zones so it can associate it with the private endpoint configurations. 
     - In this case, you can update the central dns zones directly with the endpoints records or just configure the private endpoint directly to use the central zones.
-
-
-## Updating the main.bicep
-
-The main.bicep file is the entry point for the deployment. It contains all the resources that will be deployed to the Azure subscription.
-
-Below is the areas that you need to update if you are bringing an existing network in the same subscription but in a different resource group:
-
-```bicep
-//Networking - VNet
-param useExistingVnet bool = true
-param existingVnetRG string = 'REPLACE-WITH-EXISTING-VNET-RG'
-param vnetName string = 'REPLACE-WITH-EXISTING-VNET-NAME'
-param apimSubnetName string = 'REPLACE-WITH-EXISTING-APIM-SUBNET-NAME'
-param privateEndpointSubnetName string = 'REPLACE-WITH-EXISTING-PRIVATE-ENDPOINT-SUBNET-NAME'
-param functionAppSubnetName string = 'REPLACE-WITH-EXISTING-FUNCTION-APP-SUBNET-NAME'
-
-// Networking - Private DNS
-param dnsZoneRG string = 'REPLACE-WITH-EXISTING-DNS-ZONE-RG'
-param dnsSubscriptionId string = 'REPLACE-WITH-EXISTING-DNS-ZONE-SUBSCRIPTION-ID'
-```
-> NOTE: All above values should not be empty or the script will not behave as expected.
