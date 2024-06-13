@@ -87,6 +87,9 @@ module privateEndpoint '../networking/private-endpoint.bicep' = {
     dnsZoneRG: dnsZoneRG
     dnsSubId: dnsSubscriptionId
   }
+  dependsOn: [
+    deployment
+  ]
 }
 
 output openAiName string = account.name
