@@ -71,7 +71,6 @@ param provisionStreamAnalytics bool = false
 //Networking - VNet
 param useExistingVnet bool = false
 param existingVnetRG string = ''
-param useExistingSubnets bool = false
 param vnetName string = ''
 param apimSubnetName string = ''
 param privateEndpointSubnetName string = ''
@@ -314,15 +313,8 @@ module vnetExisting './modules/networking/vnet-existing.bicep' = if(useExistingV
   params: {
     name: vnetName
     apimSubnetName: !empty(apimSubnetName) ? apimSubnetName : 'snet-apim'
-    apimNsgName: !empty(apimNsgName) ? apimNsgName : 'nsg-apim-${resourceToken}'
     privateEndpointSubnetName: !empty(privateEndpointSubnetName) ? privateEndpointSubnetName : 'snet-private-endpoint'
-    privateEndpointNsgName: !empty(privateEndpointNsgName) ? privateEndpointNsgName : 'nsg-pe-${resourceToken}'
     functionAppSubnetName: !empty(functionAppSubnetName) ? functionAppSubnetName : 'snet-functionapp'
-    functionAppNsgName: !empty(functionAppNsgName) ? functionAppNsgName : 'nsg-functionapp-${resourceToken}'
-    location: location
-    tags: tags
-    apimRouteTableName: 'rt-apim-${resourceToken}'
-    useExistingSubnets: useExistingSubnets
     vnetRG: existingVnetRG
   }
   dependsOn: [
