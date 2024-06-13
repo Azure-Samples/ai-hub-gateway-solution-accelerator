@@ -84,6 +84,22 @@ param privateEndpointSubnetName string
 param cosmosDnsZoneName string
 param publicAccess string = 'Disabled'
 
+// Use existing network/dns zone
+param dnsZoneRG string
+param dnsSubscriptionId string
+
+param vNetRG string
+resource vnet 'Microsoft.Network/virtualNetworks@2022-01-01' existing = {
+  name: vNetName
+  scope: resourceGroup(vNetRG)
+}
+
+// Get existing subnet
+resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-01-01' existing = {
+  name: privateEndpointSubnetName
+  parent: vnet
+}
+
 resource account 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview' = {
   name: toLower(accountName)
   location: location
@@ -163,10 +179,11 @@ module privateEndpoint '../networking/private-endpoint.bicep' = {
     ]
     dnsZoneName: cosmosDnsZoneName
     name: cosmosPrivateEndpointName
-    subnetName: privateEndpointSubnetName
     privateLinkServiceId: account.id
-    vNetName: vNetName
     location: location
+    dnsZoneRG: dnsZoneRG
+    privateEndpointSubnetId: subnet.id
+    dnsSubId: dnsSubscriptionId
   }
 }
 

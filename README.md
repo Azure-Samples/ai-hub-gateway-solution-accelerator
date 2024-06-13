@@ -225,6 +225,7 @@ To dive deeper into the AI Hub Gateway technical mechanics, you can check out th
 - [Deployment components](./guides/deployment.md)
 - [API Management configuration](./guides/apim-configuration.md)
 - [Power BI Dashboard](./guides/power-bi-dashboard.md)
+- [Bring your own vnet](./guides/bring-you-own-network.md)
 - [End-to-end scenario (Chat with data)](./guides/end-to-end-scenario.md)
 - [Hybrid deployment of AI Hub Gateway](./guides/ai-hub-gateway-hybrid-deployment.md)
 - [Deployment troubleshooting](./guides/deployment-troubleshooting.md)

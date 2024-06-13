@@ -17,6 +17,21 @@ param vNetLocation string
 param privateEndpointSubnetName string
 param openAiDnsZoneName string
 
+// Use existing network/dns zone
+param dnsZoneRG string
+param dnsSubscriptionId string
+param vNetRG string
+resource vnet 'Microsoft.Network/virtualNetworks@2022-01-01' existing = {
+  name: vNetName
+  scope: resourceGroup(vNetRG)
+}
+
+// Get existing subnet
+resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-01-01' existing = {
+  name: privateEndpointSubnetName
+  parent: vnet
+}
+
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' existing = {
   name: managedIdentityName
 }
@@ -66,11 +81,15 @@ module privateEndpoint '../networking/private-endpoint.bicep' = {
     ]
     dnsZoneName: openAiDnsZoneName
     name: openAiPrivateEndpointName
-    subnetName: privateEndpointSubnetName
     privateLinkServiceId: account.id
-    vNetName: vNetName
     location: vNetLocation
+    privateEndpointSubnetId: subnet.id
+    dnsZoneRG: dnsZoneRG
+    dnsSubId: dnsSubscriptionId
   }
+  dependsOn: [
+    deployment
+  ]
 }
 
 output openAiName string = account.name

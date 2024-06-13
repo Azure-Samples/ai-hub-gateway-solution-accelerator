@@ -9,6 +9,22 @@ param eventHubPrivateEndpointName string
 param vNetName string
 param privateEndpointSubnetName string
 param eventHubDnsZoneName string
+
+// Use existing network/dns zone
+param dnsZoneRG string
+param dnsSubscriptionId string
+param vNetRG string
+resource vnet 'Microsoft.Network/virtualNetworks@2022-01-01' existing = {
+  name: vNetName
+  scope: resourceGroup(vNetRG)
+}
+
+// Get existing subnet
+resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-01-01' existing = {
+  name: privateEndpointSubnetName
+  parent: vnet
+}
+
 resource eventHubNamespace 'Microsoft.EventHub/namespaces@2021-01-01-preview' = {
   name: name
   location: location
@@ -42,10 +58,11 @@ module privateEndpoint '../networking/private-endpoint.bicep' = {
     ]
     dnsZoneName: eventHubDnsZoneName
     name: eventHubPrivateEndpointName
-    subnetName: privateEndpointSubnetName
     privateLinkServiceId: eventHubNamespace.id
-    vNetName: vNetName
     location: location
+    dnsZoneRG: dnsZoneRG
+    privateEndpointSubnetId: subnet.id
+    dnsSubId: dnsSubscriptionId
   }
 }
 
