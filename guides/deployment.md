@@ -2,7 +2,7 @@
 
 Below is a high-level guide to deploy the AI Hub Gateway accelerator main components.
 
-![components](../assets/azure-resources-diagram-standard.svg)
+![components](../assets/azure-resources-diagram.svg)
 
 ### <a name="networking-components">Networking components</a>
 

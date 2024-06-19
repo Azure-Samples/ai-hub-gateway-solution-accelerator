@@ -280,6 +280,58 @@ resource apimOpenaiApiAudienceiNamedValue 'Microsoft.ApiManagement/service/named
   }
 }
 
+// Adding Policy Fragments
+resource aadAuthPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+  parent: apimService
+  name: 'aad-auth'
+  properties: {
+    value: loadTextContent('./policies/frag-aad-auth.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [
+    apiopenAiApiClientNamedValue
+    apiopenAiApiEntraNamedValue
+    apimOpenaiApiAudienceiNamedValue
+    apiopenAiApiTenantNamedValue
+  ]
+}
+
+resource validateRoutesPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+  parent: apimService
+  name: 'validate-routes'
+  properties: {
+    value: loadTextContent('./policies/frag-validate-routes.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [
+    openAiBackends
+  ]
+}
+
+resource backendRoutingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+  parent: apimService
+  name: 'backend-routing'
+  properties: {
+    value: loadTextContent('./policies/frag-backend-routing.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [
+    openAiBackends
+  ]
+}
+
+resource openAIUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+  parent: apimService
+  name: 'openai-usage'
+  properties: {
+    value: loadTextContent('./policies/frag-openai-usage.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [
+    ehUsageLogger
+  ]
+}
+
 resource openaiApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' =  {
   name: 'policy'
   parent: apimOpenaiApi
@@ -293,6 +345,10 @@ resource openaiApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-
     apiopenAiApiEntraNamedValue
     apimOpenaiApiAudienceiNamedValue
     apiopenAiApiTenantNamedValue
+    aadAuthPolicyFragment
+    validateRoutesPolicyFragment
+    backendRoutingPolicyFragment
+    openAIUsagePolicyFragment
   ]
 }
 

@@ -1,0 +1,40 @@
+<fragment>
+    <!-- Getting OpenAI routes configuration based on deployment name, region and api revision -->
+    <cache-lookup-value key="@(context.Request.MatchedParameters["deployment-id"] + "Routes" + context.Deployment.Region + context.Api.Revision)" variable-name="routes" />
+    <!-- If we can't find the configuration, it will be loaded -->
+    <choose>
+        <when condition="@(context.Variables.ContainsKey("routes") == false)">
+            <set-variable name="routes" value="@{
+                    string deploymentName = context.Request.MatchedParameters["deployment-id"];
+                    JArray clusters = (JArray)context.Variables["oaClusters"];
+                    JObject cluster = (JObject)clusters.FirstOrDefault(o => o["deploymentName"]?.Value<string>() == deploymentName);
+                    if(cluster == null)
+                    {
+                        //Error: No cluster matched the requested deployment name
+                        return new JArray() { new JObject()
+                            {
+                                { "name", deploymentName },
+                                { "location", "NA" },
+                                { "url", "No routes found for the deployment (" + deploymentName + ") in the region (" + context.Deployment.Region + ")" }
+                            }
+                        };
+                    }
+                    JArray routes = (JArray)cluster["routes"];
+                    return routes;
+                }" />
+            <!-- If no routes found for deployment, return bad request with content of routes variable -->
+            <choose>
+                <when condition="@(((JArray)context.Variables["routes"]).ToString().Contains("No routes"))">
+                    <return-response>
+                        <set-status code="400" reason="No routes" />
+                        <set-body>@(((JArray)context.Variables["routes"]).ToString())</set-body>
+                    </return-response>
+                </when>
+            </choose>
+            <!-- Add cluster configurations to cache -->
+            <cache-store-value key="@(context.Request.MatchedParameters["deployment-id"] + "Routes" + context.Deployment.Region + context.Api.Revision)" value="@((JArray)context.Variables["routes"])" duration="86400" />
+        </when>
+    </choose>
+    <set-variable name="routeIndex" value="-1" />
+    <set-variable name="remainingRoutes" value="1" />
+</fragment>
