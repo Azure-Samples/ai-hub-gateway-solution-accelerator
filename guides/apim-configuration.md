@@ -163,6 +163,8 @@ This policy is designed to through ```400 Bad Request``` when the requested depl
 </choose>
 ```
 
+Check the details of [validating routes](../infra/modules/apim/policies/frag-validate-routes.xml) for more information.
+
 ### Safe configuration changes
 
 **Caching**: caching the clusters and routes allow it to be shared across multiple API calls.
@@ -191,9 +193,13 @@ This section of the policy injects the Azure Managed Identity from your API Mana
 </set-header>
 ```
 
-### Backend Health Check
+### Backend Routing
 
+Full implementation of backend routing can be found in this policy fragment [backend-routing](../infra/modules/apim/policies/frag-backend-routing.xml).
+
+#### Handling backend health
 Before every call to OpenAI, the policy checks if any backends can be marked as healthy after the specified "Retry-After" period.
+
 ```xml
 <set-variable name="listBackends" value="@{
     JArray backends = (JArray)context.Variables["listBackends"];
@@ -213,7 +219,7 @@ Before every call to OpenAI, the policy checks if any backends can be marked as 
 }" />
 ```
 
-### Handling 429 and 5xx Errors
+#### Handling 429 and 5xx Errors
 
 This code segment is triggered when a 429 or 5xx error occurs, updating the backend status accordingly based on the "Retry-After" header. 
 ```xml
@@ -236,11 +242,34 @@ There are other parts of the policy in the sources but these are the most releva
 
 ### Usage & Charge-back tracking
 
-This outbound policy fragment contains the main usage tracking logic for the configured inbound policy above.
+This outbound policy fragment [contains the main usage tracking logic](../infra/modules/apim/policies/frag-openai-usage.xml).
 
 It sends the usage data to the configured Event Hub logger to allow for usage tracking and charge-back.
 
-To use this policy, you need first to configure the Event Hub logger connection string and name.
+To use this policy, the bicep script provision an Event Hub logger that is used by APIM to push the usage data.
+
+#### Non-streaming requests
+APIM will leverage the usage section in the response to send the tokens used in the request.
+
+#### Streaming requests
+Streaming is supported for usage tracking, but currently it uses estimates to calculate the tokens used in prompt and response.
+
+This is how it works:
+- APIM will calculate the total consumed tokens in the streaming request based on a API-level policy ```azure-openai-token-limit``` which set a variable ```TotalConsumedTokens```.
+```xml
+<!-- This is from the inbound section of OpenAI API policies -->
+ ....
+<!-- Setting gobal TPM limit to collect usage for streaming requests -->
+<azure-openai-token-limit counter-key="APIMOpenAI" 
+                        tokens-per-minute="5000000" 
+                        estimate-prompt-tokens="true" 
+                        tokens-consumed-variable-name="TotalConsumedTokens" 
+                        remaining-tokens-variable-name="TotalRemainingTokens" />
+...
+```
+- In the [usage tracking policy](../infra/modules/apim/policies/frag-openai-usage.xml), the policy will use the ```TotalConsumedTokens``` variable to calculate the total tokens used in the request, and allocate 60% of the tokens to the prompt and 40% to the response (as cost calculation uses different rates for prompt and response tokens).
+
+To manually create this logger, you can use the below PowerShell script to create the logger in the APIM service (you can leverage Azure Cloud Shell to run this script):
 
 ```ps1
 # API Management service-specific details
