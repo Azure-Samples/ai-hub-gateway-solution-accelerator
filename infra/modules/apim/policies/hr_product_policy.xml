@@ -1,12 +1,13 @@
 <policies>
     <inbound>
         <base />
-        <!-- TPM rate limit for specific product -->
-        <choose>
-            <when condition="@(!(context.Request.Body.As<JObject>(true)["stream"] != null && context.Request.Body.As<JObject>(true)["stream"].Type != JTokenType.Null))">
-                <rate-limit-by-key calls="10000" renewal-period="60" counter-key="@(String.Concat(context.Subscription.Id,"tpm"))" increment-condition="@(context.Response.StatusCode >= 200 && context.Response.StatusCode < 400)" increment-count="@(((JObject)context.Variables["responseBody"]).SelectToken("usage.total_tokens")?.ToObject<int>() ?? 0)" remaining-calls-header-name="remainingTPM" total-calls-header-name="totalTPM" />
-            </when>
-        </choose>
+        <!-- Capacity management: allow only assigned tpm for each Retail use case subscritpion -->
+        <azure-openai-token-limit counter-key="@(context.Subscription.Id)" 
+            tokens-per-minute="5000" 
+            estimate-prompt-tokens="true" 
+            tokens-consumed-header-name="consumed-tokens" 
+            remaining-tokens-header-name="remaining-tokens" 
+            retry-after-header-name="retry-after" />
     </inbound>
     <backend>
         <base />
