@@ -11,7 +11,7 @@
         </choose>
 
         <!-- Capacity management: allow only assigned tpm for each Retail use case subscritpion -->
-        <azure-openai-token-limit counter-key="@(Context.Subscription.Id)" 
+        <azure-openai-token-limit counter-key="@(context.Subscription.Id)" 
             tokens-per-minute="10000" 
             estimate-prompt-tokens="true" 
             tokens-consumed-header-name="consumed-tokens" 
