@@ -18,7 +18,7 @@
                         JArray routes = new JArray();
                         // cluster is a group of routes that are capable of serving a specific index name
                         JArray clusters = new JArray();
-                        // Update the below if condition when using multiple APIM gateway regions/SHGW to get different configuartions for each region
+                        // Update the below if condition when using multiple APIM gateway regions/SHGW to get different configurations for each region
                         if(context.Deployment.Region == "West Europe" || true)
                         {
                             // Adding all Azure AI Search endpoints routes (which are set as APIM Backend)
@@ -36,7 +36,7 @@
                             {
                                 { "name", "Northwind Outdoor KB" },
                                 { "location", "Sweden Central" },
-                                { "backend-id", "ai-srch-sec" },
+                                { "backend-id", "ai-search-sec" },
                                 { "priority", 1},
                                 { "isThrottling", false }, 
                                 { "retryAfter", DateTime.MinValue } 
@@ -57,7 +57,7 @@
                         }
                         else
                         {
-                            //No clusters found for selected region, either return error (defult behavior) or set default cluster in the else section
+                            //No clusters found for selected region, either return error (default behavior) or set default cluster in the else section
                         }
                         
                         return clusters;   
