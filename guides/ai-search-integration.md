@@ -160,6 +160,7 @@ Below are example entries for 2 AI search services integrated with AI Hub Gatewa
 Calculating the cost for AI Search:
 - Every API call to Azure AI Search is considered as 1 prompt token, 0 completion and total 1 token.
 - There is a field called ```BaseCost``` which is the base cost for the service per month in USD.
+- Make sure that ```deploymentName``` equal to the Route Name you selected in the AI Search routing configuration (it must match the usage record ```deploymentName```).
 - The field ```CalculationMethod``` is set to ```percentage``` which means the cost will be calculated based on the percentage of the base cost.
     - In [Usage PowerBI dashboard](../src/usage-reports/AI-Hub-Gateway-Usage-Report-v1-4.pbix), there is a tab named ```Percentage Usage``` which shows the usage of the AI services based on the percentage of the base cost.
     - Example: you have 1 AI Search service that cost $1,000 per month and used by 3 different teams (aka products):
