@@ -1,14 +1,87 @@
 <policies>
     <inbound>
         <base />
-        <authentication-managed-identity resource="https://search.azure.com" />
+        <!-- AAD Authorization -->
+        <!-- Enabled if entra-validate named value is set to true -->
+        <include-fragment fragment-id="aad-auth" />
         <set-header name="api-key" exists-action="delete" />
+        <!-- Setting cache keys -->
+        <set-variable name="deployment-id" value="@((string)context.Request.MatchedParameters["index-name"])" />
+        <set-variable name="routesCacheKey" value="@((string)context.Variables["deployment-id"] + "Routes" + context.Deployment.Region + context.Api.Revision)" />
+        <set-variable name="oaClustersCacheKey" value="@("aiSearchInstance" + context.Deployment.Region + context.Api.Revision)" />
+        <cache-lookup-value key="@((string)context.Variables.GetValueOrDefault<string>("oaClustersCacheKey", "ALL-SEARCH"))" variable-name="oaClusters" />
+        <!-- If we can't find the configuration cached, it will be loaded -->
+        <choose>
+            <when condition="@(context.Variables.ContainsKey("oaClusters") == false)">
+                <set-variable name="oaClusters" value="@{
+                        // route is an Azure AI Search endpoint
+                        JArray routes = new JArray();
+                        // cluster is a group of routes that are capable of serving a specific index name
+                        JArray clusters = new JArray();
+                        // Update the below if condition when using multiple APIM gateway regions/SHGW to get different configuartions for each region
+                        if(context.Deployment.Region == "West Europe" || true)
+                        {
+                            // Adding all Azure AI Search endpoints routes (which are set as APIM Backend)
+                            routes.Add(new JObject()
+                            {
+                                { "name", "Contoso Insurance KB" },
+                                { "location", "Switzerland North" },
+                                { "backend-id", "ai-search-swn" },
+                                { "priority", 1},
+                                { "isThrottling", false }, 
+                                { "retryAfter", DateTime.MinValue } 
+                            });
+
+                            routes.Add(new JObject()
+                            {
+                                { "name", "Northwind Outdoor KB" },
+                                { "location", "Sweden Central" },
+                                { "backend-id", "ai-srch-sec" },
+                                { "priority", 1},
+                                { "isThrottling", false }, 
+                                { "retryAfter", DateTime.MinValue } 
+                            });
+
+                            // For each index, create a cluster with the routes that can serve it
+                            clusters.Add(new JObject()
+                            {
+                                { "deploymentName", "gptkbindex" },
+                                { "routes", new JArray(routes[0]) }
+                            });
+
+                            clusters.Add(new JObject()
+                            {
+                                { "deploymentName", "product-info" },
+                                { "routes", new JArray(routes[1]) }
+                            });
+                        }
+                        else
+                        {
+                            //No clusters found for selected region, either return error (defult behavior) or set default cluster in the else section
+                        }
+                        
+                        return clusters;   
+                    }" />
+                <!-- Add cluster configurations to cache -->
+                <cache-store-value key="@((string)context.Variables.GetValueOrDefault<string>("oaClustersCacheKey", "ALL-SEARCH"))" value="@((JArray)context.Variables["oaClusters"])" duration="86400" />
+            </when>
+        </choose>
+        <include-fragment fragment-id="validate-routes" />
+        <authentication-managed-identity resource="https://search.azure.com" output-token-variable-name="msi-access-token" client-id="{{uami-client-id}}" ignore-error="false" />
+        <set-header name="Authorization" exists-action="override">
+            <value>@("Bearer " + (string)context.Variables["msi-access-token"])</value>
+        </set-header>
     </inbound>
     <backend>
-        <base />
+        <include-fragment fragment-id="backend-routing" />
     </backend>
     <outbound>
         <base />
+        <set-variable name="idPrefix" value="search" />
+        <set-variable name="targetService" value="AI-Search" />
+        <set-variable name="model" value="@((string)context.Variables.GetValueOrDefault<string>("deployment-id", "AI-SEARCH-INDEX"))" />
+        <set-variable name="deploymentName" value="@((string)context.Variables.GetValueOrDefault<string>("routeName", "AI-SEARCH-SERVICE"))" />
+        <include-fragment fragment-id="ai-usage" />
     </outbound>
     <on-error>
         <base />

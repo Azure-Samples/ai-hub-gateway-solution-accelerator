@@ -1,11 +1,11 @@
 <fragment>
     <!-- Getting OpenAI routes configuration based on deployment name, region and api revision -->
-    <cache-lookup-value key="@(context.Request.MatchedParameters["deployment-id"] + "Routes" + context.Deployment.Region + context.Api.Revision)" variable-name="routes" />
+    <cache-lookup-value key="@((string)context.Variables.GetValueOrDefault<string>("routesCacheKey", "ALL-ROUTES"))" variable-name="routes" />
     <!-- If we can't find the configuration, it will be loaded -->
     <choose>
         <when condition="@(context.Variables.ContainsKey("routes") == false)">
             <set-variable name="routes" value="@{
-                    string deploymentName = context.Request.MatchedParameters["deployment-id"];
+                    string deploymentName = (string)context.Variables["deployment-id"];
                     JArray clusters = (JArray)context.Variables["oaClusters"];
                     JObject cluster = (JObject)clusters.FirstOrDefault(o => o["deploymentName"]?.Value<string>() == deploymentName);
                     if(cluster == null)
@@ -32,7 +32,7 @@
                 </when>
             </choose>
             <!-- Add cluster configurations to cache -->
-            <cache-store-value key="@(context.Request.MatchedParameters["deployment-id"] + "Routes" + context.Deployment.Region + context.Api.Revision)" value="@((JArray)context.Variables["routes"])" duration="86400" />
+            <cache-store-value key="@((string)context.Variables.GetValueOrDefault<string>("routesCacheKey", "ALL-ROUTES"))" value="@((JArray)context.Variables["routes"])" duration="86400" />
         </when>
     </choose>
     <set-variable name="routeIndex" value="-1" />

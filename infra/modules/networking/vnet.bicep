@@ -130,8 +130,8 @@ resource apimNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
             protocol: 'Tcp'
             sourcePortRange: '*'
             destinationPortRange: '443'
-            sourceAddressPrefix: 'Storage'
-            destinationAddressPrefix: 'VirtualNetwork'
+            sourceAddressPrefix: 'VirtualNetwork'
+            destinationAddressPrefix: 'Storage'
             access: 'Allow'
             priority: 3000
             direction: 'Outbound'
@@ -143,8 +143,8 @@ resource apimNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
             protocol: 'Tcp'
             sourcePortRange: '*'
             destinationPortRange: '1433'
-            sourceAddressPrefix: 'Sql'
-            destinationAddressPrefix: 'VirtualNetwork'
+            sourceAddressPrefix: 'VirtualNetwork'
+            destinationAddressPrefix: 'Sql'
             access: 'Allow'
             priority: 3010
             direction: 'Outbound'
@@ -156,8 +156,8 @@ resource apimNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
             protocol: 'Tcp'
             sourcePortRange: '*'
             destinationPortRange: '443'
-            sourceAddressPrefix: 'AzureKeyVault'
-            destinationAddressPrefix: 'VirtualNetwork'
+            sourceAddressPrefix: 'VirtualNetwork'
+            destinationAddressPrefix: 'AzureKeyVault'
             access: 'Allow'
             priority: 3020
             direction: 'Outbound'
@@ -169,8 +169,8 @@ resource apimNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
             protocol: 'Tcp'
             sourcePortRange: '*'
             destinationPortRanges: ['1886', '443']
-            sourceAddressPrefix: 'AzureMonitor'
-            destinationAddressPrefix: 'VirtualNetwork'
+            sourceAddressPrefix: 'VirtualNetwork'
+            destinationAddressPrefix: 'AzureMonitor'
             access: 'Allow'
             priority: 3030
             direction: 'Outbound'
