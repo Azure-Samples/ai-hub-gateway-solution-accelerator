@@ -19,6 +19,8 @@ param audience string = 'https://cognitiveservices.azure.com/.default'
 param eventHubName string
 param eventHubEndpoint string
 
+param aiSearchInstances array
+
 // Networking
 param apimNetworkType string = 'External'
 param apimSubnetId string
@@ -121,7 +123,7 @@ resource apimAiSearchApi 'Microsoft.ApiManagement/service/apis@2022-08-01' = {
   }
 }
 
-// Create retail product
+// Create AI-Retail product
 resource retailProduct 'Microsoft.ApiManagement/service/products@2020-06-01-preview' = {
   name: 'ai-retail'
   parent: apimService
@@ -141,14 +143,6 @@ resource retailProductOpenAIApi 'Microsoft.ApiManagement/service/products/apiLin
   parent: retailProduct
   properties: {
     apiId: apimOpenaiApi.id
-  }
-}
-
-resource retailProductAISearchApi 'Microsoft.ApiManagement/service/products/apiLinks@2023-05-01-preview' = {
-  name: 'retail-product-ai-search-api'
-  parent: retailProduct
-  properties: {
-    apiId: apimAiSearchApi.id
   }
 }
 
@@ -174,7 +168,7 @@ resource retailSubscription 'Microsoft.ApiManagement/service/subscriptions@2020-
   }
 }
 
-// Create HR product
+// Create AI-HR product
 resource hrProduct 'Microsoft.ApiManagement/service/products@2020-06-01-preview' = {
   name: 'ai-hr'
   parent: apimService
@@ -219,12 +213,71 @@ resource hrSubscription 'Microsoft.ApiManagement/service/subscriptions@2020-06-0
   }
 }
 
+// Create Search-HR product
+resource searchHRProduct 'Microsoft.ApiManagement/service/products@2020-06-01-preview' = {
+  name: 'search-hr'
+  parent: apimService
+  properties: {
+    displayName: 'Search-HR'
+    description: 'Offering AI Search services for the HR systems.'
+    subscriptionRequired: true
+    approvalRequired: true
+    subscriptionsLimit: 200
+    state: 'published'
+    terms: 'By subscribing to this product, you agree to the terms and conditions.'
+  }
+}
+
+resource searchHRProductAISearchApi 'Microsoft.ApiManagement/service/products/apiLinks@2023-05-01-preview' = {
+  name: 'search-hr-product-ai-search-api'
+  parent: searchHRProduct
+  properties: {
+    apiId: apimAiSearchApi.id
+  }
+}
+
+resource searchHRProductProductPolicy 'Microsoft.ApiManagement/service/products/policies@2022-08-01' =  {
+  name: 'policy'
+  parent: searchHRProduct
+  properties: {
+    value: loadTextContent('./policies/search_hr_product_policy.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [
+    apimAiSearchApi
+  ]
+}
+
+resource searchHRSubscription 'Microsoft.ApiManagement/service/subscriptions@2020-06-01-preview' = {
+  name: 'search-hr-internal-sub'
+  parent: apimService
+  properties: {
+    displayName: 'Search-HR-Internal-Subscription'
+    state: 'active'
+    scope: searchHRProduct.id
+  }
+}
+
 resource openAiBackends 'Microsoft.ApiManagement/service/backends@2021-08-01' = [for (openAiUri, i) in openAiUris: {
   name: '${openAiApiBackendId}-${i}'
   parent: apimService
   properties: {
     description: openAiApiBackendId
     url: openAiUri
+    protocol: 'http'
+    tls: {
+      validateCertificateChain: true
+      validateCertificateName: true
+    }
+  }
+}]
+
+resource aiSearchBackends 'Microsoft.ApiManagement/service/backends@2021-08-01' = [for (aiSearchInstance, i) in aiSearchInstances: {
+  name: aiSearchInstance.name
+  parent: apimService
+  properties: {
+    description: aiSearchInstance.description
+    url: aiSearchInstance.url
     protocol: 'http'
     tls: {
       validateCertificateChain: true
@@ -332,6 +385,18 @@ resource openAIUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragme
   ]
 }
 
+resource aiUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+  parent: apimService
+  name: 'ai-usage'
+  properties: {
+    value: loadTextContent('./policies/frag-ai-usage.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [
+    ehUsageLogger
+  ]
+}
+
 resource openaiApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' =  {
   name: 'policy'
   parent: apimOpenaiApi
@@ -349,6 +414,26 @@ resource openaiApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-
     validateRoutesPolicyFragment
     backendRoutingPolicyFragment
     openAIUsagePolicyFragment
+  ]
+}
+
+resource searchApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' =  {
+  name: 'policy'
+  parent: apimAiSearchApi
+  properties: {
+    value: loadTextContent('./policies/ai-search-api-policy.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [
+    aiSearchBackends
+    apiopenAiApiClientNamedValue
+    apiopenAiApiEntraNamedValue
+    apimOpenaiApiAudienceiNamedValue
+    apiopenAiApiTenantNamedValue
+    aadAuthPolicyFragment
+    validateRoutesPolicyFragment
+    backendRoutingPolicyFragment
+    aiUsagePolicyFragment
   ]
 }
 
