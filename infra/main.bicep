@@ -230,12 +230,12 @@ param aiSearchInstances array = [
   {
     name: 'ai-search-swn'
     url: 'https://gptkb-iej4yztnllhmk.search.windows.net/'
-    description: 'AI Search Instnace 1'
+    description: 'AI Search Instance 1'
   }
   {
     name: 'ai-search-sec'
     url: 'https://ai-srch-sec.search.windows.net/'
-    description: 'AI Search Instnace 2'
+    description: 'AI Search Instance 2'
   }
 ]
 

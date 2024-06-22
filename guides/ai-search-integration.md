@@ -41,12 +41,12 @@ param aiSearchInstances array = [
   {
     name: 'ai-search-1'
     url: 'https://REPLACE1.search.windows.net/'
-    description: 'AI Search Instnace 1'
+    description: 'AI Search Instance 1'
   }
   {
     name: 'ai-search-2'
     url: 'https://REPLACE2.windows.net/'
-    description: 'AI Search Instnace 2'
+    description: 'AI Search Instance 2'
   }
 ]
 ```
