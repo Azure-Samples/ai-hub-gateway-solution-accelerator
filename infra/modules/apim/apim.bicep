@@ -243,9 +243,6 @@ resource searchHRProductProductPolicy 'Microsoft.ApiManagement/service/products/
     value: loadTextContent('./policies/search_hr_product_policy.xml')
     format: 'rawxml'
   }
-  dependsOn: [
-    apimAiSearchApi
-  ]
 }
 
 resource searchHRSubscription 'Microsoft.ApiManagement/service/subscriptions@2020-06-01-preview' = {
@@ -503,9 +500,6 @@ resource ehUsageLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
       identityClientId: managedIdentity.properties.clientId
     }
   }
-  dependsOn: [
-    eventHub
-  ]
 }
 
 resource apimRetailDevUser 'Microsoft.ApiManagement/service/users@2020-06-01-preview' = {
