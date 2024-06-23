@@ -85,46 +85,127 @@ resource apimService 'Microsoft.ApiManagement/service@2021-08-01' = {
   }
 }
 
-resource apimOpenaiApi 'Microsoft.ApiManagement/service/apis@2022-08-01' = {
+module apimOpenaiApi './api.bicep' = {
   name: 'azure-openai-service-api'
-  parent: apimService
-  properties: {
+  params: {
+    serviceName: apimService.name
+    apiName: name
     path: 'openai'
     apiRevision: '1'
-    displayName: 'Azure OpenAI API'
-    subscriptionRequired: entraAuth ? false:true 
-    subscriptionKeyParameterNames: {
-      header: 'api-key'
-    }
-    format: 'openapi'
-    value: string(loadYamlContent('./openai-api/oai-api-spec-2024-05-01-preview.yaml'))
-    protocols: [
-      'https'
-    ]
-  }
-}
-
-resource apimAiSearchApi 'Microsoft.ApiManagement/service/apis@2022-08-01' = {
-  name: 'azure-ai-search-api'
-  parent: apimService
-  properties: {
-    path: 'search'
-    apiRevision: '1'
-    displayName: 'Azure AI Search API'
-    subscriptionRequired: entraAuth ? false:true 
-    subscriptionKeyParameterNames: {
-      header: 'api-key'
-    }
-    format: 'openapi'
-    value: loadTextContent('./ai-search-api/ai-search-api-spec.yaml')
-    protocols: [
-      'https'
-    ]
+    apiDispalyName: 'Azure OpenAI API'
+    subscriptionRequired: entraAuth ? false:true
+    subscriptionKeyName: 'api-key'
+    openApiSpecification: string(loadYamlContent('./openai-api/oai-api-spec-2024-05-01-preview.yaml'))
+    apiDescription: 'Azure OpenAI API'
+    policyDocument: loadTextContent('./policies/openai_api_policy.xml')
   }
   dependsOn: [
-    apimOpenaiApi
+    aadAuthPolicyFragment
+    validateRoutesPolicyFragment
+    backendRoutingPolicyFragment
+    openAIUsagePolicyFragment
+    openAiBackends
   ]
 }
+
+module apimAiSearchApi './api.bicep' = {
+  name: 'azure-ai-search-api'
+  params: {
+    serviceName: apimService.name
+    apiName: name
+    path: 'search'
+    apiRevision: '1'
+    apiDispalyName: 'Azure AI Search API'
+    subscriptionRequired: entraAuth ? false:true
+    subscriptionKeyName: 'api-key'
+    openApiSpecification: loadTextContent('./ai-search-api/ai-search-api-spec.yaml')
+    apiDescription: 'Azure AI Search APIs'
+    policyDocument: loadTextContent('./policies/openai_api_policy.xml')
+  }
+  dependsOn: [
+    aadAuthPolicyFragment
+    validateRoutesPolicyFragment
+    backendRoutingPolicyFragment
+    aiUsagePolicyFragment
+    aiSearchBackends
+  ]
+}
+
+// resource apimOpenaiApi 'Microsoft.ApiManagement/service/apis@2022-08-01' = {
+//   name: 'azure-openai-service-api'
+//   parent: apimService
+//   properties: {
+//     path: 'openai'
+//     apiRevision: '1'
+//     displayName: 'Azure OpenAI API'
+//     subscriptionRequired: entraAuth ? false:true 
+//     subscriptionKeyParameterNames: {
+//       header: 'api-key'
+//     }
+//     format: 'openapi'
+//     value: string(loadYamlContent('./openai-api/oai-api-spec-2024-05-01-preview.yaml'))
+//     protocols: [
+//       'https'
+//     ]
+//   }
+// }
+
+// resource apimAiSearchApi 'Microsoft.ApiManagement/service/apis@2022-08-01' = {
+//   name: 'azure-ai-search-api'
+//   parent: apimService
+//   properties: {
+//     path: 'search'
+//     apiRevision: '1'
+//     displayName: 'Azure AI Search API'
+//     subscriptionRequired: entraAuth ? false:true 
+//     subscriptionKeyParameterNames: {
+//       header: 'api-key'
+//     }
+//     format: 'openapi'
+//     value: loadTextContent('./ai-search-api/ai-search-api-spec.yaml')
+//     protocols: [
+//       'https'
+//     ]
+//   }
+//   dependsOn: [
+//     apimOpenaiApi
+//   ]
+// }
+
+
+// resource openaiApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' =  {
+//   name: 'policy'
+//   parent: apimOpenaiApi
+//   properties: {
+//     value: loadTextContent('./policies/openai_api_policy.xml')
+//     format: 'rawxml'
+//   }
+//   dependsOn: [
+//     openAiBackends
+//     apimOpenaiApiUamiNamedValue
+//     aadAuthPolicyFragment
+//     validateRoutesPolicyFragment
+//     backendRoutingPolicyFragment
+//     openAIUsagePolicyFragment
+//   ]
+// }
+
+// resource searchApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' =  {
+//   name: 'policy'
+//   parent: apimAiSearchApi
+//   properties: {
+//     value: loadTextContent('./policies/ai-search-api-policy.xml')
+//     format: 'rawxml'
+//   }
+//   dependsOn: [
+//     aiSearchBackends
+//     apimOpenaiApiUamiNamedValue
+//     aadAuthPolicyFragment
+//     validateRoutesPolicyFragment
+//     backendRoutingPolicyFragment
+//     aiUsagePolicyFragment
+//   ]
+// }
 
 // Create AI-Retail product
 resource retailProduct 'Microsoft.ApiManagement/service/products@2020-06-01-preview' = {
@@ -145,7 +226,7 @@ resource retailProductOpenAIApi 'Microsoft.ApiManagement/service/products/apiLin
   name: 'retail-product-openai-api'
   parent: retailProduct
   properties: {
-    apiId: apimOpenaiApi.id
+    apiId: apimOpenaiApi.outputs.id
   }
 }
 
@@ -190,7 +271,7 @@ resource hrProductOpenAIApi 'Microsoft.ApiManagement/service/products/apiLinks@2
   name: 'hr-product-openai-api'
   parent: hrProduct
   properties: {
-    apiId: apimOpenaiApi.id
+    apiId: apimOpenaiApi.outputs.id
   }
 }
 
@@ -235,7 +316,7 @@ resource searchHRProductAISearchApi 'Microsoft.ApiManagement/service/products/ap
   name: 'search-hr-product-ai-search-api'
   parent: searchHRProduct
   properties: {
-    apiId: apimAiSearchApi.id
+    apiId: apimAiSearchApi.outputs.id
   }
 }
 
@@ -394,40 +475,6 @@ resource aiUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragments@
   ]
 }
 
-resource openaiApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' =  {
-  name: 'policy'
-  parent: apimOpenaiApi
-  properties: {
-    value: loadTextContent('./policies/openai_api_policy.xml')
-    format: 'rawxml'
-  }
-  dependsOn: [
-    openAiBackends
-    apimOpenaiApiUamiNamedValue
-    aadAuthPolicyFragment
-    validateRoutesPolicyFragment
-    backendRoutingPolicyFragment
-    openAIUsagePolicyFragment
-  ]
-}
-
-resource searchApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' =  {
-  name: 'policy'
-  parent: apimAiSearchApi
-  properties: {
-    value: loadTextContent('./policies/ai-search-api-policy.xml')
-    format: 'rawxml'
-  }
-  dependsOn: [
-    aiSearchBackends
-    apimOpenaiApiUamiNamedValue
-    aadAuthPolicyFragment
-    validateRoutesPolicyFragment
-    backendRoutingPolicyFragment
-    aiUsagePolicyFragment
-  ]
-}
-
 resource apimLogger 'Microsoft.ApiManagement/service/loggers@2021-12-01-preview' = {
   name: 'appinsights-logger'
   parent: apimService
@@ -523,7 +570,7 @@ resource apimRetailDevUserSubscription 'Microsoft.ApiManagement/service/subscrip
 output apimName string = apimService.name
 
 @description('The path for the OpenAI API in the deployed API Management service.')
-output apimOpenaiApiPath string = apimOpenaiApi.properties.path
+output apimOpenaiApiPath string = apimOpenaiApi.outputs.path
 
 @description('Gateway URL for the deployed API Management resource.')
 output apimGatewayUrl string = apimService.properties.gatewayUrl

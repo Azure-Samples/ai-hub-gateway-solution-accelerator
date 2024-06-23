@@ -6,6 +6,10 @@ This guide provides troubleshooting tips for common issues that you might encoun
 
 You might want to try again running the deployed as it might resolve some of the transient issues.
 
+```bash
+azd up
+```
+
 This is usually a transient issue. Please try again after some time (it might take up to 1 hour unfortunately).
 
 Below are few examples of transient issues:

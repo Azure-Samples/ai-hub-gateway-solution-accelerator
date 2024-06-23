@@ -3,6 +3,11 @@
 @maxLength(63)
 param apiName string
 
+@description('The display name of the API')
+@minLength(1)
+@maxLength(63)
+param apiDispalyName string
+
 @description('The contents of the OpenAPI definition')
 @minLength(1)
 param openApiSpecification string
@@ -48,7 +53,7 @@ resource apiDefinition 'Microsoft.ApiManagement/service/apis@2022-08-01' = {
     path: (path == '') ? apiName : path
     apiRevision: apiRevision
     description: (apiDescription == '') ? apiName : apiDescription
-    displayName: apiName
+    displayName: apiDispalyName
     format: contentFormat
     value: openApiSpecification
     subscriptionRequired: subscriptionRequired
@@ -57,7 +62,7 @@ resource apiDefinition 'Microsoft.ApiManagement/service/apis@2022-08-01' = {
     }
     type: 'http'
     protocols: [ 'https' ]
-    serviceUrl: (serviceUrl == '') ? null : serviceUrl
+    serviceUrl: (serviceUrl == '') ? 'https://to-be-replaced-by-policy' : serviceUrl
   }
 }
 
@@ -69,3 +74,6 @@ resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' = 
     value: policyDocument
   }
 }
+
+output id string = apiDefinition.id
+output path string = apiDefinition.properties.path
