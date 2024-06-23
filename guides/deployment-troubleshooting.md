@@ -17,3 +17,5 @@ Below are few examples of transient issues:
 - Failed to connect to management endpoint apim-RANDOM.management.azure-api.net:3443 for a service deployed in a Virtual Network. Make sure to follow guidance at https://aka.ms/apim-vnet-common-issues for Inbound connectivity to Management endpoint. Check 'ApiManagement Control Plane - inbound' connectivity at https://aka.ms/apimnetworkstatus. (Code: ManagementApiRequestFailed)
 
 - Managed identity id not found
+
+- Timeout: Call to Management API apim-RANDOM.management.azure-api.net:3443 timed out for the Developer SKU service which will have inherent capacity issues due to it's scale. Please refer to SLA at https://aka.ms/apimsla and considering upgrading to a SKU Tier with higher SLA.

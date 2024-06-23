@@ -121,6 +121,9 @@ resource apimAiSearchApi 'Microsoft.ApiManagement/service/apis@2022-08-01' = {
       'https'
     ]
   }
+  dependsOn: [
+    apimOpenaiApi
+  ]
 }
 
 // Create AI-Retail product
@@ -353,9 +356,6 @@ resource validateRoutesPolicyFragment 'Microsoft.ApiManagement/service/policyFra
     value: loadTextContent('./policies/frag-validate-routes.xml')
     format: 'rawxml'
   }
-  dependsOn: [
-    openAiBackends
-  ]
 }
 
 resource backendRoutingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
@@ -366,7 +366,7 @@ resource backendRoutingPolicyFragment 'Microsoft.ApiManagement/service/policyFra
     format: 'rawxml'
   }
   dependsOn: [
-    openAiBackends
+    validateRoutesPolicyFragment
   ]
 }
 
@@ -403,10 +403,7 @@ resource openaiApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-
   }
   dependsOn: [
     openAiBackends
-    apiopenAiApiClientNamedValue
-    apiopenAiApiEntraNamedValue
-    apimOpenaiApiAudienceiNamedValue
-    apiopenAiApiTenantNamedValue
+    apimOpenaiApiUamiNamedValue
     aadAuthPolicyFragment
     validateRoutesPolicyFragment
     backendRoutingPolicyFragment
@@ -423,10 +420,7 @@ resource searchApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-
   }
   dependsOn: [
     aiSearchBackends
-    apiopenAiApiClientNamedValue
-    apiopenAiApiEntraNamedValue
-    apimOpenaiApiAudienceiNamedValue
-    apiopenAiApiTenantNamedValue
+    apimOpenaiApiUamiNamedValue
     aadAuthPolicyFragment
     validateRoutesPolicyFragment
     backendRoutingPolicyFragment
