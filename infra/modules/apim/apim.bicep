@@ -19,6 +19,7 @@ param audience string = 'https://cognitiveservices.azure.com/.default'
 param eventHubName string
 param eventHubEndpoint string
 
+param enableAzureAISearch bool = false
 param aiSearchInstances array
 
 // Networking
@@ -89,7 +90,7 @@ module apimOpenaiApi './api.bicep' = {
   name: 'azure-openai-service-api'
   params: {
     serviceName: apimService.name
-    apiName: name
+    apiName: 'azure-openai-service-api'
     path: 'openai'
     apiRevision: '1'
     apiDispalyName: 'Azure OpenAI API'
@@ -98,6 +99,7 @@ module apimOpenaiApi './api.bicep' = {
     openApiSpecification: string(loadYamlContent('./openai-api/oai-api-spec-2024-05-01-preview.yaml'))
     apiDescription: 'Azure OpenAI API'
     policyDocument: loadTextContent('./policies/openai_api_policy.xml')
+    enableAPIDeployment: true
   }
   dependsOn: [
     aadAuthPolicyFragment
@@ -108,11 +110,11 @@ module apimOpenaiApi './api.bicep' = {
   ]
 }
 
-module apimAiSearchApi './api.bicep' = {
+module apimAiSearchApi './api.bicep' = if (enableAzureAISearch) {
   name: 'azure-ai-search-api'
   params: {
     serviceName: apimService.name
-    apiName: name
+    apiName: 'azure-ai-search-api'
     path: 'search'
     apiRevision: '1'
     apiDispalyName: 'Azure AI Search API'
@@ -120,95 +122,19 @@ module apimAiSearchApi './api.bicep' = {
     subscriptionKeyName: 'api-key'
     openApiSpecification: loadTextContent('./ai-search-api/ai-search-api-spec.yaml')
     apiDescription: 'Azure AI Search APIs'
-    policyDocument: loadTextContent('./policies/openai_api_policy.xml')
+    policyDocument: loadTextContent('./policies/ai-search-api-policy.xml')
+    enableAPIDeployment: enableAzureAISearch
   }
   dependsOn: [
     aadAuthPolicyFragment
     validateRoutesPolicyFragment
     backendRoutingPolicyFragment
     aiUsagePolicyFragment
-    aiSearchBackends
   ]
 }
 
-// resource apimOpenaiApi 'Microsoft.ApiManagement/service/apis@2022-08-01' = {
-//   name: 'azure-openai-service-api'
-//   parent: apimService
-//   properties: {
-//     path: 'openai'
-//     apiRevision: '1'
-//     displayName: 'Azure OpenAI API'
-//     subscriptionRequired: entraAuth ? false:true 
-//     subscriptionKeyParameterNames: {
-//       header: 'api-key'
-//     }
-//     format: 'openapi'
-//     value: string(loadYamlContent('./openai-api/oai-api-spec-2024-05-01-preview.yaml'))
-//     protocols: [
-//       'https'
-//     ]
-//   }
-// }
-
-// resource apimAiSearchApi 'Microsoft.ApiManagement/service/apis@2022-08-01' = {
-//   name: 'azure-ai-search-api'
-//   parent: apimService
-//   properties: {
-//     path: 'search'
-//     apiRevision: '1'
-//     displayName: 'Azure AI Search API'
-//     subscriptionRequired: entraAuth ? false:true 
-//     subscriptionKeyParameterNames: {
-//       header: 'api-key'
-//     }
-//     format: 'openapi'
-//     value: loadTextContent('./ai-search-api/ai-search-api-spec.yaml')
-//     protocols: [
-//       'https'
-//     ]
-//   }
-//   dependsOn: [
-//     apimOpenaiApi
-//   ]
-// }
-
-
-// resource openaiApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' =  {
-//   name: 'policy'
-//   parent: apimOpenaiApi
-//   properties: {
-//     value: loadTextContent('./policies/openai_api_policy.xml')
-//     format: 'rawxml'
-//   }
-//   dependsOn: [
-//     openAiBackends
-//     apimOpenaiApiUamiNamedValue
-//     aadAuthPolicyFragment
-//     validateRoutesPolicyFragment
-//     backendRoutingPolicyFragment
-//     openAIUsagePolicyFragment
-//   ]
-// }
-
-// resource searchApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' =  {
-//   name: 'policy'
-//   parent: apimAiSearchApi
-//   properties: {
-//     value: loadTextContent('./policies/ai-search-api-policy.xml')
-//     format: 'rawxml'
-//   }
-//   dependsOn: [
-//     aiSearchBackends
-//     apimOpenaiApiUamiNamedValue
-//     aadAuthPolicyFragment
-//     validateRoutesPolicyFragment
-//     backendRoutingPolicyFragment
-//     aiUsagePolicyFragment
-//   ]
-// }
-
 // Create AI-Retail product
-resource retailProduct 'Microsoft.ApiManagement/service/products@2020-06-01-preview' = {
+resource retailProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
   name: 'ai-retail'
   parent: apimService
   properties: {
@@ -242,7 +168,7 @@ resource retailProductPolicy 'Microsoft.ApiManagement/service/products/policies@
   ]
 }
 
-resource retailSubscription 'Microsoft.ApiManagement/service/subscriptions@2020-06-01-preview' = {
+resource retailSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-01' = {
   name: 'ai-retail-internal-sub'
   parent: apimService
   properties: {
@@ -253,7 +179,7 @@ resource retailSubscription 'Microsoft.ApiManagement/service/subscriptions@2020-
 }
 
 // Create AI-HR product
-resource hrProduct 'Microsoft.ApiManagement/service/products@2020-06-01-preview' = {
+resource hrProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
   name: 'ai-hr'
   parent: apimService
   properties: {
@@ -287,7 +213,7 @@ resource hrProductPolicy 'Microsoft.ApiManagement/service/products/policies@2022
   ]
 }
 
-resource hrSubscription 'Microsoft.ApiManagement/service/subscriptions@2020-06-01-preview' = {
+resource hrSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-01' = {
   name: 'hr-retail-internal-sub'
   parent: apimService
   properties: {
@@ -298,7 +224,7 @@ resource hrSubscription 'Microsoft.ApiManagement/service/subscriptions@2020-06-0
 }
 
 // Create Search-HR product
-resource searchHRProduct 'Microsoft.ApiManagement/service/products@2020-06-01-preview' = {
+resource searchHRProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = if(enableAzureAISearch) {
   name: 'search-hr'
   parent: apimService
   properties: {
@@ -312,7 +238,7 @@ resource searchHRProduct 'Microsoft.ApiManagement/service/products@2020-06-01-pr
   }
 }
 
-resource searchHRProductAISearchApi 'Microsoft.ApiManagement/service/products/apiLinks@2023-05-01-preview' = {
+resource searchHRProductAISearchApi 'Microsoft.ApiManagement/service/products/apiLinks@2023-05-01-preview' = if (enableAzureAISearch) {
   name: 'search-hr-product-ai-search-api'
   parent: searchHRProduct
   properties: {
@@ -320,7 +246,7 @@ resource searchHRProductAISearchApi 'Microsoft.ApiManagement/service/products/ap
   }
 }
 
-resource searchHRProductProductPolicy 'Microsoft.ApiManagement/service/products/policies@2022-08-01' =  {
+resource searchHRProductProductPolicy 'Microsoft.ApiManagement/service/products/policies@2022-08-01' =  if (enableAzureAISearch) {
   name: 'policy'
   parent: searchHRProduct
   properties: {
@@ -329,7 +255,7 @@ resource searchHRProductProductPolicy 'Microsoft.ApiManagement/service/products/
   }
 }
 
-resource searchHRSubscription 'Microsoft.ApiManagement/service/subscriptions@2020-06-01-preview' = {
+resource searchHRSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-01' = if (enableAzureAISearch) {
   name: 'search-hr-internal-sub'
   parent: apimService
   properties: {
@@ -339,7 +265,7 @@ resource searchHRSubscription 'Microsoft.ApiManagement/service/subscriptions@202
   }
 }
 
-resource openAiBackends 'Microsoft.ApiManagement/service/backends@2021-08-01' = [for (openAiUri, i) in openAiUris: {
+resource openAiBackends 'Microsoft.ApiManagement/service/backends@2022-08-01' = [for (openAiUri, i) in openAiUris: {
   name: '${openAiApiBackendId}-${i}'
   parent: apimService
   properties: {
@@ -353,7 +279,7 @@ resource openAiBackends 'Microsoft.ApiManagement/service/backends@2021-08-01' = 
   }
 }]
 
-resource aiSearchBackends 'Microsoft.ApiManagement/service/backends@2021-08-01' = [for (aiSearchInstance, i) in aiSearchInstances: {
+resource aiSearchBackends 'Microsoft.ApiManagement/service/backends@2022-08-01' = [for (aiSearchInstance, i) in aiSearchInstances: if(enableAzureAISearch) {
   name: aiSearchInstance.name
   parent: apimService
   properties: {
@@ -415,7 +341,7 @@ resource apimOpenaiApiAudienceiNamedValue 'Microsoft.ApiManagement/service/named
 }
 
 // Adding Policy Fragments
-resource aadAuthPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+resource aadAuthPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
   parent: apimService
   name: 'aad-auth'
   properties: {
@@ -430,7 +356,7 @@ resource aadAuthPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@
   ]
 }
 
-resource validateRoutesPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+resource validateRoutesPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
   parent: apimService
   name: 'validate-routes'
   properties: {
@@ -439,19 +365,16 @@ resource validateRoutesPolicyFragment 'Microsoft.ApiManagement/service/policyFra
   }
 }
 
-resource backendRoutingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+resource backendRoutingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
   parent: apimService
   name: 'backend-routing'
   properties: {
     value: loadTextContent('./policies/frag-backend-routing.xml')
     format: 'rawxml'
   }
-  dependsOn: [
-    validateRoutesPolicyFragment
-  ]
 }
 
-resource openAIUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+resource openAIUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
   parent: apimService
   name: 'openai-usage'
   properties: {
@@ -463,7 +386,7 @@ resource openAIUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragme
   ]
 }
 
-resource aiUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+resource aiUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
   parent: apimService
   name: 'ai-usage'
   properties: {
@@ -475,7 +398,7 @@ resource aiUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragments@
   ]
 }
 
-resource apimLogger 'Microsoft.ApiManagement/service/loggers@2021-12-01-preview' = {
+resource apimLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
   name: 'appinsights-logger'
   parent: apimService
   properties: {
@@ -543,7 +466,7 @@ resource ehUsageLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
   }
 }
 
-resource apimRetailDevUser 'Microsoft.ApiManagement/service/users@2020-06-01-preview' = {
+resource apimRetailDevUser 'Microsoft.ApiManagement/service/users@2022-08-01' = {
   parent: apimService
   name: 'ai-retail-dev-user'
   properties: {
@@ -554,7 +477,7 @@ resource apimRetailDevUser 'Microsoft.ApiManagement/service/users@2020-06-01-pre
   }
 }
 
-resource apimRetailDevUserSubscription 'Microsoft.ApiManagement/service/subscriptions@2020-06-01-preview' = {
+resource apimRetailDevUserSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-01' = {
   parent: apimService
   name: 'retail-ai-dev-user-subscription'
   properties: {

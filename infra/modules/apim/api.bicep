@@ -38,15 +38,16 @@ param apiRevision string = '1'
 @description('Ability to override the subscription key name. Default is Ocp-Apim-Subscription-Key')
 param subscriptionKeyName string = ''
 
+param enableAPIDeployment bool = true
 
 // Assume the content format is JSON format if the ending is .json - otherwise, it's YAML
 var contentFormat = startsWith(openApiSpecification, '{') ? 'openapi+json' : 'openapi'
 
-resource apimService 'Microsoft.ApiManagement/service@2022-04-01-preview' existing = {
+resource apimService 'Microsoft.ApiManagement/service@2022-08-01' existing = {
   name: serviceName
 }
 
-resource apiDefinition 'Microsoft.ApiManagement/service/apis@2022-08-01' = {
+resource apiDefinition 'Microsoft.ApiManagement/service/apis@2022-08-01' = if(enableAPIDeployment) {
   name: apiName
   parent: apimService
   properties: {
@@ -66,7 +67,7 @@ resource apiDefinition 'Microsoft.ApiManagement/service/apis@2022-08-01' = {
   }
 }
 
-resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' = {
+resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' = if(enableAPIDeployment) {
   name: 'policy'
   parent: apiDefinition
   properties: {
@@ -75,5 +76,5 @@ resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' = 
   }
 }
 
-output id string = apiDefinition.id
-output path string = apiDefinition.properties.path
+output id string = (enableAPIDeployment) ? apiDefinition.id : ''
+output path string = (enableAPIDeployment) ? apiDefinition.properties.path : ''

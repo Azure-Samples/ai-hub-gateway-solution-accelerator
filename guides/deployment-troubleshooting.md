@@ -23,3 +23,5 @@ Below are few examples of transient issues:
 - Managed identity id not found
 
 - Timeout: Call to Management API apim-RANDOM.management.azure-api.net:3443 timed out for the Developer SKU service which will have inherent capacity issues due to it's scale. Please refer to SLA at https://aka.ms/apimsla and considering upgrading to a SKU Tier with higher SLA.
+
+- Deployment 'azure-ai-search-api' could not be found (this only will happen if you sett ```enableAzureAISearch``` to false and you can ignore it)

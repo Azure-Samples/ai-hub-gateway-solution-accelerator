@@ -25,11 +25,11 @@ var dotnetFrameworkVersion  = '8.0'
 var linuxFxVersion  = 'DOTNET-ISOLATED|8.0'
 var isReserved = functionPlanOS == 'Linux'
 
-resource functionAppmanagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' existing = {
+resource functionAppmanagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
   name: functionAppIdentityName
 }
 
-resource storageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' existing = {
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
   name: storageAccountName
 }
 
@@ -40,7 +40,7 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing
 
 var storageAccountConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
 
-resource hostingPlan 'Microsoft.Web/serverfarms@2022-03-01' = {
+resource hostingPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: 'hosting-plan-${functionAppName}'
   tags: union(tags, { 'azd-service-name': 'hosting-plan-${functionAppName}' })
   location: location
@@ -56,7 +56,7 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   }
 }
 
-resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
+resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   name: functionAppName
   location: location
   kind: 'functionapp,linux'
@@ -77,7 +77,7 @@ resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
 
 
 // Add the function to the subnet
-resource networkConfig 'Microsoft.Web/sites/networkConfig@2022-03-01' = {
+resource networkConfig 'Microsoft.Web/sites/networkConfig@2023-12-01' = {
   parent: functionApp
   name: 'virtualNetwork'
   properties: {
@@ -87,7 +87,7 @@ resource networkConfig 'Microsoft.Web/sites/networkConfig@2022-03-01' = {
 }
 
 //create functionapp siteconfig
-resource functionAppSiteConfig 'Microsoft.Web/sites/config@2022-09-01' = {
+resource functionAppSiteConfig 'Microsoft.Web/sites/config@2023-12-01' = {
   parent: functionApp
   name: 'web'
   properties: {
@@ -103,11 +103,14 @@ resource functionAppSiteConfig 'Microsoft.Web/sites/config@2022-09-01' = {
     functionsRuntimeScaleMonitoringEnabled: true
     netFrameworkVersion: dotnetFrameworkVersion
   }
+  dependsOn: [
+    applicationInsights
+  ]
 }
 
 //Create functionapp appsettings
 
-resource functionAppSettings 'Microsoft.Web/sites/config@2020-12-01' = {
+resource functionAppSettings 'Microsoft.Web/sites/config@2023-12-01' = {
   parent: functionApp
   name: 'appsettings'
   properties: {
