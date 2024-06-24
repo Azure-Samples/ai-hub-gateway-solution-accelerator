@@ -19,8 +19,13 @@
         <!-- Deleting api-key header to it is not passed to OpenAI endpoint-->
         <set-header name="api-key" exists-action="delete" />
         
+        <!-- Setting cache keys -->
+        <set-variable name="deployment-id" value="@((string)context.Request.MatchedParameters["deployment-id"])" />
+        <set-variable name="routesCacheKey" value="@((string)context.Variables["deployment-id"] + "Routes" + context.Deployment.Region + context.Api.Revision)" />
+        <set-variable name="oaClustersCacheKey" value="@("oaClusters" + context.Deployment.Region + context.Api.Revision)" />
+
         <!-- Getting OpenAI clusters configuration -->
-        <cache-lookup-value key="@("oaClusters" + context.Deployment.Region + context.Api.Revision)" variable-name="oaClusters" />
+        <cache-lookup-value key="@((string)context.Variables.GetValueOrDefault<string>("oaClustersCacheKey", "ALL-CLUSTERS"))" variable-name="oaClusters" />
         <!-- If we can't find the configuration cached, it will be loaded -->
         <choose>
             <when condition="@(context.Variables.ContainsKey("oaClusters") == false)">
@@ -112,7 +117,7 @@
                         return clusters;   
                     }" />
                 <!-- Add cluster configurations to cache -->
-                <cache-store-value key="@("oaClusters" + context.Deployment.Region + context.Api.Revision)" value="@((JArray)context.Variables["oaClusters"])" duration="86400" />
+                <cache-store-value key="@((string)context.Variables.GetValueOrDefault<string>("oaClustersCacheKey", "ALL-CLUSTERS"))" value="@((JArray)context.Variables["oaClusters"])" duration="86400" />
             </when>
         </choose>
         <include-fragment fragment-id="validate-routes" />
@@ -123,7 +128,7 @@
         </set-header>
 
         <!-- Setting gobal TPM limit to collect usage for streaming requests -->
-        <azure-openai-token-limit counter-key="APIMOpenAI" tokens-per-minute="5000000" estimate-prompt-tokens="true" tokens-consumed-variable-name="TotalConsumedTokens" remaining-tokens-variable-name="TotalRemainingTokens" />
+        <azure-openai-token-limit counter-key="APIMOpenAI" tokens-per-minute="5000000" estimate-prompt-tokens="false" tokens-consumed-variable-name="TotalConsumedTokens" remaining-tokens-variable-name="TotalRemainingTokens" />
     </inbound>
     <backend>
         <include-fragment fragment-id="backend-routing" />

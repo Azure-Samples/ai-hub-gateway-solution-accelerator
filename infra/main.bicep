@@ -225,6 +225,22 @@ param openAiInstances object = {
   }
 }
 
+param enableAzureAISearch bool = true
+
+@description('Object containing AI Search existing instances. You can add more instances by adding more objects to this parameter.')
+param aiSearchInstances array = [
+  {
+    name: 'ai-search-swn'
+    url: 'https://REPLACE1.search.windows.net/'
+    description: 'AI Search Instance 1'
+  }
+  {
+    name: 'ai-search-sec'
+    url: 'https://REPLACE2.search.windows.net/'
+    description: 'AI Search Instance 2'
+  }
+]
+
 @description('SKU name for OpenAI.')
 param openAiSkuName string = 'S0'
 
@@ -290,9 +306,6 @@ module vnet './modules/networking/vnet.bicep' = if(!useExistingVnet) {
     privateEndpointNsgName: !empty(privateEndpointNsgName) ? privateEndpointNsgName : 'nsg-pe-${resourceToken}'
     functionAppSubnetName: !empty(functionAppSubnetName) ? functionAppSubnetName : 'snet-functionapp'
     functionAppNsgName: !empty(functionAppNsgName) ? functionAppNsgName : 'nsg-functionapp-${resourceToken}'
-    // appGatewaySubnetName: !empty(appGatewaySubnetName) ? appGatewaySubnetName : 'snet-appgateway'
-    // appGatewayNsgName: !empty(appGatewayNsgName) ? appGatewayNsgName : 'nsg-appgateway-${resourceToken}'
-    // appGatewayPIPName: !empty(appGatewayPublicIpName) ? appGatewayPublicIpName : 'pip-appgateway-${resourceToken}'
     vnetAddressPrefix: vnetAddressPrefix
     apimSubnetAddressPrefix: apimSubnetPrefix
     privateEndpointSubnetAddressPrefix: privateEndpointSubnetPrefix
@@ -438,6 +451,8 @@ module apim './modules/apim/apim.bicep' = {
     eventHubEndpoint: eventHub.outputs.eventHubEndpoint
     apimSubnetId: useExistingVnet ? vnetExisting.outputs.apimSubnetId : vnet.outputs.apimSubnetId
     apimNetworkType: apimNetworkType
+    enableAzureAISearch: enableAzureAISearch
+    aiSearchInstances: aiSearchInstances
   }
   dependsOn: [
     vnet

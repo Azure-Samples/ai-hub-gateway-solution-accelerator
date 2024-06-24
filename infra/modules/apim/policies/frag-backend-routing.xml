@@ -17,7 +17,7 @@
 
                 return routes; 
             }" />
-        <cache-store-value key="@(context.Request.MatchedParameters["deployment-id"] + "Routes" + context.Deployment.Region + context.Api.Revision)" value="@((JArray)context.Variables["routes"])" duration="86400" />
+        <cache-store-value key="@((string)context.Variables.GetValueOrDefault<string>("routesCacheKey", "ALL-ROUTES"))" value="@((JArray)context.Variables["routes"])" duration="86400" />
         <!-- This is the main logic to pick the route to be used -->
         <set-variable name="routeIndex" value="@{
                 JArray routes = (JArray)context.Variables["routes"];
@@ -64,7 +64,7 @@
         <set-variable name="backendId" value="@(((JObject)((JArray)context.Variables["routes"])[(Int32)context.Variables["routeIndex"]]).Value<string>("backend-id"))" />
         <set-variable name="routeLocation" value="@(((JObject)((JArray)context.Variables["routes"])[(Int32)context.Variables["routeIndex"]]).Value<string>("location"))" />
         <set-variable name="routeName" value="@(((JObject)((JArray)context.Variables["routes"])[(Int32)context.Variables["routeIndex"]]).Value<string>("name"))" />
-        <set-variable name="deploymentName" value="@(context.Request.MatchedParameters["deployment-id"])" />
+        <set-variable name="deploymentName" value="@((string)context.Variables["deployment-id"])" />
         <set-backend-service backend-id="@((string)context.Variables["backendId"])" />
         <forward-request buffer-request-body="true" />
         <choose>
@@ -92,7 +92,7 @@
 
                         return routes;      
                     }" />
-                <cache-store-value key="@(context.Request.MatchedParameters["deployment-id"] + "Routes" + context.Deployment.Region + context.Api.Revision)" value="@((JArray)context.Variables["routes"])" duration="86400" />
+                <cache-store-value key="@((string)context.Variables.GetValueOrDefault<string>("routesCacheKey", "ALL-ROUTES"))" value="@((JArray)context.Variables["routes"])" duration="86400" />
                 <set-variable name="remainingRoutes" value="@{
                         JArray routes = (JArray)context.Variables["routes"];
 
