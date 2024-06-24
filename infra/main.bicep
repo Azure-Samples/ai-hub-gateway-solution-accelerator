@@ -225,6 +225,8 @@ param openAiInstances object = {
   }
 }
 
+param enableAzureAISearch bool = true
+
 @description('Object containing AI Search existing instances. You can add more instances by adding more objects to this parameter.')
 param aiSearchInstances array = [
   {
@@ -449,6 +451,7 @@ module apim './modules/apim/apim.bicep' = {
     eventHubEndpoint: eventHub.outputs.eventHubEndpoint
     apimSubnetId: useExistingVnet ? vnetExisting.outputs.apimSubnetId : vnet.outputs.apimSubnetId
     apimNetworkType: apimNetworkType
+    enableAzureAISearch: enableAzureAISearch
     aiSearchInstances: aiSearchInstances
   }
   dependsOn: [
