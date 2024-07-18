@@ -210,7 +210,16 @@ azd env new ai-hub-gateway-dev
 
 # Deploy the solution accelerator
 azd up
+
+# You can also use to provision only the infrastructure
+# azd provision
+
+# You can also use this to deploy the Azure Function code (given that infrastructure is already deployed)
+# azd deploy
+
 ```
+
+>**NOTE**: If you faced any deployment errors, try to rerun the ```azd up``` command as you might be facing a [transient error](./guides/deployment-troubleshooting.md).
 
 After that, you can start using the AI Hub Gateway Landing Zone through the Azure API Management on Azure Portal:
 
