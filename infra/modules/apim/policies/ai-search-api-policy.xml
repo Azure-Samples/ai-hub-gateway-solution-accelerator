@@ -85,5 +85,8 @@
     </outbound>
     <on-error>
         <base />
+        <set-variable name="service-name" value="Azure AI Search" />
+        <set-variable name="target-deployment" value="@((string)context.Request.MatchedParameters["index-name"])" />
+        <include-fragment fragment-id="throttling-events" />
     </on-error>
 </policies>

@@ -24,6 +24,7 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
     WorkspaceResourceId: logAnalyticsWorkspaceId
     publicNetworkAccessForIngestion: 'Disabled'
     publicNetworkAccessForQuery: 'Enabled'
+    CustomMetricsOptedInType: 'WithDimensions'
   }
 }
 

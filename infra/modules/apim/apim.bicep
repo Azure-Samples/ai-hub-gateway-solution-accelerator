@@ -107,6 +107,7 @@ module apimOpenaiApi './api.bicep' = {
     backendRoutingPolicyFragment
     openAIUsagePolicyFragment
     openAiBackends
+    throttlingEventsPolicyFragment
   ]
 }
 
@@ -130,6 +131,7 @@ module apimAiSearchApi './api.bicep' = if (enableAzureAISearch) {
     validateRoutesPolicyFragment
     backendRoutingPolicyFragment
     aiUsagePolicyFragment
+    throttlingEventsPolicyFragment
   ]
 }
 
@@ -398,6 +400,15 @@ resource aiUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragments@
   ]
 }
 
+resource throttlingEventsPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
+  parent: apimService
+  name: 'throttling-events'
+  properties: {
+    value: loadTextContent('./policies/frag-throttling-events.xml')
+    format: 'rawxml'
+  }
+}
+
 resource apimLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
   name: 'appinsights-logger'
   parent: apimService
@@ -421,6 +432,7 @@ resource apimAppInsights 'Microsoft.ApiManagement/service/diagnostics@2022-08-01
     verbosity: 'information'
     logClientIp: true
     loggerId: apimLogger.id
+    metrics: true
     sampling: {
       samplingType: 'fixed'
       percentage: 100
