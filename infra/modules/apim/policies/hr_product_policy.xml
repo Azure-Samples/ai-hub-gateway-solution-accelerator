@@ -2,12 +2,24 @@
     <inbound>
         <base />
         <!-- Capacity management: allow only assigned tpm for each Retail use case subscritpion -->
-        <azure-openai-token-limit counter-key="@(context.Subscription.Id)" 
+        <set-variable name="target-deployment" value="@((string)context.Request.MatchedParameters["deployment-id"])" />
+        <choose>
+            <when condition="@((string)context.Variables["target-deployment"] == "gpt-4o")">
+                <azure-openai-token-limit counter-key="@(context.Subscription.Id + "-gpt-4o")" tokens-per-minute="1000" estimate-prompt-tokens="false" tokens-consumed-header-name="consumed-tokens" remaining-tokens-header-name="remaining-tokens" retry-after-header-name="retry-after" />
+            </when>
+            <when condition="@((string)context.Variables["target-deployment"] == "chat")">
+                <azure-openai-token-limit counter-key="@(context.Subscription.Id + "-chat")" tokens-per-minute="2000" estimate-prompt-tokens="false" tokens-consumed-header-name="consumed-tokens" remaining-tokens-header-name="remaining-tokens" retry-after-header-name="retry-after" />
+            </when>
+            <otherwise>
+                <azure-openai-token-limit counter-key="@(context.Subscription.Id + "-default")" tokens-per-minute="5000" estimate-prompt-tokens="false" tokens-consumed-header-name="consumed-tokens" remaining-tokens-header-name="remaining-tokens" retry-after-header-name="retry-after" />
+            </otherwise>
+        </choose>
+        <!-- <azure-openai-token-limit counter-key="@(context.Subscription.Id)" 
             tokens-per-minute="5000" 
             estimate-prompt-tokens="true" 
             tokens-consumed-header-name="consumed-tokens" 
             remaining-tokens-header-name="remaining-tokens" 
-            retry-after-header-name="retry-after" />
+            retry-after-header-name="retry-after" /> -->
     </inbound>
     <backend>
         <base />

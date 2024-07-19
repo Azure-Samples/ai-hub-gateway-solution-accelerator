@@ -19,6 +19,7 @@ The AI Hub Gateway Landing Zone architecture designed to be a central hub for AI
 Now this solution accelerator is updated to be **enterprise ready** with the following features:
 
 - **Bring your own VNet** is now supported with the ability to deploy the AI Hub Gateway Landing Zone in your own VNet. [Check the guide here](./guides/bring-you-own-network.md)
+- **Throttling events monitoring** is now supported with the ability to capture and raise ```429``` too many requests status code as a custom metric in Application Insights. [Check the guide here](./guides/throttling-events-handling.md)
 - **New gpt-4o Global Deployment** is now part of the OpenAI resource provisioning
 - **Azure OpenAI API spec version** was updated to ```2024-05-01-preview``` to bring APIs for audio and batch among other advancements (note it is backward compatible with previous versions)
 - **AI usage reports enhancements** with Cosmos Db now include a container for ```model-pricing``` which include the $ pricing for AI models tokens ([sample data can be found here](./src/usage-reports/model-pricing.json)), along with updated PowerBI dashboard design.
@@ -210,7 +211,16 @@ azd env new ai-hub-gateway-dev
 
 # Deploy the solution accelerator
 azd up
+
+# You can also use to provision only the infrastructure
+# azd provision
+
+# You can also use this to deploy the Azure Function code (given that infrastructure is already deployed)
+# azd deploy
+
 ```
+
+>**NOTE**: If you faced any deployment errors, try to rerun the ```azd up``` command as you might be facing a [transient error](./guides/deployment-troubleshooting.md).
 
 After that, you can start using the AI Hub Gateway Landing Zone through the Azure API Management on Azure Portal:
 

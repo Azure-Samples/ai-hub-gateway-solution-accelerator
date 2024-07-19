@@ -139,5 +139,10 @@
     </outbound>
     <on-error>
         <base />
+        <!-- This is used to push custom metrics related to 429 throttleing errors -->
+        <!-- It is designed to premit setting up Azure Monitor Alerts notifying the team of potential service degredation -->
+        <set-variable name="service-name" value="Azure Open AI" />
+        <set-variable name="target-deployment" value="@((string)context.Request.MatchedParameters["deployment-id"])" />
+        <include-fragment fragment-id="throttling-events" />
     </on-error>
 </policies>

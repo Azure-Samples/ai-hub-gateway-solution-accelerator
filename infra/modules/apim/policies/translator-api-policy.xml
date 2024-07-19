@@ -1,0 +1,24 @@
+<policies>
+    <inbound>
+        <base />
+        <set-header name="ocp-apim-subscription-key" exists-action="delete" />
+        <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="msi-access-token" client-id="{{uami-client-id}}" ignore-error="false" />
+        <set-header name="Authorization" exists-action="override">
+            <value>@("Bearer " + (string)context.Variables["msi-access-token"])</value>
+        </set-header>
+        <!--<rewrite-uri template="/translator/text/v3.0/translate" copy-unmatched-params="true" />-->
+        <rewrite-uri template="@("/translator/text/v3.0/" + context.Request.Url.Path)" copy-unmatched-params="true" />
+    </inbound>
+    
+    <backend>
+        <base />
+    </backend>
+    
+    <outbound>
+        <base />
+    </outbound>
+    
+    <on-error>
+        <base />
+    </on-error>
+</policies>
