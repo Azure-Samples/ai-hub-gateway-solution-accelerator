@@ -18,6 +18,13 @@ var storageBlobDataOwnerRoleId = subscriptionResourceId('Microsoft.Authorization
 param dnsZoneRG string
 param dnsSubscriptionId string
 param vNetRG string
+
+param provisionFunctionShare bool = true
+param provisionLogicShare bool = true
+
+param functionContentShareName string
+param logicContentShareName string
+
 resource vnet 'Microsoft.Network/virtualNetworks@2022-01-01' existing = {
   name: vNetName
   scope: resourceGroup(vNetRG)
@@ -28,8 +35,6 @@ resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-01-01' existing 
   name: privateEndpointSubnetName
   parent: vnet
 }
-
-param functionContentShareName string
 
 resource functionAppmanagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' existing = {
   name: functionAppManagedIdentityName
@@ -64,8 +69,15 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   }
 }
 
-resource share 'Microsoft.Storage/storageAccounts/fileServices/shares@2022-05-01' = {
+resource shareFunctionApp 'Microsoft.Storage/storageAccounts/fileServices/shares@2022-05-01' = if (provisionFunctionShare) {
   name: '${storageAccountName}/default/${functionContentShareName}'
+  dependsOn: [
+    storageAccount
+  ]
+}
+
+resource shareLogicApp 'Microsoft.Storage/storageAccounts/fileServices/shares@2022-05-01' = if (provisionLogicShare) {
+  name: '${storageAccountName}/default/${logicContentShareName}'
   dependsOn: [
     storageAccount
   ]

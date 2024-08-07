@@ -7,3 +7,7 @@ services:
     project: ./src/usage-ingestion-function
     language: dotnet
     host: function
+  usageProcessingLogicApp:
+    project: ./src/usage-ingestion-logicapp
+    language: js
+    host: function

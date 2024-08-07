@@ -76,6 +76,46 @@
 			"command": "host start",
 			"isBackground": true,
 			"problemMatcher": "$func-dotnet-watch"
+		},
+		{
+			"label": "generateDebugSymbols",
+			"command": "${config:azureLogicAppsStandard.dotnetBinaryPath}",
+			"args": [
+				"${input:getDebugSymbolDll}"
+			],
+			"type": "process",
+			"problemMatcher": "$msCompile",
+			"options": {
+				"cwd": "${workspaceFolder}/src\\usage-ingestion-logicapp"
+			}
+		},
+		{
+			"type": "shell",
+			"command": "${config:azureLogicAppsStandard.funcCoreToolsBinaryPath}",
+			"args": [
+				"host",
+				"start"
+			],
+			"options": {
+				"env": {
+					"PATH": "${config:azureLogicAppsStandard.autoRuntimeDependenciesPath}\\NodeJs;${config:azureLogicAppsStandard.autoRuntimeDependenciesPath}\\DotNetSDK;$env:PATH"
+				},
+				"cwd": "${workspaceFolder}/src\\usage-ingestion-logicapp"
+			},
+			"problemMatcher": "$func-watch",
+			"isBackground": true,
+			"label": "func: host start",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		}
+	],
+	"inputs": [
+		{
+			"id": "getDebugSymbolDll",
+			"type": "command",
+			"command": "azureLogicAppsStandard.getDebugSymbolDll"
 		}
 	]
 }
