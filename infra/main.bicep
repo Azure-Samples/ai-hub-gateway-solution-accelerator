@@ -588,7 +588,8 @@ module logicApp './modules/logicapp/logicapp.bicep' = {
     eventHubName: eventHub.outputs.eventHubName
     eventHubNamespaceName: eventHub.outputs.eventHubNamespaceName
     cosmosDBDatabaseName: cosmosDb.outputs.cosmosDbDatabaseName
-    cosmosDBContainerName: cosmosDb.outputs.cosmosDbStreamingExportConfigContainerName
+    cosmosDBContainerConfigName: cosmosDb.outputs.cosmosDbStreamingExportConfigContainerName
+    cosmosDBContainerUsageName: cosmosDb.outputs.cosmosDbContainerName
     apimAppInsightsName: monitoring.outputs.applicationInsightsName
     // eventHubNamespaceName: eventHub.outputs.eventHubNamespaceName
     // eventHubName: eventHub.outputs.eventHubName

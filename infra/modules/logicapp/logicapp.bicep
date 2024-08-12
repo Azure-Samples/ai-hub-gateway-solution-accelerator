@@ -31,7 +31,8 @@ param eventHubNamespaceName string
 param eventHubName string
 
 param cosmosDBDatabaseName string
-param cosmosDBContainerName string
+param cosmosDBContainerConfigName string
+param cosmosDBContainerUsageName string
 
 param apimAppInsightsName string
 
@@ -136,7 +137,8 @@ resource functionAppSettings 'Microsoft.Web/sites/config@2023-12-01' = {
       AzureFunctionsJobHost_extensionBundle: 'Microsoft.Azure.Functions.ExtensionBundle.Workflows'
       CosmosDBAccount: cosmosDbAccount.name
       CosmosDBDatabase: cosmosDBDatabaseName
-      CosmosDBContainer: cosmosDBContainerName
+      CosmosDBContainerConfig: cosmosDBContainerConfigName
+      CosmosDBContainerUsage: cosmosDBContainerUsageName
       AzureCosmosDB_connectionString: cosmosDbAccount.listConnectionStrings().connectionStrings[0].connectionString
       AppInsights_SubscriptionId: subscription().subscriptionId
       AppInsights_ResourceGroup: resourceGroup().name

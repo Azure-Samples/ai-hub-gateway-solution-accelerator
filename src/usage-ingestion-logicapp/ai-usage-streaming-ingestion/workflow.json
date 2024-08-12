@@ -5,7 +5,7 @@
             "Create_Export_Config": {
                 "inputs": {
                     "parameters": {
-                        "containerId": "@appsetting('CosmosDBContainer')",
+                        "containerId": "@appsetting('CosmosDBContainerConfig')",
                         "databaseId": "@appsetting('CosmosDBDatabase')",
                         "isUpsert": true,
                         "item": "{ \"id\": \"001\", \"type\": \"default\", \"lastExportDate\": \"@{formatDateTime(utcNow(), 'yyyy-MM-ddTHH:mm:00')}\", \"totalExportedRecords\": 0 }"
@@ -28,7 +28,7 @@
                     "Create_Usage_Log": {
                         "inputs": {
                             "parameters": {
-                                "containerId": "@appsetting('CosmosDBContainer')",
+                                "containerId": "@appsetting('CosmosDBContainerUsage')",
                                 "databaseId": "@appsetting('CosmosDBDatabase')",
                                 "isUpsert": true,
                                 "item": "{\n  \"id\": \"@{concat('streaming-', guid())}\",\n  \"timestamp\": \"@{body('ParseMetricEntry')?['timestamp']}\",\n  \"appId\": \"NA\",\n  \"subscriptionId\": \"@{body('ParseMetricEntry')?['subscriptionId']}\",\n  \"productName\": \"@{body('ParseMetricEntry')?['productName']}\",\n  \"targetService\": \"chat.completion\",\n  \"model\": \"streaming\",\n  \"gatewayName\": \"@{body('ParseMetricEntry')?['gatewayName']}\",\n  \"gatewayRegion\": \"NA\",\n  \"aiGatewayId\": \"managed\",\n  \"RequestIp\": \"NA\",\n  \"operationName\": \"@{body('ParseMetricEntry')?['operationName']}\",\n  \"sessionId\": \"NA\",\n  \"endUserId\": \"NA\",\n  \"backendId\": \"NA\",\n  \"routeLocation\": \"@{body('ParseMetricEntry')?['routeLocation']}\",\n  \"routeName\": \"@{body('ParseMetricEntry')?['routeName']}\",\n  \"deploymentName\": \"@{body('ParseMetricEntry')?['deploymentName']}\",\n  \"promptTokens\": \"@{body('ParseMetricEntry')?['promptTokents']}\",\n  \"responseTokens\": \"@{body('ParseMetricEntry')?['responseTokens']}\",\n  \"totalTokens\": \"@{body('ParseMetricEntry')?['totalTokens']}\"\n}"
@@ -207,7 +207,7 @@
             "Read_Export_Config": {
                 "inputs": {
                     "parameters": {
-                        "containerId": "@appsetting('CosmosDBContainer')",
+                        "containerId": "@appsetting('CosmosDBContainerConfig')",
                         "databaseId": "@appsetting('CosmosDBDatabase')",
                         "itemId": "001",
                         "partitionKey": "default"
@@ -249,7 +249,7 @@
             "Update_Export_Config": {
                 "inputs": {
                     "parameters": {
-                        "containerId": "@appsetting('CosmosDBContainer')",
+                        "containerId": "@appsetting('CosmosDBContainerConfig')",
                         "databaseId": "@appsetting('CosmosDBDatabase')",
                         "isUpsert": true,
                         "item": "{ \"id\": \"001\", \"type\": \"default\", \"lastExportDate\": \"@{variables('CurrentTime')}\", \"totalExportedRecords\": @{length(body('Run_query_and_list_results')?['value'])} }"
