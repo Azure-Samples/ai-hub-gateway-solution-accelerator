@@ -100,6 +100,9 @@ var eventHubPrivateDnsZoneName = 'privatelink.servicebus.windows.net'
 var cosmosDbPrivateDnsZoneName = 'privatelink.documents.azure.com'
 var storageBlobPrivateDnsZoneName = 'privatelink.blob.core.windows.net'
 var storageFilePrivateDnsZoneName = 'privatelink.file.core.windows.net'
+var storageTablePrivateDnsZoneName = 'privatelink.table.core.windows.net'
+var storageQueuePrivateDnsZoneName = 'privatelink.queue.core.windows.net'
+
 var privateDnsZoneNames = [
   openAiPrivateDnsZoneName
   keyVaultPrivateDnsZoneName
@@ -108,6 +111,8 @@ var privateDnsZoneNames = [
   cosmosDbPrivateDnsZoneName
   storageBlobPrivateDnsZoneName
   storageFilePrivateDnsZoneName
+  storageTablePrivateDnsZoneName
+  storageQueuePrivateDnsZoneName
 ]
 
 // You can add more OpenAI instances by adding more objects to the openAiInstances object
@@ -515,8 +520,12 @@ module storageAccount './modules/functionapp/storageaccount.bicep' = {
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
     storageBlobDnsZoneName: storageBlobPrivateDnsZoneName
     storageFileDnsZoneName: storageFilePrivateDnsZoneName
+    storageTableDnsZoneName: storageTablePrivateDnsZoneName
+    storageQueueDnsZoneName: storageQueuePrivateDnsZoneName
     storageBlobPrivateEndpointName: '${abbrs.storageStorageAccounts}blob-pe-${resourceToken}'
     storageFilePrivateEndpointName: '${abbrs.storageStorageAccounts}file-pe-${resourceToken}'
+    storageTablePrivateEndpointName: '${abbrs.storageStorageAccounts}table-pe-${resourceToken}'
+    storageQueuePrivateEndpointName: '${abbrs.storageStorageAccounts}queue-pe-${resourceToken}'
     functionContentShareName: functionContentShareName
     logicContentShareName: logicContentShareName
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
@@ -578,7 +587,9 @@ module logicApp './modules/logicapp/logicapp.bicep' = {
     cosmosDbAccountName: cosmosDb.outputs.cosmosDbAccountName
     eventHubName: eventHub.outputs.eventHubName
     eventHubNamespaceName: eventHub.outputs.eventHubNamespaceName
-
+    cosmosDBDatabaseName: cosmosDb.outputs.cosmosDbDatabaseName
+    cosmosDBContainerName: cosmosDb.outputs.cosmosDbStreamingExportConfigContainerName
+    apimAppInsightsName: monitoring.outputs.applicationInsightsName
     // eventHubNamespaceName: eventHub.outputs.eventHubNamespaceName
     // eventHubName: eventHub.outputs.eventHubName
     // cosmosDBEndpoint: cosmosDb.outputs.cosmosDbEndpoint

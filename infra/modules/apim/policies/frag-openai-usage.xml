@@ -1,13 +1,13 @@
 <fragment>
-    <!-- Usage logs for non-streaming requests only (usage for streaming is not supported yet) -->
-    <choose>
-        <when condition="@(context.Variables.GetValueOrDefault<string>("isStream","false").Equals("false", StringComparison.OrdinalIgnoreCase))">
-            <!-- Set the response body as a variable to be used in various policies -->
-            <set-variable name="responseBody" value="@(context.Response.Body.As<JObject>())" />
-            <!-- Log OpenAI usage to EventHub -->
-            <choose>
-                <when condition="@(context.Response.StatusCode == 200)">
-                    <log-to-eventhub logger-id="usage-eventhub-logger">@{
+	<!-- Usage logs for non-streaming requests only -->
+	<choose>
+		<when condition="@(context.Variables.GetValueOrDefault<string>("isStream","false").Equals("false", StringComparison.OrdinalIgnoreCase))">
+			<!-- Set the response body as a variable to be used in various policies -->
+			<set-variable name="responseBody" value="@(context.Response.Body.As<JObject>())" />
+			<!-- Log OpenAI usage to EventHub -->
+			<choose>
+				<when condition="@(context.Response.StatusCode == 200)">
+					<log-to-eventhub logger-id="usage-eventhub-logger">@{
                     //Avoid reading response body as it can only be ready once, instead, before calling this fragement, a variable call responseBody will be set in the outbound policy
                     //var responseBody = context.Response.Body?.As<JObject>(true); //Avoid this one
                     var responseBody = (JObject)context.Variables["responseBody"]; //It is set in the outbound policy before calling the fragment
@@ -35,43 +35,11 @@
                         new JProperty("totalTokens", responseBody?["usage"]?["total_tokens"]?.Value<int>() ?? 1)
                 ).ToString();
                 }</log-to-eventhub>
-                </when>
-            </choose>
-            <set-body>@{
+				</when>
+			</choose>
+			<set-body>@{
                     return ((JObject)context.Variables["responseBody"]).ToString();
             }</set-body>
-        </when>
-        <!-- Usage logs for streaming requests (estimation) -->
-        <when condition="@(context.Variables.GetValueOrDefault<string>("isStream","false").Equals("true", StringComparison.OrdinalIgnoreCase))">
-            <choose>
-                <when condition="@(context.Response.StatusCode == 200)">
-                    <log-to-eventhub logger-id="usage-eventhub-logger">@{
-                    return new JObject(
-                        new JProperty("id", "stream-" + Guid.NewGuid().ToString()),
-                        new JProperty("timestamp", DateTime.UtcNow.ToString()),
-                        new JProperty("appId", context.Request.Headers.GetValueOrDefault("Authorization",string.Empty).Split(' ').LastOrDefault()?.AsJwt()?.Claims.GetValueOrDefault("appid", "NA")),
-                        new JProperty("subscriptionId", context.Subscription?.Id?.ToString() ?? "Portal-Admin"),
-                        new JProperty("productName", context.Product?.Name?.ToString() ?? "Portal-Admin"),
-                        new JProperty("targetService", "Streaming"),
-                        new JProperty("model", "Steaming"),
-                        new JProperty("gatewayName", context.Deployment?.ServiceName ?? "NA"),
-                        new JProperty("gatewayRegion", context.Deployment?.Region ?? "NA"),
-                        new JProperty("aiGatewayId", context.Deployment?.Gateway?.Id ?? "NA"),
-                        new JProperty("RequestIp", context.Request?.IpAddress ?? "NA"),
-                        new JProperty("operationName", context.Operation?.Name ?? "NA"),
-                        new JProperty("sessionId", (string)context.Variables.GetValueOrDefault<string>("sessionId", "NA")),
-                        new JProperty("endUserId", (string)context.Variables.GetValueOrDefault<string>("endUserId", "NA")),
-                        new JProperty("backendId", (string)context.Variables.GetValueOrDefault<string>("backendId", "NA")),
-                        new JProperty("routeLocation", (string)context.Variables.GetValueOrDefault<string>("routeLocation", "NA")),
-                        new JProperty("routeName", (string)context.Variables.GetValueOrDefault<string>("routeName", "NA")),
-                        new JProperty("deploymentName", (string)context.Variables.GetValueOrDefault<string>("deploymentName", "NA")),
-                        new JProperty("promptTokens", (int)(context.Variables.GetValueOrDefault<int>("TotalConsumedTokens", 1) * 0.6)),
-                        new JProperty("responseTokens", (int)(context.Variables.GetValueOrDefault<int>("TotalConsumedTokens", 1) * 0.4)),
-                        new JProperty("totalTokens", (int)context.Variables.GetValueOrDefault<int>("TotalConsumedTokens", 1))
-                ).ToString();
-                }</log-to-eventhub>
-                </when>
-            </choose>
-        </when>
-    </choose>
+		</when>
+	</choose>
 </fragment>

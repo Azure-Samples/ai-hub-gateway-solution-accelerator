@@ -128,7 +128,10 @@
         </set-header>
 
         <!-- Setting gobal TPM limit to collect usage for streaming requests -->
-        <azure-openai-token-limit counter-key="APIMOpenAI" tokens-per-minute="5000000" estimate-prompt-tokens="false" tokens-consumed-variable-name="TotalConsumedTokens" remaining-tokens-variable-name="TotalRemainingTokens" />
+        <azure-openai-token-limit counter-key="APIMOpenAI" tokens-per-minute="50000000" estimate-prompt-tokens="false" tokens-consumed-variable-name="TotalConsumedTokens" remaining-tokens-variable-name="TotalRemainingTokens" />
+        
+        <!-- Handling usage for streaming requests -->
+        <include-fragment fragment-id="openai-usage-streaming" />
     </inbound>
     <backend>
         <include-fragment fragment-id="backend-routing" />

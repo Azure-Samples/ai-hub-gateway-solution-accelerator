@@ -11,6 +11,10 @@ param storageBlobDnsZoneName string
 param storageBlobPrivateEndpointName string
 param storageFileDnsZoneName string
 param storageFilePrivateEndpointName string
+param storageTableDnsZoneName string
+param storageTablePrivateEndpointName string
+param storageQueueDnsZoneName string
+param storageQueuePrivateEndpointName string
 // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#storage-blob-data-owner
 var storageBlobDataOwnerRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
 
@@ -116,6 +120,38 @@ module privateEndpointFile '../networking/private-endpoint.bicep' = {
     ]
     dnsZoneName: storageFileDnsZoneName
     name: storageFilePrivateEndpointName
+    privateLinkServiceId: storageAccount.id
+    location: location
+    dnsZoneRG: dnsZoneRG
+    privateEndpointSubnetId: subnet.id
+    dnsSubId: dnsSubscriptionId
+  }
+}
+
+module privateEndpointTable '../networking/private-endpoint.bicep' = {
+  name: '${storageAccountName}-table-privateEndpoint'
+  params: {
+    groupIds: [
+      'table'
+    ]
+    dnsZoneName: storageTableDnsZoneName
+    name: storageTablePrivateEndpointName
+    privateLinkServiceId: storageAccount.id
+    location: location
+    dnsZoneRG: dnsZoneRG
+    privateEndpointSubnetId: subnet.id
+    dnsSubId: dnsSubscriptionId
+  }
+}
+
+module privateEndpointQueue '../networking/private-endpoint.bicep' = {
+  name: '${storageAccountName}-queue-privateEndpoint'
+  params: {
+    groupIds: [
+      'queue'
+    ]
+    dnsZoneName: storageQueueDnsZoneName
+    name: storageQueuePrivateEndpointName
     privateLinkServiceId: storageAccount.id
     location: location
     dnsZoneRG: dnsZoneRG

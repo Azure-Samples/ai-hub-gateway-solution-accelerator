@@ -25,9 +25,15 @@ param dotnetFrameworkVersion string = 'v6.0'
 
 var docDbAccNativeContributorRoleDefinitionId = '00000000-0000-0000-0000-000000000002'
 var eventHubsDataOwnerRoleDefinitionId = resourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec')
+var azureMonitorLogsRoleDefinitionId = resourceId('Microsoft.Authorization/roleDefinitions', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')
 
 param eventHubNamespaceName string
 param eventHubName string
+
+param cosmosDBDatabaseName string
+param cosmosDBContainerName string
+
+param apimAppInsightsName string
 
 resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview' existing = {
   name: cosmosDbAccountName
@@ -124,9 +130,24 @@ resource functionAppSettings 'Microsoft.Web/sites/config@2023-12-01' = {
       WEBSITE_CONTENTSHARE: fileShareName
       WEBSITE_VNET_ROUTE_ALL: '1'
       WEBSITE_CONTENTOVERVNET: '1'
+      eventHub_fullyQualifiedNamespace: '${eventHubNamespaceName}.servicebus.windows.net'
+      eventHub_name: eventHubName
+      APP_KIND: 'workflowapp'
+      AzureFunctionsJobHost_extensionBundle: 'Microsoft.Azure.Functions.ExtensionBundle.Workflows'
+      CosmosDBAccount: cosmosDbAccount.name
+      CosmosDBDatabase: cosmosDBDatabaseName
+      CosmosDBContainer: cosmosDBContainerName
+      AzureCosmosDB_connectionString: cosmosDbAccount.listConnectionStrings().connectionStrings[0].connectionString
+      AppInsights_SubscriptionId: subscription().subscriptionId
+      AppInsights_ResourceGroup: resourceGroup().name
+      AppInsights_Name: apimAppInsightsName
+      AzureMonitor_Resource_Id: azureMonitorConnection.outputs.resourceId
+      AzureMonitor_Api_Id: azureMonitorConnection.outputs.apiId
+      AzureMonitor_ConnectRuntime_Url: azureMonitorConnection.outputs.connectRuntimeUrl
   }
   dependsOn: [
     storageAccount
+    azureMonitorConnection
   ]
 }
 
@@ -151,21 +172,64 @@ resource eventHubsDataOwnerRoleAssignment 'Microsoft.Authorization/roleAssignmen
   }
 }
 
-resource eventhubs 'Microsoft.Web/connections@2016-06-01' = {
-  name: 'eventhubs'
-  location: location
+resource azureMonitorReaderRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(logicAppName, azureMonitorLogsRoleDefinitionId)
+  scope: resourceGroup()
   properties: {
-    displayName: 'eh-ai-gateway'
-    api: {
-      name: 'eventhubs'
-      id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'eventhubs')
-      type: 'Microsoft.Web/locations/managedApis'
-      
-    }
-    parameterValues:{
-    }
+    roleDefinitionId: azureMonitorLogsRoleDefinitionId
+    principalId: logicApp.identity.principalId
+    principalType: 'ServicePrincipal'
   }
 }
+
+module azureMonitorConnection 'api-connection.json' = {
+  name: 'azuremonitorlogs-conn'
+  params: {
+    connection_name: 'azuremonitorlogs'
+    display_name: 'conn-azure-monitor'
+    location: location
+  }
+}
+
+module azureMonitorConnectionAccess 'api-connection-access.bicep' = {
+  name: 'azuremonitorlogs-access'
+  params: {
+    connectionName: 'azuremonitorlogs'
+    accessPolicyName: 'azuremonitorlogs-access'
+    identityPrincipalId: logicApp.identity.principalId
+    location: location
+  }
+  dependsOn:[
+    azureMonitorConnection
+  ]
+}
+
+// module eventHubConnection 'event-hub-connection.json' = {
+//   name: logicAppName
+//   params: {
+//     connections_eventhubs_name: 'eventhubs'
+//     location: location
+//     subId: subscription().subscriptionId
+//     eventHubNamespace: eventHubNamespaceName
+//   }
+// }
+
+// resource eventhubs 'Microsoft.Web/connections@2016-06-01' = {
+//   name: 'eventhubs'
+//   location: location
+//   kind: 'V2'
+//   properties: {
+//     displayName: 'eh-ai-gateway'
+//     api: {
+//       name: 'eventhubs'
+//       id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'eventhubs')
+//       type: 'Microsoft.Web/locations/managedApis' 
+//     }
+//     parameterValues:{
+      
+//     }
+//   }
+// }
 
 
 // resource vnet 'Microsoft.Network/virtualNetworks@2020-07-01' = {

@@ -1,10 +1,101 @@
 {
   "definition": {
-    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
-    "actions": {},
-    "contentVersion": "1.0.0.0",
-    "outputs": {},
-    "triggers": {}
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "actions": {
+          "Parse_Usage_Record": {
+              "inputs": {
+                  "content": "@triggerBody()?['contentData']",
+                  "schema": {
+                      "properties": {
+                          "RequestIp": {
+                              "type": "string"
+                          },
+                          "aiGatewayId": {
+                              "type": "string"
+                          },
+                          "appId": {
+                              "type": "string"
+                          },
+                          "backendId": {
+                              "type": "string"
+                          },
+                          "deploymentName": {
+                              "type": "string"
+                          },
+                          "endUserId": {
+                              "type": "string"
+                          },
+                          "gatewayName": {
+                              "type": "string"
+                          },
+                          "gatewayRegion": {
+                              "type": "string"
+                          },
+                          "id": {
+                              "type": "string"
+                          },
+                          "model": {
+                              "type": "string"
+                          },
+                          "operationName": {
+                              "type": "string"
+                          },
+                          "productName": {
+                              "type": "string"
+                          },
+                          "promptTokens": {
+                              "type": "integer"
+                          },
+                          "responseTokens": {
+                              "type": "integer"
+                          },
+                          "routeLocation": {
+                              "type": "string"
+                          },
+                          "routeName": {
+                              "type": "string"
+                          },
+                          "sessionId": {
+                              "type": "string"
+                          },
+                          "subscriptionId": {
+                              "type": "string"
+                          },
+                          "targetService": {
+                              "type": "string"
+                          },
+                          "timestamp": {
+                              "type": "string"
+                          },
+                          "totalTokens": {
+                              "type": "integer"
+                          }
+                      },
+                      "type": "object"
+                  }
+              },
+              "runAfter": {},
+              "type": "ParseJson"
+          }
+      },
+      "contentVersion": "1.0.0.0",
+      "outputs": {},
+      "triggers": {
+          "New_Usage_Record_Received": {
+              "inputs": {
+                  "parameters": {
+                      "eventHubName": "ai-usage"
+                  },
+                  "serviceProviderConfiguration": {
+                      "connectionName": "eventHub",
+                      "operationId": "receiveEvents",
+                      "serviceProviderId": "/serviceProviders/eventHub"
+                  }
+              },
+              "splitOn": "@triggerOutputs()?['body']",
+              "type": "ServiceProvider"
+          }
+      }
   },
   "kind": "Stateful"
 }

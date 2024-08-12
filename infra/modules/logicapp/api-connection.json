@@ -1,0 +1,53 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "connection_name": {
+            "type": "string"
+        },
+        "display_name": {
+            "type": "string"
+        },
+        "location": {
+            "type": "string"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Web/connections",
+            "name": "[parameters('connection_name')]",
+            "apiVersion": "[providers('Microsoft.Web','connections').apiVersions[0]]",
+            "location": "[parameters('location')]",
+            "kind": "V2",
+            "properties": {
+                "alternativeParameterValues": {},
+                "api": {
+                    "id": "[subscriptionResourceId('Microsoft.Web/locations/managedApis', parameters('location'), parameters('connection_name'))]"
+                },
+                "authenticatedUser": {},
+                "connectionState": "Enabled",
+                "customParameterValues": {},
+                "displayName": "[parameters('display_name')]",
+                "parameterValueSet": {
+                    "name": "managedIdentityAuth",
+                    "values": {}
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "connectRuntimeUrl": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Web/connections', parameters('connection_name')), '2016-06-01').connectionRuntimeUrl]"
+        },
+        "resourceId": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Web/connections', parameters('connection_name'))]"
+        },
+        "apiId": {
+            "type": "string",
+            "value": "[subscriptionResourceId('Microsoft.Web/locations/managedApis', parameters('location'), parameters('connection_name'))]"
+        }
+    }
+}
