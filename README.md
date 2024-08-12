@@ -235,6 +235,7 @@ To dive deeper into the AI Hub Gateway technical mechanics, you can check out th
 - [Architecture deep dive](./guides/architecture.md)
 - [Deployment components](./guides/deployment.md)
 - [API Management configuration](./guides/apim-configuration.md)
+- [OpenAI Onboarding](./guides/openai-onboarding.md)
 - [AI Search integration](./guides/ai-search-integration.md)
 - [Power BI Dashboard](./guides/power-bi-dashboard.md)
 - [Bring your own vnet](./guides/bring-you-own-network.md)
