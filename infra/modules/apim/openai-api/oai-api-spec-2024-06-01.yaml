@@ -1,10 +1,10 @@
 openapi: 3.0.1
 info:
-  title: Azure OpenAI Service API
+  title: Azure OpenAI API
   description: Azure OpenAI APIs for completions and search
-  version: '2024-06-01'
+  version: '1.0'
 servers:
-  - url: https://REPLACED-BY-POLICY.azure-api.net/openai
+  - url: https://apim-7pg4fleh6wgj6.azure-api.net/openai
 paths:
   '/deployments/{deployment-id}/completions':
     post:
@@ -763,15 +763,21 @@ paths:
           in: path
           required: true
           schema:
+            enum:
+              - dall-e-3
             type: string
             description: Deployment id of the dalle model which was deployed.
+            default: dall-e-3
             example: dalle-deployment
         - name: api-version
           in: query
           required: true
           schema:
+            enum:
+              - '2024-06-01'
             type: string
             description: api version
+            default: '2024-06-01'
             example: '2024-06-01'
       requestBody:
         content:
