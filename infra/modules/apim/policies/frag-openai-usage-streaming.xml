@@ -1,0 +1,64 @@
+<fragment>
+	<!-- Usage logs for "streaming" requests only -->
+	<choose>
+		<!-- Usage logs for streaming requests -->
+		<when condition="@(context.Variables.GetValueOrDefault<string>("isStream","false").Equals("true", StringComparison.OrdinalIgnoreCase))">
+			<set-variable name="potentialRouteIndex" value="@{
+                JArray routes = (JArray)context.Variables["routes"];
+                int selectedPriority = Int32.MaxValue;
+                List<int> availableRoutesIndexes = new List<int>();
+
+                for (int i = 0; i < routes.Count; i++)
+                {
+                    JObject route = (JObject)routes[i];
+
+                    if (!route.Value<bool>("isThrottling"))
+                    {
+                        int routePriority = route.Value<int>("priority");
+
+                        if (routePriority < selectedPriority)
+                        {
+                            selectedPriority = routePriority;
+                            availableRoutesIndexes.Clear();
+                            availableRoutesIndexes.Add(i);
+                        } 
+                        else if (routePriority == selectedPriority)
+                        {
+                            availableRoutesIndexes.Add(i);
+                        }
+                    }
+                }
+
+                if (availableRoutesIndexes.Count == 1)
+                {
+                    return availableRoutesIndexes[0];
+                }
+            
+                if (availableRoutesIndexes.Count > 0)
+                {
+                    //Returns a random route from the list if we have more than one available with the same priority
+                    return availableRoutesIndexes[new Random().Next(0, availableRoutesIndexes.Count)];
+                }
+                else
+                {
+                    //If there are no available routes, the request will be sent to the first one
+                    return 0;    
+                }
+                }" />
+			<set-variable name="backendId" value="@(((JObject)((JArray)context.Variables["routes"])[(Int32)context.Variables["potentialRouteIndex"]]).Value<string>("backend-id"))" />
+			<set-variable name="routeLocation" value="@(((JObject)((JArray)context.Variables["routes"])[(Int32)context.Variables["potentialRouteIndex"]]).Value<string>("location"))" />
+			<set-variable name="routeName" value="@(((JObject)((JArray)context.Variables["routes"])[(Int32)context.Variables["potentialRouteIndex"]]).Value<string>("name"))" />
+			<set-variable name="deploymentName" value="@((string)context.Variables["deployment-id"])" />
+			<azure-openai-emit-token-metric namespace="ai-streaming">
+				<dimension name="SubscriptionId" value="@(context.Subscription.Id)" />
+				<dimension name="productName" value="@(context.Product?.Name?.ToString() ?? "Portal-Admin")" />
+				<dimension name="gatewayName" value="@(context.Deployment?.ServiceName ?? "NA")" />
+				<dimension name="routeName" value="@((string)context.Variables.GetValueOrDefault<string>("routeName", "Streaming"))" />
+				<dimension name="deploymentName" value="@((string)context.Variables.GetValueOrDefault<string>("deploymentName", "Streaming"))" />
+				<dimension name="operationName" value="@(context.Operation?.Id ?? "Streaming")" />
+				<dimension name="backendId" value="@((string)context.Variables.GetValueOrDefault<string>("backendId", "DefaultStreaming"))" />
+				<dimension name="routeLocation" value="@((string)context.Variables.GetValueOrDefault<string>("routeLocation", "DefaultStreaming"))" />
+			</azure-openai-emit-token-metric>
+		</when>
+	</choose>
+</fragment>

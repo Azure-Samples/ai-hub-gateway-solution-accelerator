@@ -20,7 +20,7 @@ In this accelerator, we will be using Power BI to create a dashboard that will d
 
 ## Preparing the Power BI Dashboard
 
-Now you can open the [src/usage-reports/AI-Hub-Gateway-Usage-Report-v1-3.pbix](../src/usage-reports/AI-Hub-Gateway-Usage-Report-v1-3.pbix) file in the Power BI Desktop application.
+Now you can open the [src/usage-reports/AI-Hub-Gateway-Usage-Report-v1-4.pbix](../src/usage-reports/AI-Hub-Gateway-Usage-Report-v1-4.pbix) file in the Power BI Desktop application.
 
 As this PowerBI file is using import mode, you should see some data already there from previously connected data source.
 

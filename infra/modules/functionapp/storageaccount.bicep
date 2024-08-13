@@ -11,6 +11,10 @@ param storageBlobDnsZoneName string
 param storageBlobPrivateEndpointName string
 param storageFileDnsZoneName string
 param storageFilePrivateEndpointName string
+param storageTableDnsZoneName string
+param storageTablePrivateEndpointName string
+param storageQueueDnsZoneName string
+param storageQueuePrivateEndpointName string
 // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#storage-blob-data-owner
 var storageBlobDataOwnerRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
 
@@ -18,6 +22,13 @@ var storageBlobDataOwnerRoleId = subscriptionResourceId('Microsoft.Authorization
 param dnsZoneRG string
 param dnsSubscriptionId string
 param vNetRG string
+
+param provisionFunctionShare bool = true
+param provisionLogicShare bool = true
+
+param functionContentShareName string
+param logicContentShareName string
+
 resource vnet 'Microsoft.Network/virtualNetworks@2022-01-01' existing = {
   name: vNetName
   scope: resourceGroup(vNetRG)
@@ -28,8 +39,6 @@ resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-01-01' existing 
   name: privateEndpointSubnetName
   parent: vnet
 }
-
-param functionContentShareName string
 
 resource functionAppmanagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' existing = {
   name: functionAppManagedIdentityName
@@ -64,8 +73,15 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   }
 }
 
-resource share 'Microsoft.Storage/storageAccounts/fileServices/shares@2022-05-01' = {
+resource shareFunctionApp 'Microsoft.Storage/storageAccounts/fileServices/shares@2022-05-01' = if (provisionFunctionShare) {
   name: '${storageAccountName}/default/${functionContentShareName}'
+  dependsOn: [
+    storageAccount
+  ]
+}
+
+resource shareLogicApp 'Microsoft.Storage/storageAccounts/fileServices/shares@2022-05-01' = if (provisionLogicShare) {
+  name: '${storageAccountName}/default/${logicContentShareName}'
   dependsOn: [
     storageAccount
   ]
@@ -104,6 +120,38 @@ module privateEndpointFile '../networking/private-endpoint.bicep' = {
     ]
     dnsZoneName: storageFileDnsZoneName
     name: storageFilePrivateEndpointName
+    privateLinkServiceId: storageAccount.id
+    location: location
+    dnsZoneRG: dnsZoneRG
+    privateEndpointSubnetId: subnet.id
+    dnsSubId: dnsSubscriptionId
+  }
+}
+
+module privateEndpointTable '../networking/private-endpoint.bicep' = {
+  name: '${storageAccountName}-table-privateEndpoint'
+  params: {
+    groupIds: [
+      'table'
+    ]
+    dnsZoneName: storageTableDnsZoneName
+    name: storageTablePrivateEndpointName
+    privateLinkServiceId: storageAccount.id
+    location: location
+    dnsZoneRG: dnsZoneRG
+    privateEndpointSubnetId: subnet.id
+    dnsSubId: dnsSubscriptionId
+  }
+}
+
+module privateEndpointQueue '../networking/private-endpoint.bicep' = {
+  name: '${storageAccountName}-queue-privateEndpoint'
+  params: {
+    groupIds: [
+      'queue'
+    ]
+    dnsZoneName: storageQueueDnsZoneName
+    name: storageQueuePrivateEndpointName
     privateLinkServiceId: storageAccount.id
     location: location
     dnsZoneRG: dnsZoneRG

@@ -3,7 +3,11 @@ name: ai-hub-gateway-landing-zone
 infra:
   provider: bicep
 services:
-  usageProcessingFunctionApp:
-    project: ./src/usage-ingestion-function
-    language: dotnet
+  # usageProcessingFunctionApp:
+  #   project: ./src/usage-ingestion-function
+  #   language: dotnet
+  #   host: function
+  usageProcessingLogicApp:
+    project: ./src/usage-ingestion-logicapp
+    language: js
     host: function

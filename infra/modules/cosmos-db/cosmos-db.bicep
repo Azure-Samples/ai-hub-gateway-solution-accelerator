@@ -45,6 +45,9 @@ param containerName string = 'ai-usage-container'
 @description('The name for the container')
 param pricingContainerName string = 'model-pricing'
 
+@description('The name for the container')
+param streamingExportConfigContainerName string = 'streaming-export-config'
+
 @minValue(400)
 @maxValue(1000000)
 @description('The throughput for the container')
@@ -171,6 +174,29 @@ resource modelPricingContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabas
   }
 }
 
+resource streamingExportConfigContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-02-15-preview' = {
+  parent: database
+  name: streamingExportConfigContainerName
+  properties: {
+    resource: {
+      id: streamingExportConfigContainerName
+      partitionKey: {
+        paths: [
+          '/type'
+        ]
+        kind: 'Hash'
+      }
+      indexingPolicy: {
+        indexingMode: 'consistent'
+        automatic: true
+      }
+    }
+    options: {
+      throughput: throughput
+    }
+  }
+}
+
 module privateEndpoint '../networking/private-endpoint.bicep' = {
   name: '${accountName}-privateEndpoint'
   params: {
@@ -191,5 +217,7 @@ output location string = location
 output cosmosDbAccountName string = account.name
 output cosmosDbDatabaseName string = database.name
 output cosmosDbContainerName string = container.name
+output cosmosDbPricingContainerName string = modelPricingContainer.name
+output cosmosDbStreamingExportConfigContainerName string = streamingExportConfigContainer.name
 output resourceId string = database.id
 output cosmosDbEndpoint string = 'https://${account.name}.documents.azure.com:443/'

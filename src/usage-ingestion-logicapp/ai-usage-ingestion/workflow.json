@@ -1,0 +1,43 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Create_Usage_Log": {
+                "inputs": {
+                    "parameters": {
+                        "containerId": "@appsetting('CosmosDBContainerUsage')",
+                        "databaseId": "@appsetting('CosmosDBDatabase')",
+                        "isUpsert": true,
+                        "item": "@triggerBody()?['contentData']"
+                    },
+                    "serviceProviderConfiguration": {
+                        "connectionName": "AzureCosmosDB",
+                        "operationId": "CreateOrUpdateDocument",
+                        "serviceProviderId": "/serviceProviders/AzureCosmosDB"
+                    }
+                },
+                "runAfter": {},
+                "type": "ServiceProvider"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "triggers": {
+            "New_Usage_Record_Received": {
+                "inputs": {
+                    "parameters": {
+                        "eventHubName": "@appsetting('eventHub_name')"
+                    },
+                    "serviceProviderConfiguration": {
+                        "connectionName": "eventHub",
+                        "operationId": "receiveEvents",
+                        "serviceProviderId": "/serviceProviders/eventHub"
+                    }
+                },
+                "splitOn": "@triggerOutputs()?['body']",
+                "type": "ServiceProvider"
+            }
+        }
+    },
+    "kind": "Stateful"
+}

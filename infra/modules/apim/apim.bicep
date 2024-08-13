@@ -106,6 +106,7 @@ module apimOpenaiApi './api.bicep' = {
     validateRoutesPolicyFragment
     backendRoutingPolicyFragment
     openAIUsagePolicyFragment
+    openAIUsageStreamingPolicyFragment
     openAiBackends
     throttlingEventsPolicyFragment
   ]
@@ -385,6 +386,17 @@ resource openAIUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragme
   }
   dependsOn: [
     ehUsageLogger
+  ]
+}
+
+resource openAIUsageStreamingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
+  parent: apimService
+  name: 'openai-usage-streaming'
+  properties: {
+    value: loadTextContent('./policies/frag-openai-usage-streaming.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [
   ]
 }
 

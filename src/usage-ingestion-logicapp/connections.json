@@ -1,0 +1,49 @@
+{
+  "managedApiConnections": {
+    "azuremonitorlogs": {
+      "api": {
+        "id": "@appsetting('AzureMonitor_Api_Id')"
+      },
+      "authentication": {
+        "type": "ManagedServiceIdentity"
+      },
+      "connection": {
+        "id": "@appsetting('AzureMonitor_Resource_Id')"
+      },
+      "connectionProperties": {
+        "authentication": {
+          "additionalAudiences": [
+            "https://api.loganalytics.io"
+          ],
+          "audience": "https://management.core.windows.net/",
+          "type": "ManagedServiceIdentity"
+        }
+      },
+      "connectionRuntimeUrl": "@appsetting('AzureMonitor_ConnectRuntime_Url')"
+    }
+  },
+  "serviceProviderConnections": {
+    "AzureCosmosDB": {
+      "displayName": "conn-cosmos-db",
+      "parameterValues": {
+        "connectionString": "@appsetting('AzureCosmosDB_connectionString')"
+      },
+      "serviceProvider": {
+        "id": "/serviceProviders/AzureCosmosDB"
+      }
+    },
+    "eventHub": {
+      "displayName": "conn-ai-usage-event-hub",
+      "parameterSetName": "ManagedServiceIdentity",
+      "parameterValues": {
+        "authProvider": {
+          "Type": "ManagedServiceIdentity"
+        },
+        "fullyQualifiedNamespace": "@appsetting('eventHub_fullyQualifiedNamespace')"
+      },
+      "serviceProvider": {
+        "id": "/serviceProviders/eventHub"
+      }
+    }
+  }
+}

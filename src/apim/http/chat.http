@@ -1,0 +1,18 @@
+POST https://apim-7pg4fleh6wgj6.azure-api.net/openai/deployments/gpt-4o/chat/completions?api-version=2024-05-01-preview
+Content-Type: application/json
+api-key: a67da71776184be6842383d95094f275
+
+{
+    "stream": true,
+    "model": "chat",
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are a helpful assistant that responds in Markdown. Help me with my math homework!"
+        },
+        {
+            "role": "user",
+            "content": "How to calculate the distance between earth and moon?"
+        }
+    ]
+}

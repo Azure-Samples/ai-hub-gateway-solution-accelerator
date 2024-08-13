@@ -54,7 +54,7 @@ module logAnalytics 'loganalytics.bicep' = {
 module apimApplicationInsights 'applicationinsights.bicep' = {
   name: 'application-insights'
   params: {
-    name: '${apimApplicationInsightsName}-apim'
+    name: apimApplicationInsightsName
     location: location
     tags: tags
     dashboardName: apimApplicationInsightsDashboardName

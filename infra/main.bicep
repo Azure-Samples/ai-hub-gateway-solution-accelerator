@@ -65,6 +65,9 @@ param storageAccountName string = ''
 @description('Name of the Storage Account file share used by Azure Function')
 param functionContentShareName string = 'usage-function-content'
 
+@description('Name of the Storage Account file share used by Azure Function')
+param logicContentShareName string = 'usage-logic-content'
+
 @description('Provision stream analytics job, turn it on only if you need it. Azure Function App will be provisioned to process usage data from Event Hub.')
 param provisionStreamAnalytics bool = false
 
@@ -97,6 +100,9 @@ var eventHubPrivateDnsZoneName = 'privatelink.servicebus.windows.net'
 var cosmosDbPrivateDnsZoneName = 'privatelink.documents.azure.com'
 var storageBlobPrivateDnsZoneName = 'privatelink.blob.core.windows.net'
 var storageFilePrivateDnsZoneName = 'privatelink.file.core.windows.net'
+var storageTablePrivateDnsZoneName = 'privatelink.table.core.windows.net'
+var storageQueuePrivateDnsZoneName = 'privatelink.queue.core.windows.net'
+
 var privateDnsZoneNames = [
   openAiPrivateDnsZoneName
   keyVaultPrivateDnsZoneName
@@ -105,6 +111,8 @@ var privateDnsZoneNames = [
   cosmosDbPrivateDnsZoneName
   storageBlobPrivateDnsZoneName
   storageFilePrivateDnsZoneName
+  storageTablePrivateDnsZoneName
+  storageQueuePrivateDnsZoneName
 ]
 
 // You can add more OpenAI instances by adding more objects to the openAiInstances object
@@ -274,6 +282,7 @@ param entraTenantId string = ''
 param entraClientId string = ''
 param entraAudience string = '' 
 
+param usageProcessingLogicAppName string = ''
 
 // Load abbreviations from JSON file
 var abbrs = loadJsonContent('./abbreviations.json')
@@ -511,9 +520,14 @@ module storageAccount './modules/functionapp/storageaccount.bicep' = {
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
     storageBlobDnsZoneName: storageBlobPrivateDnsZoneName
     storageFileDnsZoneName: storageFilePrivateDnsZoneName
+    storageTableDnsZoneName: storageTablePrivateDnsZoneName
+    storageQueueDnsZoneName: storageQueuePrivateDnsZoneName
     storageBlobPrivateEndpointName: '${abbrs.storageStorageAccounts}blob-pe-${resourceToken}'
     storageFilePrivateEndpointName: '${abbrs.storageStorageAccounts}file-pe-${resourceToken}'
+    storageTablePrivateEndpointName: '${abbrs.storageStorageAccounts}table-pe-${resourceToken}'
+    storageQueuePrivateEndpointName: '${abbrs.storageStorageAccounts}queue-pe-${resourceToken}'
     functionContentShareName: functionContentShareName
+    logicContentShareName: logicContentShareName
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
     dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
@@ -531,7 +545,7 @@ module functionApp './modules/functionapp/functionapp.bicep' = {
     location: location
     tags: tags
     functionAppName: !empty(usageProcessingFunctionAppName) ? usageProcessingFunctionAppName : '${abbrs.webSitesFunctions}usage-${resourceToken}'
-    azdserviceName: 'usageProcessingFunctionApp'   
+    azdserviceName: 'usageProcessingFunctionApp'
     storageAccountName: storageAccount.outputs.storageAccountName
     functionAppIdentityName: usageManagedIdentity.outputs.managedIdentityName
     applicationInsightsName: monitoring.outputs.funcApplicationInsightsName
@@ -548,6 +562,47 @@ module functionApp './modules/functionapp/functionapp.bicep' = {
     vnetExisting
     storageAccount
     usageManagedIdentity
+    monitoring
+    eventHub
+    cosmosDb
+  ]
+}
+
+module logicApp './modules/logicapp/logicapp.bicep' = {
+  name: 'usageLogicApp'
+  scope: resourceGroup
+  params: {
+    location: location
+    tags: tags
+    logicAppName: !empty(usageProcessingLogicAppName) ? usageProcessingLogicAppName : '${abbrs.logicWorkflows}usage-${resourceToken}'
+    azdserviceName: 'usageProcessingLogicApp'   
+    storageAccountName: storageAccount.outputs.storageAccountName
+    applicationInsightsName: monitoring.outputs.funcApplicationInsightsName
+    skuFamily: 'WS'
+    skuName: 'WS1'
+    skuCapaicty: 1
+    skuSize: 'WS1'
+    skuTier: 'WorkflowStandard'
+    isReserved: false
+    cosmosDbAccountName: cosmosDb.outputs.cosmosDbAccountName
+    eventHubName: eventHub.outputs.eventHubName
+    eventHubNamespaceName: eventHub.outputs.eventHubNamespaceName
+    cosmosDBDatabaseName: cosmosDb.outputs.cosmosDbDatabaseName
+    cosmosDBContainerConfigName: cosmosDb.outputs.cosmosDbStreamingExportConfigContainerName
+    cosmosDBContainerUsageName: cosmosDb.outputs.cosmosDbContainerName
+    apimAppInsightsName: monitoring.outputs.applicationInsightsName
+    // eventHubNamespaceName: eventHub.outputs.eventHubNamespaceName
+    // eventHubName: eventHub.outputs.eventHubName
+    // cosmosDBEndpoint: cosmosDb.outputs.cosmosDbEndpoint
+    // cosmosDatabaseName: cosmosDb.outputs.cosmosDbDatabaseName
+    // cosmosContainerName: cosmosDb.outputs.cosmosDbContainerName
+    functionAppSubnetId: useExistingVnet ? vnetExisting.outputs.functionAppSubnetId : vnet.outputs.functionAppSubnetId
+    fileShareName: logicContentShareName
+  }
+  dependsOn: [
+    vnet
+    vnetExisting
+    storageAccount
     monitoring
     eventHub
     cosmosDb
