@@ -39,3 +39,15 @@ The workflow uses Cosmos DB to maintain streaming export configurations which co
 The primary policy fragment that is used [frag-openai-usage-streaming.xml](../infra/modules/apim/policies/frag-openai-usage-streaming.xml)
 
 ![Streaming requests](../assets/oai-logicapps-streaming.png)
+
+## Logic App workflows
+
+The Logic App workflows source code can be found in [/src/usage-ingestion-logicapp/](../src/usage-ingestion-logicapp/).
+
+This folder contains the following:
+- [ai-usage-ingestion](../src/usage-ingestion-logicapp/ai-usage-ingestion) which process usage published to Event Hub
+- [ai-usage-ingestion-streaming](../src/usage-ingestion-logicapp/ai-usage-ingestion-streaming) which process usage from Application Insights custom metrics
+- [connections.json](../src/usage-ingestion-logicapp/connections.json) which contains the connection details for the Logic App workflows
+    - Event Hub connection (in app)
+    - Cosmos DB connection (in app)
+    - Application Insights connection (managed)
