@@ -16,87 +16,8 @@
                         "serviceProviderId": "/serviceProviders/AzureCosmosDB"
                     }
                 },
-                "runAfter": {
-                    "Parse_Usage_Record": [
-                        "SUCCEEDED"
-                    ]
-                },
-                "type": "ServiceProvider"
-            },
-            "Parse_Usage_Record": {
-                "inputs": {
-                    "content": "@triggerBody()?['contentData']",
-                    "schema": {
-                        "properties": {
-                            "RequestIp": {
-                                "type": "string"
-                            },
-                            "aiGatewayId": {
-                                "type": "string"
-                            },
-                            "appId": {
-                                "type": "string"
-                            },
-                            "backendId": {
-                                "type": "string"
-                            },
-                            "deploymentName": {
-                                "type": "string"
-                            },
-                            "endUserId": {
-                                "type": "string"
-                            },
-                            "gatewayName": {
-                                "type": "string"
-                            },
-                            "gatewayRegion": {
-                                "type": "string"
-                            },
-                            "id": {
-                                "type": "string"
-                            },
-                            "model": {
-                                "type": "string"
-                            },
-                            "operationName": {
-                                "type": "string"
-                            },
-                            "productName": {
-                                "type": "string"
-                            },
-                            "promptTokens": {
-                                "type": "integer"
-                            },
-                            "responseTokens": {
-                                "type": "integer"
-                            },
-                            "routeLocation": {
-                                "type": "string"
-                            },
-                            "routeName": {
-                                "type": "string"
-                            },
-                            "sessionId": {
-                                "type": "string"
-                            },
-                            "subscriptionId": {
-                                "type": "string"
-                            },
-                            "targetService": {
-                                "type": "string"
-                            },
-                            "timestamp": {
-                                "type": "string"
-                            },
-                            "totalTokens": {
-                                "type": "integer"
-                            }
-                        },
-                        "type": "object"
-                    }
-                },
                 "runAfter": {},
-                "type": "ParseJson"
+                "type": "ServiceProvider"
             }
         },
         "contentVersion": "1.0.0.0",
