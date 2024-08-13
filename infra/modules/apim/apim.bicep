@@ -96,7 +96,7 @@ module apimOpenaiApi './api.bicep' = {
     apiDispalyName: 'Azure OpenAI API'
     subscriptionRequired: entraAuth ? false:true
     subscriptionKeyName: 'api-key'
-    openApiSpecification: string(loadYamlContent('./openai-api/oai-api-spec-2024-05-01-preview.yaml'))
+    openApiSpecification: string(loadYamlContent('./openai-api/oai-api-spec-2024-06-01.yaml'))
     apiDescription: 'Azure OpenAI API'
     policyDocument: loadTextContent('./policies/openai_api_policy.xml')
     enableAPIDeployment: true
