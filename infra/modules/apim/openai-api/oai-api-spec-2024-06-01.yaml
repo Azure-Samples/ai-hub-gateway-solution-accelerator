@@ -4,7 +4,7 @@ info:
   description: Azure OpenAI APIs for completions and search
   version: '2024-06-01'
 servers:
-  - url: https://apim-7pg4fleh6wgj6.azure-api.net/openai
+  - url: https://REPLACE-BY-POLICY.azure-api.net/openai
 paths:
   '/deployments/{deployment-id}/completions':
     post:
