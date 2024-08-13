@@ -2,7 +2,7 @@ openapi: 3.0.1
 info:
   title: Azure OpenAI API
   description: Azure OpenAI APIs for completions and search
-  version: '1.0'
+  version: '2024-06-01'
 servers:
   - url: https://apim-7pg4fleh6wgj6.azure-api.net/openai
 paths:
