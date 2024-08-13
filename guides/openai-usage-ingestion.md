@@ -24,6 +24,8 @@ This workflow is triggered by the Event Hub message that is published by API Man
 
 Here the ingestion is near real-time, as the message is processed once its published to Event Hub.
 
+The primary policy fragment that is used [frag-openai-usage.xml](../infra/modules/apim/policies/frag-openai-usage.xml)
+
 ![Non-streaming requests](../assets/oai-logicapps-nonstreaming.png)
 
 ## Streaming requests
@@ -33,5 +35,7 @@ This workflow is triggered by scheduled event (by default it runs twice every da
 The workflow uses Cosmos DB to maintain streaming export configurations which control the time range that quired data from Application Insights custom metrics should cover.
 
 > Note: the frequency might be changed depending on how much streaming requests are being made to the API knowing that Azure Monitor query supports maximum of 500,000 records per query. Minimum recommended frequency is once every 1 hour if twice a day is proven not to be sufficient.
+
+The primary policy fragment that is used [frag-openai-usage-streaming.xml](../infra/modules/apim/policies/frag-openai-usage-streaming.xml)
 
 ![Streaming requests](../assets/oai-logicapps-streaming.png)
