@@ -80,7 +80,7 @@
         <set-variable name="idPrefix" value="search" />
         <set-variable name="targetService" value="AI-Search" />
         <set-variable name="model" value="@((string)context.Variables.GetValueOrDefault<string>("deployment-id", "AI-SEARCH-INDEX"))" />
-        <set-variable name="deploymentName" value="@((string)context.Variables.GetValueOrDefault<string>("routeName", "AI-SEARCH-SERVICE"))" />
+        <set-variable name="deploymentName" value="@((string)context.Variables.GetValueOrDefault<string>("deployment-id", "AI-SEARCH-SERVICE"))" />
         <include-fragment fragment-id="ai-usage" />
     </outbound>
     <on-error>
