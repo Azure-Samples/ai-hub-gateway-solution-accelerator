@@ -56,6 +56,9 @@ param cosmosDbAccountName string = ''
 @description('Name of the Stream Analytics resource. Leave blank to use default naming conventions.')
 param streamAnalyticsJobName string = ''
 
+@description('Flag to create Azure Function App. Turn it on only if you need it.')
+param provisionFunctionApp bool = false
+
 @description('Name of the Function App resource. Leave blank to use default naming conventions.')
 param usageProcessingFunctionAppName string = ''
 
@@ -538,7 +541,7 @@ module storageAccount './modules/functionapp/storageaccount.bicep' = {
   ]
 }
 
-module functionApp './modules/functionapp/functionapp.bicep' = {
+module functionApp './modules/functionapp/functionapp.bicep' = if(provisionFunctionApp) {
   name: 'usageFunctionApp'
   scope: resourceGroup
   params: {
@@ -591,11 +594,6 @@ module logicApp './modules/logicapp/logicapp.bicep' = {
     cosmosDBContainerConfigName: cosmosDb.outputs.cosmosDbStreamingExportConfigContainerName
     cosmosDBContainerUsageName: cosmosDb.outputs.cosmosDbContainerName
     apimAppInsightsName: monitoring.outputs.applicationInsightsName
-    // eventHubNamespaceName: eventHub.outputs.eventHubNamespaceName
-    // eventHubName: eventHub.outputs.eventHubName
-    // cosmosDBEndpoint: cosmosDb.outputs.cosmosDbEndpoint
-    // cosmosDatabaseName: cosmosDb.outputs.cosmosDbDatabaseName
-    // cosmosContainerName: cosmosDb.outputs.cosmosDbContainerName
     functionAppSubnetId: useExistingVnet ? vnetExisting.outputs.functionAppSubnetId : vnet.outputs.functionAppSubnetId
     fileShareName: logicContentShareName
   }
