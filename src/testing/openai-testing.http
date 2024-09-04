@@ -1,0 +1,42 @@
+@aiHubGatewayOpenAIBaseUrl = "https://REPLACE.azure-api.net/openai/deployments"
+@aiHRSubscriptionKey = ""
+@aiRetailSubscriptionKey = ""
+
+### gpt-35-turbo/AI-HR
+POST {{aiHubGatewayOpenAIBaseUrl}}/chat/chat/completions?api-version=2024-06-01
+Content-Type: application/json
+api-key: {{aiHRSubscriptionKey}}
+
+{
+  "messages": [
+	{"role": "system", "content": "You are a helpful assistant."},
+	{"role": "user", "content": "Tell me a joke."}
+  ],
+  "stream": true
+}
+
+### gpt-4o/AI-HR
+POST {{aiHubGatewayOpenAIBaseUrl}}/gpt-4o/chat/completions?api-version=2024-06-01
+Content-Type: application/json
+api-key: {{aiHRSubscriptionKey}}
+
+{
+  "messages": [
+	{"role": "system", "content": "You are a helpful assistant."},
+	{"role": "user", "content": "Tell me a joke."}
+  ],
+  "stream": false
+}
+
+### gpt-35-turbo/AI-Retail
+POST {{aiHubGatewayOpenAIBaseUrl}}/chat/chat/completions?api-version=2024-06-01
+Content-Type: application/json
+api-key: {{aiRetailSubscriptionKey}}
+
+{
+  "messages": [
+	{"role": "system", "content": "You are a helpful assistant."},
+	{"role": "user", "content": "Tell me a joke."}
+  ],
+  "stream": false
+}
