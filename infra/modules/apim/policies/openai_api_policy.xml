@@ -135,7 +135,6 @@
         <azure-openai-token-limit counter-key="APIMOpenAI" tokens-per-minute="50000000" estimate-prompt-tokens="false" tokens-consumed-variable-name="TotalConsumedTokens" remaining-tokens-variable-name="TotalRemainingTokens" />
         
         <!-- Dynamic Priority Assignment TPM counters -->
-        <set-variable name="ptuThrottling" value="@(((JArray)context.Variables["routes"])[0]["isThrottling"].ToString())" />
         <choose>
             <when condition="@(context.Request.MatchedParameters["deployment-id"] == "chat" && ((JArray)context.Variables["routes"])[0]["isThrottling"].ToString() == "False")">
                 <azure-openai-token-limit counter-key="openai-backend-0-chat" tokens-per-minute="1000000" estimate-prompt-tokens="true" tokens-consumed-variable-name="openai-backend-0-chat-ConsumedTokens" remaining-tokens-variable-name="openai-backend-0-chat-RemainingTokens" />
@@ -152,7 +151,7 @@
     <outbound>
         <base />
         <!-- Update Dynamic Priority Assignment based on TPM counters -->
-        <include-fragment fragment-id="dynamic-priority-assignment" />
+        <include-fragment fragment-id="dynamic-throttling-assignment" />
 
         <!-- Handling usage for non-streaming requests -->
         <include-fragment fragment-id="openai-usage" />
