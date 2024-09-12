@@ -7,13 +7,10 @@
                 for (int i = 0; i < routes.Count; i++)
                 {
                     JObject route = (JObject)routes[i];
-                    int currentPriority = route.Value<int>("priority");
-                    int dynamicPriorityDefault = route.Value<int?>("dynamicPriorityDefault") ?? -1;
-                    int dynamicPriorityDowngrade = route.Value<int?>("dynamicPriorityDowngrade") ?? -1;
                     int targetTPMLimit = route.Value<int?>("targetTPMLimit") ?? -1;
                     int consumedTPM = route.Value<int?>("consumedTPM") ?? 0;
 
-                    if (dynamicPriorityDefault == -1 || dynamicPriorityDowngrade == -1 || targetTPMLimit == -1)
+                    if (targetTPMLimit == -1)
                     {
                         outputRoutes.Add(route);
                         continue;
@@ -21,8 +18,6 @@
 
                     string consumedTokensKey = route.Value<string>("backend-id") + "-" + targetDeployment + "-ConsumedTokens";
                     string remainingTokensKey = route.Value<string>("backend-id") + "-" + targetDeployment + "-RemainingTokens";
-                    route["consumedTokensKey"] = consumedTokensKey;
-                    route["remainingTokensKey"] = remainingTokensKey;
                     
                     if (context.Variables.ContainsKey(consumedTokensKey) && route["backend-id"].ToString() == activeBackendId)
                     {
@@ -38,22 +33,19 @@
 
                         if (consumedPercentage > 0.8)
                         {
-                            route["isThrottling"] = true;
-                            route["retryAfter"] = DateTime.Now.AddSeconds(30);
+                            if((bool)route["isThrottling"] == false)
+                            {
+                                route["isThrottling"] = true;
+                                route["retryAfter"] = DateTime.Now.AddSeconds(30);
+                            }
                         }
                         else
                         {
-                            // route["priority"] = dynamicPriorityDefault;
                             route["isThrottling"] = false;
                             route["retryAfter"] = DateTime.MinValue;
                         }
                     }
-                    else
-                    {
-                        route["consumedKeyFound"] = context.Variables.ContainsKey(consumedTokensKey);
-                        route["activeBackendMatch"] = route["backend-id"].ToString() == activeBackendId;
-
-                    }
+                    
                     outputRoutes.Add(route);
                 }
 

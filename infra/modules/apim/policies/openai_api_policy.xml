@@ -44,8 +44,6 @@
                                 { "location", "eastus" },
                                 { "backend-id", "openai-backend-0" },
                                 { "priority", 1},
-                                { "dynamicPriorityDefault", 1 },
-                                { "dynamicPriorityDowngrade", 3 },
                                 { "targetTPMLimit", 500 },
                                 { "isThrottling", false }, 
                                 { "retryAfter", DateTime.MinValue } 
