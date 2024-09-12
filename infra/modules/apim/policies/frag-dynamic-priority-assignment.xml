@@ -25,7 +25,7 @@
                         int remainingTokens = (int)context.Variables[remainingTokensKey];
                         
                         // Calcualting the total consumed tokens so far
-                        int consumedTokens = 5000000 - remainingTokens - requestConsumedTokens;
+                        int consumedTokens = 1000000 - remainingTokens - requestConsumedTokens;
 
                         double consumedPercentage = (double)consumedTokens / (double)targetTPMLimit;
                         

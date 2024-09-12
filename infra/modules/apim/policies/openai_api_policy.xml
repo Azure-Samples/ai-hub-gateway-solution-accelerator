@@ -16,6 +16,9 @@
             </when>
         </choose>
 
+        <!-- Setting backend buffer based on the value of isStream -->
+        <set-backend-service buffer-request-body="@((bool)context.Variables.GetValueOrDefault<bool>("isStream", false))" />
+
         <!-- Deleting api-key header to it is not passed to OpenAI endpoint-->
         <set-header name="api-key" exists-action="delete" />
         
@@ -132,9 +135,10 @@
         <azure-openai-token-limit counter-key="APIMOpenAI" tokens-per-minute="50000000" estimate-prompt-tokens="false" tokens-consumed-variable-name="TotalConsumedTokens" remaining-tokens-variable-name="TotalRemainingTokens" />
         
         <!-- Dynamic Priority Assignment TPM counters -->
+        <set-variable name="ptuThrottling" value="@(((JArray)context.Variables["routes"])[0]["isThrottling"].ToString())" />
         <choose>
-            <when condition="@(context.Request.MatchedParameters["deployment-id"] == "chat" && ((JArray)context.Variables["routes"])[0]["isThrottling"].ToString() != "false")">
-                <azure-openai-token-limit counter-key="openai-backend-0-chat" tokens-per-minute="5000000" estimate-prompt-tokens="true" tokens-consumed-variable-name="openai-backend-0-chat-ConsumedTokens" remaining-tokens-variable-name="openai-backend-0-chat-RemainingTokens" />
+            <when condition="@(context.Request.MatchedParameters["deployment-id"] == "chat" && ((JArray)context.Variables["routes"])[0]["isThrottling"].ToString() == "False")">
+                <azure-openai-token-limit counter-key="openai-backend-0-chat" tokens-per-minute="1000000" estimate-prompt-tokens="true" tokens-consumed-variable-name="openai-backend-0-chat-ConsumedTokens" remaining-tokens-variable-name="openai-backend-0-chat-RemainingTokens" />
             </when>
         </choose>
         
