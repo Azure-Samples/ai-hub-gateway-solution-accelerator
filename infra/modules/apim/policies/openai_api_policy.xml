@@ -17,7 +17,7 @@
         </choose>
 
         <!-- Setting backend buffer based on the value of isStream -->
-        <set-backend-service buffer-request-body="@((bool)context.Variables.GetValueOrDefault<bool>("isStream", false))" />
+        <!-- <set-backend-service buffer-request-body="@((bool)context.Variables.GetValueOrDefault<bool>("isStream", false))" /> -->
 
         <!-- Deleting api-key header to it is not passed to OpenAI endpoint-->
         <set-header name="api-key" exists-action="delete" />
