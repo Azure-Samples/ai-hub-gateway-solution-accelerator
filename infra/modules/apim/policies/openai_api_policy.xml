@@ -134,7 +134,7 @@
         <!-- Setting gobal TPM limit to collect usage for streaming requests -->
         <azure-openai-token-limit counter-key="APIMOpenAI" tokens-per-minute="50000000" estimate-prompt-tokens="false" tokens-consumed-variable-name="TotalConsumedTokens" remaining-tokens-variable-name="TotalRemainingTokens" />
         
-        <!-- Dynamic Priority Assignment TPM counters -->
+        <!-- Dynamic Throttling Assignment TPM counters -->
         <choose>
             <when condition="@(context.Request.MatchedParameters["deployment-id"] == "chat" && ((JArray)context.Variables["routes"])[0]["isThrottling"].ToString() == "False")">
                 <azure-openai-token-limit counter-key="openai-backend-0-chat" tokens-per-minute="1000000" estimate-prompt-tokens="true" tokens-consumed-variable-name="openai-backend-0-chat-ConsumedTokens" remaining-tokens-variable-name="openai-backend-0-chat-RemainingTokens" />

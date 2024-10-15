@@ -109,6 +109,7 @@ module apimOpenaiApi './api.bicep' = {
     openAIUsageStreamingPolicyFragment
     openAiBackends
     throttlingEventsPolicyFragment
+    dynamicThrottlingAssignmentFragment
   ]
 }
 
@@ -417,6 +418,15 @@ resource throttlingEventsPolicyFragment 'Microsoft.ApiManagement/service/policyF
   name: 'throttling-events'
   properties: {
     value: loadTextContent('./policies/frag-throttling-events.xml')
+    format: 'rawxml'
+  }
+}
+
+resource dynamicThrottlingAssignmentFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
+  parent: apimService
+  name: 'dynamic-throttling-assignment'
+  properties: {
+    value: loadTextContent('./policies/frag-dynamic-throttling-assignment.xml')
     format: 'rawxml'
   }
 }
