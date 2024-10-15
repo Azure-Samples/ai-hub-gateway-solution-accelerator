@@ -54,7 +54,7 @@ resource apimService 'Microsoft.ApiManagement/service@2021-08-01' = {
     capacity: (sku == 'Consumption') ? 0 : ((sku == 'Developer') ? 1 : skuCount)
   }
   identity: {
-    type: 'UserAssigned'
+    type: 'SystemAssigned, UserAssigned'
     userAssignedIdentities: {
       '${managedIdentity.id}': {}
     }
