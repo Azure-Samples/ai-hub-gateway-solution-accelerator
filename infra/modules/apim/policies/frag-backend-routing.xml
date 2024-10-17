@@ -67,7 +67,7 @@
         <set-variable name="deploymentName" value="@((string)context.Variables["deployment-id"])" />
         <set-backend-service backend-id="@((string)context.Variables["backendId"])" />
         <choose>
-            <when condition="@(context.Variables.GetValueOrDefault<bool>("isStream", false))">
+            <when condition="@(context.Variables.GetValueOrDefault<string>("isStream", "false") == "true")">
                 <forward-request buffer-request-body="false" />
             </when>
             <otherwise>

@@ -10,7 +10,7 @@
             <when condition="@(context.Request.Body.As<JObject>(true)["stream"] != null && context.Request.Body.As<JObject>(true)["stream"].Type != JTokenType.Null)">
                 <set-variable name="isStream" value="@{
                 var content = (context.Request.Body?.As<JObject>(true));
-                string streamValue = content["stream"].ToString();
+                string streamValue = content["stream"].ToString().ToLower();
                 return streamValue;
             }" />
             </when>
