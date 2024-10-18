@@ -1,0 +1,55 @@
+<fragment>
+    <set-variable name="routes" value="@{
+                JArray routes = (JArray)context.Variables["routes"];
+                JArray outputRoutes = new JArray();
+                string activeBackendId = (string)context.Variables["backendId"];
+                string targetDeployment = (string)context.Variables["deployment-id"];
+                for (int i = 0; i < routes.Count; i++)
+                {
+                    JObject route = (JObject)routes[i];
+                    int targetTPMLimit = route.Value<int?>("targetTPMLimit") ?? -1;
+                    int consumedTPM = route.Value<int?>("consumedTPM") ?? 0;
+
+                    if (targetTPMLimit == -1)
+                    {
+                        outputRoutes.Add(route);
+                        continue;
+                    }
+
+                    string consumedTokensKey = route.Value<string>("backend-id") + "-" + targetDeployment + "-ConsumedTokens";
+                    string remainingTokensKey = route.Value<string>("backend-id") + "-" + targetDeployment + "-RemainingTokens";
+                    
+                    if (context.Variables.ContainsKey(consumedTokensKey) && route["backend-id"].ToString() == activeBackendId)
+                    {
+                        int requestConsumedTokens = (int)context.Variables[consumedTokensKey];
+                        int remainingTokens = (int)context.Variables[remainingTokensKey];
+                        
+                        // Calcualting the total consumed tokens so far
+                        int consumedTokens = 1000000 - remainingTokens - requestConsumedTokens;
+
+                        double consumedPercentage = (double)consumedTokens / (double)targetTPMLimit;
+                        
+                        route["consumedPercentage"] = consumedPercentage;
+
+                        if (consumedPercentage > 0.8)
+                        {
+                            if((bool)route["isThrottling"] == false)
+                            {
+                                route["isThrottling"] = true;
+                                route["retryAfter"] = DateTime.Now.AddSeconds(30);
+                            }
+                        }
+                        else
+                        {
+                            route["isThrottling"] = false;
+                            route["retryAfter"] = DateTime.MinValue;
+                        }
+                    }
+                    
+                    outputRoutes.Add(route);
+                }
+
+                return outputRoutes; 
+            }" />
+    <cache-store-value key="@((string)context.Variables.GetValueOrDefault<string>("routesCacheKey", "ALL-ROUTES"))" value="@((JArray)context.Variables["routes"])" duration="86400" />
+</fragment>

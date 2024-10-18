@@ -66,7 +66,14 @@
         <set-variable name="routeName" value="@(((JObject)((JArray)context.Variables["routes"])[(Int32)context.Variables["routeIndex"]]).Value<string>("name"))" />
         <set-variable name="deploymentName" value="@((string)context.Variables["deployment-id"])" />
         <set-backend-service backend-id="@((string)context.Variables["backendId"])" />
-        <forward-request buffer-request-body="true" />
+        <choose>
+            <when condition="@(context.Variables.GetValueOrDefault<string>("isStream", "false") == "true")">
+                <forward-request buffer-request-body="false" />
+            </when>
+            <otherwise>
+                <forward-request buffer-request-body="true" />
+            </otherwise>
+        </choose>
         <choose>
             <!-- In case we got 429 or 5xx from a route, update the list with its status -->
             <when condition="@(context.Response != null && (context.Response.StatusCode == 429 || context.Response.StatusCode >= 500) )">

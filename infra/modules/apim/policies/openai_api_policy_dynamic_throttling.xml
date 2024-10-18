@@ -10,7 +10,7 @@
             <when condition="@(context.Request.Body.As<JObject>(true)["stream"] != null && context.Request.Body.As<JObject>(true)["stream"].Type != JTokenType.Null)">
                 <set-variable name="isStream" value="@{
                 var content = (context.Request.Body?.As<JObject>(true));
-                string streamValue = content["stream"].ToString().ToLower();
+                string streamValue = content["stream"].ToString();
                 return streamValue;
             }" />
             </when>
@@ -38,12 +38,14 @@
                         if(context.Deployment.Region == "West Europe" || true)
                         {
                             // Adding all Azure OpenAI endpoints routes (which are set as APIM Backend)
+                            // Notice targetTPMLimit is set to 500 TPM to guide APIM to switch suspend traffic to this backend
                             routes.Add(new JObject()
                             {
                                 { "name", "EastUS" },
                                 { "location", "eastus" },
                                 { "backend-id", "openai-backend-0" },
                                 { "priority", 1},
+                                { "targetTPMLimit", 500 },
                                 { "isThrottling", false }, 
                                 { "retryAfter", DateTime.MinValue } 
                             });
@@ -130,6 +132,14 @@
         <!-- Setting gobal TPM limit to collect usage for streaming requests -->
         <azure-openai-token-limit counter-key="APIMOpenAI" tokens-per-minute="50000000" estimate-prompt-tokens="false" tokens-consumed-variable-name="TotalConsumedTokens" remaining-tokens-variable-name="TotalRemainingTokens" />
         
+        <!-- Dynamic Throttling Assignment TPM counters (work only if the backend/deployment is not throttling) -->
+        <choose>
+            <when condition="@(context.Request.MatchedParameters["deployment-id"] == "chat" && ((JArray)context.Variables["routes"])[0]["isThrottling"].ToString() == "False")">
+                <azure-openai-token-limit counter-key="openai-backend-0-chat" tokens-per-minute="1000000" estimate-prompt-tokens="true" tokens-consumed-variable-name="openai-backend-0-chat-ConsumedTokens" remaining-tokens-variable-name="openai-backend-0-chat-RemainingTokens" />
+            </when>
+        </choose>
+        
+
         <!-- Handling usage for streaming requests -->
         <include-fragment fragment-id="openai-usage-streaming" />
     </inbound>
@@ -138,6 +148,8 @@
     </backend>
     <outbound>
         <base />
+        <!-- Update Dynamic Priority Assignment based on TPM counters -->
+        <include-fragment fragment-id="dynamic-throttling-assignment" />
 
         <!-- Handling usage for non-streaming requests -->
         <include-fragment fragment-id="openai-usage" />

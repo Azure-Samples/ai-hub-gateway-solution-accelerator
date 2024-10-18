@@ -144,58 +144,14 @@ param openAiInstances object = {
     name: 'openai2'
     location: 'northcentralus'
     deployments: [
-      {
-        name: chatGptDeploymentName
-        model: {
-          format: 'OpenAI'
-          name: chatGptModelName
-          version: chatGptModelVersion
-        }
-        scaleSettings: {
-          scaleType: 'Standard'
-        }
-      }
-      {
-        name: embeddingGptDeploymentName
-        model: {
-          format: 'OpenAI'
-          name: embeddingGptModelName
-          version: embeddingGptModelVersion
-        }
-        sku: {
-          name: 'Standard'
-          capacity: deploymentCapacity
-        }
-      }
+      ...
     ]
   }
   openAi3: {
     name: 'openai3'
     location: 'eastus2'
     deployments: [
-      {
-        name: chatGptDeploymentName
-        model: {
-          format: 'OpenAI'
-          name: chatGptModelName
-          version: chatGptModelVersion
-        }
-        scaleSettings: {
-          scaleType: 'Standard'
-        }
-      }
-      {
-        name: embeddingGptDeploymentName
-        model: {
-          format: 'OpenAI'
-          name: embeddingGptModelName
-          version: embeddingGptModelVersion
-        }
-        sku: {
-          name: 'Standard'
-          capacity: deploymentCapacity
-        }
-      }
+      ...
     ]
   }
 }
@@ -233,14 +189,21 @@ After that, you can start using the AI Hub Gateway Landing Zone through the Azur
 
 To dive deeper into the AI Hub Gateway technical mechanics, you can check out the following guides:
 
+### Architecture guides
 - [Architecture deep dive](./guides/architecture.md)
 - [Deployment components](./guides/deployment.md)
 - [API Management configuration](./guides/apim-configuration.md)
-- [OpenAI Onboarding](./guides/openai-onboarding.md)
 - [OpenAI Usage Ingestion](./guides/openai-usage-ingestion.md)
-- [AI Search integration](./guides/ai-search-integration.md)
-- [Power BI Dashboard](./guides/power-bi-dashboard.md)
 - [Bring your own vnet](./guides/bring-you-own-network.md)
+
+### Onboarding guides
+- [OpenAI Onboarding](./guides/openai-onboarding.md)
+- [AI Search Onboarding](./guides/ai-search-integration.md)
+- [Power BI Dashboard](./guides/power-bi-dashboard.md)
+- [Throttling Events Alerts](./guides/throttling-events-handling.md)
+- [AI Studio Integration](./guides/ai-studio-integration.md)
+
+### Additional guides
 - [End-to-end scenario (Chat with data)](./guides/end-to-end-scenario.md)
 - [Hybrid deployment of AI Hub Gateway](./guides/ai-hub-gateway-hybrid-deployment.md)
 - [Deployment troubleshooting](./guides/deployment-troubleshooting.md)

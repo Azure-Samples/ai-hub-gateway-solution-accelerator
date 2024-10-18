@@ -8,6 +8,13 @@
     <!-- Throttle, authorize, validate, cache, or transform the requests -->
     <inbound>
         <base />
+        <choose>
+            <when condition="@(!new [] { "product-info" }.Contains(context.Request.MatchedParameters["index-name"] ?? String.Empty))">
+                <return-response>
+                    <set-status code="401" reason="Unauthorized index access" />
+                </return-response>
+            </when>
+        </choose>
     </inbound>
     <!-- Control if and how the requests are forwarded to services  -->
     <backend>
