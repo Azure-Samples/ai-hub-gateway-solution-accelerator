@@ -164,7 +164,7 @@ resource apimNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
 }
 ```
 
-Also important point if this subnet has a route table, it should include a route to handle APIM management traffic.
+Also important point if this subnet has a route table, it should include a route to handle APIM management control plane traffic.
 
 ```bicep
 resource apimRouteTable 'Microsoft.Network/routeTables@2023-11-01' = {
@@ -185,6 +185,15 @@ resource apimRouteTable 'Microsoft.Network/routeTables@2023-11-01' = {
   }
 }
 ```
+
+If there is a forced tunneling applied on the subnet (directly through route table or in-directly through BGP), you need to enable service endpoints for the following services (only on the APIM subnet):
+
+- Azure Active Directory
+- Event Hubs
+- Key Vault
+- Service Bus
+- SQL Database
+- Storage
 
 ### Function app subnet
 
@@ -249,6 +258,8 @@ var eventHubPrivateDnsZoneName = 'privatelink.servicebus.windows.net'
 var cosmosDbPrivateDnsZoneName = 'privatelink.documents.azure.com'
 var storageBlobPrivateDnsZoneName = 'privatelink.blob.core.windows.net'
 var storageFilePrivateDnsZoneName = 'privatelink.file.core.windows.net'
+var storageTablePrivateDnsZoneName = 'privatelink.table.core.windows.net'
+var storageQueuePrivateDnsZoneName = 'privatelink.queue.core.windows.net'
 ```
 
 Depending on the setup you have for managing private dns zones, you have these options:
