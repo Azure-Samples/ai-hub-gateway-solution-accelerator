@@ -66,6 +66,9 @@ resource apimService 'Microsoft.ApiManagement/service@2021-08-01' = {
     virtualNetworkConfiguration: {
       subnetResourceId: apimSubnetId
     }
+    apiVersionConstraint: {
+      minApiVersion: '2019-12-01'
+    }
     // Custom properties are not supported for Consumption SKU
     customProperties: sku == 'Consumption' ? {} : {
       'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Ciphers.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA': 'false'
