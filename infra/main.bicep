@@ -105,12 +105,11 @@ var storageBlobPrivateDnsZoneName = 'privatelink.blob.core.windows.net'
 var storageFilePrivateDnsZoneName = 'privatelink.file.core.windows.net'
 var storageTablePrivateDnsZoneName = 'privatelink.table.core.windows.net'
 var storageQueuePrivateDnsZoneName = 'privatelink.queue.core.windows.net'
-
 var privateDnsZoneNames = [
   openAiPrivateDnsZoneName
   keyVaultPrivateDnsZoneName
   monitorPrivateDnsZoneName
-  eventHubPrivateDnsZoneName 
+  eventHubPrivateDnsZoneName
   cosmosDbPrivateDnsZoneName
   storageBlobPrivateDnsZoneName
   storageFilePrivateDnsZoneName
@@ -124,89 +123,6 @@ var privateDnsZoneNames = [
 param openAiInstances object = {
   openAi1: {
     name: 'openai1'
-    location: 'eastus'
-    deployments: [
-      {
-        name: chatGptDeploymentName
-        model: {
-          format: 'OpenAI'
-          name: chatGptModelName
-          version: chatGptModelVersion
-        }
-        scaleSettings: {
-          scaleType: 'Standard'
-        }
-      }
-      {
-        name: embeddingGptDeploymentName
-        model: {
-          format: 'OpenAI'
-          name: embeddingGptModelName
-          version: embeddingGptModelVersion
-        }
-        sku: {
-          name: 'Standard'
-          capacity: deploymentCapacity
-        }
-      }
-      {
-        name: 'gpt-4o'
-        model: {
-          format: 'OpenAI'
-          name: 'gpt-4o'
-          version: '2024-05-13'
-        }
-        sku: {
-          name: 'GlobalStandard'
-          capacity: deploymentCapacity
-        }
-      }
-      {
-        name: 'dall-e-3'
-        location: 'eastus'
-        model: {
-          format: 'OpenAI'
-          name: 'dall-e-3'
-          version: '3.0'
-        }
-        sku: {
-          name: 'Standard'
-          capacity: 1
-        }
-      }
-    ]
-  }
-  openAi2: {
-    name: 'openai2'
-    location: 'northcentralus'
-    deployments: [
-      {
-        name: chatGptDeploymentName
-        model: {
-          format: 'OpenAI'
-          name: chatGptModelName
-          version: chatGptModelVersion
-        }
-        scaleSettings: {
-          scaleType: 'Standard'
-        }
-      }
-      {
-        name: embeddingGptDeploymentName
-        model: {
-          format: 'OpenAI'
-          name: embeddingGptModelName
-          version: embeddingGptModelVersion
-        }
-        sku: {
-          name: 'Standard'
-          capacity: deploymentCapacity
-        }
-      }
-    ]
-  }
-  openAi3: {
-    name: 'openai3'
     location: 'eastus2'
     deployments: [
       {
@@ -221,15 +137,200 @@ param openAiInstances object = {
         }
       }
       {
-        name: embeddingGptDeploymentName
+        name: 'text-embedding-3-large'
         model: {
           format: 'OpenAI'
-          name: embeddingGptModelName
-          version: embeddingGptModelVersion
+          name: 'text-embedding-3-large'
+          version: '1'
         }
         sku: {
           name: 'Standard'
-          capacity: deploymentCapacity
+          capacity: 350
+        }
+      }
+      {
+        name: 'text-embedding-3-small'
+        model: {
+          format: 'OpenAI'
+          name: 'text-embedding-3-small'
+          version: '1'
+        }
+        sku: {
+          name: 'Standard'
+          capacity: 700
+        }
+      }
+      {
+        name: 'Text-Embedding-Ada-002'
+        model: {
+          format: 'OpenAI'
+          name: 'text-embedding-ada-002'
+          version: '2'
+        }
+        sku: {
+          name: 'Standard'
+          capacity: 350
+        }
+      }
+      {
+        name: 'gpt-4o'
+        model: {
+          format: 'OpenAI'
+          name: 'gpt-4o'
+          version: '2024-05-13'
+        }
+        sku: {
+          name: 'GlobalStandard'
+          capacity: 700
+        }
+      }
+    ]
+  }
+  openAi2: {
+    name: 'openai2'
+    location: 'westus3'
+    deployments: [
+      {
+        name: chatGptDeploymentName
+        model: {
+          format: 'OpenAI'
+          name: chatGptModelName
+          version: chatGptModelVersion
+        }
+        scaleSettings: {
+          scaleType: 'Standard'
+        }
+      }
+      {
+        name: 'text-embedding-3-large'
+        model: {
+          format: 'OpenAI'
+          name: 'text-embedding-3-large'
+          version: '1'
+        }
+        sku: {
+          name: 'Standard'
+          capacity: 700
+        }
+      }
+      {
+        name: 'Text-Embedding-Ada-002'
+        model: {
+          format: 'OpenAI'
+          name: 'text-embedding-ada-002'
+          version: '2'
+        }
+        sku: {
+          name: 'Standard'
+          capacity: 350
+        }
+      }
+      {
+        name: 'gpt-4o'
+        model: {
+          format: 'OpenAI'
+          name: 'gpt-4o'
+          version: '2024-05-13'
+        }
+        sku: {
+          name: 'GlobalStandard'
+          capacity: 700
+        }
+      }
+    ]
+  }
+  openAi3: {
+    name: 'openai3'
+    location: 'eastus'
+    deployments: [
+      {
+        name: 'text-embedding-3-large'
+        model: {
+          format: 'OpenAI'
+          name: 'text-embedding-3-large'
+          version: '1'
+        }
+        sku: {
+          name: 'Standard'
+          capacity: 700
+        }
+      }
+      {
+        name: 'text-embedding-3-small'
+        model: {
+          format: 'OpenAI'
+          name: 'text-embedding-3-small'
+          version: '1'
+        }
+        sku: {
+          name: 'Standard'
+          capacity: 700
+        }
+      }
+      {
+        name: 'Text-Embedding-Ada-002'
+        model: {
+          format: 'OpenAI'
+          name: 'text-embedding-ada-002'
+          version: '2'
+        }
+        sku: {
+          name: 'Standard'
+          capacity: 240
+        }
+      }
+    ]
+  }
+  openAi4: {
+    name: 'openai4'
+    location: 'westus'
+    deployments: [
+      {
+        name: 'Text-Embedding-Ada-002'
+        model: {
+          format: 'OpenAI'
+          name: 'text-embedding-ada-002'
+          version: '2'
+        }
+        sku: {
+          name: 'Standard'
+          capacity: 350
+        }
+      }
+    ]
+  }
+  openAi5: {
+    name: 'openai5'
+    location: 'southcentralus'
+    deployments: [
+      {
+        name: 'Text-Embedding-Ada-002'
+        model: {
+          format: 'OpenAI'
+          name: 'text-embedding-ada-002'
+          version: '2'
+        }
+        sku: {
+          name: 'Standard'
+          capacity: 240
+        }
+      }
+    ]
+  }
+  openAi6: {
+    name: 'openai6'
+    location: 'northcentralus'
+    deployments: [
+      {
+        name: 'Text-Embedding-Ada-002'
+        model: {
+          format: 'OpenAI'
+          name: 'text-embedding-ada-002'
+          version: '2'
+        }
+        sku: {
+          name: 'Standard'
+          capacity: 350
         }
       }
     ]
@@ -256,16 +357,16 @@ param aiSearchInstances array = [
 param openAiSkuName string = 'S0'
 
 @description('Version of the Chat GPT model.')
-param chatGptModelVersion string = '0613'
+param chatGptModelVersion string = '2024-08-06'
 
 @description('Name of the Chat GPT deployment.')
 param chatGptDeploymentName string = 'chat'
 
 @description('Name of the Chat GPT model.')
-param chatGptModelName string = 'gpt-35-turbo'
+param chatGptModelName string = 'gpt-4o'
 
 @description('Name of the embedding model.')
-param embeddingGptModelName string = 'text-embedding-ada-002'
+param embeddingGptModelName string = 'text-embedding-3-large'
 
 @description('Version of the embedding model.')
 param embeddingGptModelVersion string = '2'
@@ -274,7 +375,7 @@ param embeddingGptModelVersion string = '2'
 param embeddingGptDeploymentName string = 'embedding'
 
 @description('The OpenAI endpoints capacity (in thousands of tokens per minute)')
-param deploymentCapacity int = 20
+param deploymentCapacity int = 4
 
 @description('Tags to be applied to resources.')
 param tags object = { 'azd-env-name': environmentName }
@@ -283,9 +384,9 @@ param tags object = { 'azd-env-name': environmentName }
 param entraAuth bool = false
 param entraTenantId string = ''
 param entraClientId string = ''
-param entraAudience string = '' 
-
+param entraAudience string = ''
 param usageProcessingLogicAppName string = ''
+
 
 // Load abbreviations from JSON file
 var abbrs = loadJsonContent('./abbreviations.json')
@@ -578,7 +679,7 @@ module logicApp './modules/logicapp/logicapp.bicep' = {
     location: location
     tags: tags
     logicAppName: !empty(usageProcessingLogicAppName) ? usageProcessingLogicAppName : '${abbrs.logicWorkflows}usage-${resourceToken}'
-    azdserviceName: 'usageProcessingLogicApp'   
+    azdserviceName: 'usageProcessingLogicApp'
     storageAccountName: storageAccount.outputs.storageAccountName
     applicationInsightsName: monitoring.outputs.funcApplicationInsightsName
     skuFamily: 'WS'
