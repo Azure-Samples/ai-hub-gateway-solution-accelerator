@@ -33,7 +33,7 @@ var openAiApiClientNamedValue = 'client-id'
 var openAiApiTenantNamedValue = 'tenant-id'
 var openAiApiAudienceNamedValue = 'audience'
 
-var apiManagementMinApiVersion = '2019-12-01'
+var apiManagementMinApiVersion = '2021-08-01'
 
 resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing = {
   name: applicationInsightsName

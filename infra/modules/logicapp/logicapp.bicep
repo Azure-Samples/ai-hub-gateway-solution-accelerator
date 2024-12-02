@@ -50,7 +50,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' existing 
 
 var storageAccountConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
 
-resource hostingPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
+resource hostingPlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: 'hosting-plan-${logicAppName}'
   tags: union(tags, { 'azd-service-name': 'hosting-plan-${logicAppName}' })
   location: location
@@ -68,7 +68,7 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   }
 }
 
-resource logicApp 'Microsoft.Web/sites@2023-12-01' = {
+resource logicApp 'Microsoft.Web/sites@2024-04-01' = {
   name: logicAppName
   location: location
   kind: 'functionapp,workflowapp'
@@ -84,7 +84,7 @@ resource logicApp 'Microsoft.Web/sites@2023-12-01' = {
   }
 }
 
-resource networkConfig 'Microsoft.Web/sites/networkConfig@2023-12-01' = {
+resource networkConfig 'Microsoft.Web/sites/networkConfig@2024-04-01' = {
   parent: logicApp
   name: 'virtualNetwork'
   properties: {
@@ -93,7 +93,7 @@ resource networkConfig 'Microsoft.Web/sites/networkConfig@2023-12-01' = {
   }
 }
 
-resource functionAppSiteConfig 'Microsoft.Web/sites/config@2023-12-01' = {
+resource functionAppSiteConfig 'Microsoft.Web/sites/config@2024-04-01' = {
   parent: logicApp
   name: 'web'
   properties: {
@@ -117,7 +117,7 @@ resource functionAppSiteConfig 'Microsoft.Web/sites/config@2023-12-01' = {
   ]
 }
 
-resource functionAppSettings 'Microsoft.Web/sites/config@2023-12-01' = {
+resource functionAppSettings 'Microsoft.Web/sites/config@2024-04-01' = {
   parent: logicApp
   name: 'appsettings'
   properties: {

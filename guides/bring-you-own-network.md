@@ -1,4 +1,4 @@
-# Bring you own network
+# Bring your own network
 
 This guide will walkthrough how to bring your own network to the platform.
 
