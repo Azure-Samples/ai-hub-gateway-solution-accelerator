@@ -19,7 +19,7 @@ The AI Hub Gateway Landing Zone architecture designed to be a central hub for AI
 Now this solution accelerator is updated to be **enterprise ready** with the following features:
 
 - **Improved OpenAI Usage Ingestion** with the ability to ingest usage data from Azure OpenAI API for both streaming and non-streaming requests. [Check the guide here](./guides/openai-usage-ingestion.md)
-- **Bring your own VNet** is now supported with the ability to deploy the AI Hub Gateway Landing Zone in your own VNet. [Check the guide here](./guides/bring-you-own-network.md)
+- **Bring your own VNet** is now supported with the ability to deploy the AI Hub Gateway Landing Zone in your own VNet. [Check the guide here](./guides/bring-your-own-network.md)
 - **Throttling events monitoring** is now supported with the ability to capture and raise ```429``` too many requests status code as a custom metric in Application Insights. [Check the guide here](./guides/throttling-events-handling.md)
 - **New gpt-4o Global Deployment** is now part of the OpenAI resource provisioning
 - **Azure OpenAI API spec version** was updated to ```2024-05-01-preview``` to bring APIs for audio and batch among other advancements (note it is backward compatible with previous versions)
@@ -194,7 +194,7 @@ To dive deeper into the AI Hub Gateway technical mechanics, you can check out th
 - [Deployment components](./guides/deployment.md)
 - [API Management configuration](./guides/apim-configuration.md)
 - [OpenAI Usage Ingestion](./guides/openai-usage-ingestion.md)
-- [Bring your own vnet](./guides/bring-you-own-network.md)
+- [Bring your own vnet](./guides/bring-your-own-network.md)
 
 ### Onboarding guides
 - [OpenAI Onboarding](./guides/openai-onboarding.md)
