@@ -5,7 +5,7 @@ param tags object = {}
 // Networking
 param privateLinkScopeName string
 
-resource privateLinkScope 'microsoft.insights/privateLinkScopes@2021-07-01-preview' existing = {
+resource privateLinkScope 'microsoft.insights/privateLinkScopes@2021-07-01-preview' existing = if (privateLinkScopeName != '') {
   name: privateLinkScopeName
 }
 
@@ -21,12 +21,12 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2021-12-01-previ
     sku: {
       name: 'PerGB2018'
     }
-    publicNetworkAccessForIngestion: 'Disabled'
-    publicNetworkAccessForQuery: 'Enabled'
+    publicNetworkAccessForIngestion: privateLinkScopeName != '' ? 'Disabled' : 'Enabled'
+    publicNetworkAccessForQuery: privateLinkScopeName != '' ? 'Enabled' : 'Enabled'
   })
 }
 
-resource logAnalyticsScopedResource 'Microsoft.Insights/privateLinkScopes/scopedResources@2021-07-01-preview' = {
+resource logAnalyticsScopedResource 'Microsoft.Insights/privateLinkScopes/scopedResources@2021-07-01-preview' = if (privateLinkScopeName != '') {
   parent: privateLinkScope
   name: '${logAnalytics.name}-connection'
   properties: {

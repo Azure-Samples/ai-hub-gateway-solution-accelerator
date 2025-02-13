@@ -74,6 +74,9 @@ param logicContentShareName string = 'usage-logic-content'
 @description('Provision stream analytics job, turn it on only if you need it. Azure Function App will be provisioned to process usage data from Event Hub.')
 param provisionStreamAnalytics bool = false
 
+@description('This is to use Azure Monitor Private Link Scope for Log Analytics and Application Insights. If exsiting vnet is used, this should not be enabled')
+param useAzureMonitorPrivateLinkScope bool = true
+
 //Networking - VNet
 param useExistingVnet bool = false
 param existingVnetRG string = ''
@@ -392,6 +395,7 @@ module monitoring './modules/monitor/monitoring.bicep' = {
     createDashboard: createAppInsightsDashboard
     dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
+    usePrivateLinkScope: useAzureMonitorPrivateLinkScope
   }
   dependsOn: [
     vnet

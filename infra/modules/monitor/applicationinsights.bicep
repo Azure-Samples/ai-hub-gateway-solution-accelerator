@@ -10,7 +10,7 @@ param createDashboard bool
 // Networking
 param privateLinkScopeName string
 
-resource privateLinkScope 'microsoft.insights/privateLinkScopes@2021-07-01-preview' existing = {
+resource privateLinkScope 'microsoft.insights/privateLinkScopes@2021-07-01-preview' existing = if (privateLinkScopeName != '') {
   name: privateLinkScopeName
 }
 
@@ -22,13 +22,13 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   properties: {
     Application_Type: 'web'
     WorkspaceResourceId: logAnalyticsWorkspaceId
-    publicNetworkAccessForIngestion: 'Disabled'
-    publicNetworkAccessForQuery: 'Enabled'
+    publicNetworkAccessForIngestion: privateLinkScopeName != '' ? 'Disabled' : 'Enabled'
+    publicNetworkAccessForQuery: privateLinkScopeName != '' ? 'Enabled' : 'Enabled'
     CustomMetricsOptedInType: 'WithDimensions'
   }
 }
 
-resource appInsightsScopedResource 'Microsoft.Insights/privateLinkScopes/scopedResources@2021-07-01-preview' = {
+resource appInsightsScopedResource 'Microsoft.Insights/privateLinkScopes/scopedResources@2021-07-01-preview' = if (privateLinkScopeName != '') {
   parent: privateLinkScope
   name: '${applicationInsights.name}-connection'
   properties: {

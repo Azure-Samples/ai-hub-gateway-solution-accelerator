@@ -67,7 +67,9 @@ resource apimService 'Microsoft.ApiManagement/service@2022-08-01' existing = {
   name: serviceName
 }
 
-resource apiDefinition 'Microsoft.ApiManagement/service/apis@2022-08-01' = if(enableAPIDeployment) {
+var isWebSotcketAPI = contains(apiProtocols, 'ws') || contains(apiProtocols, 'wss')
+
+resource apiDefinition 'Microsoft.ApiManagement/service/apis@2022-08-01' = if(enableAPIDeployment && !isWebSotcketAPI) {
   name: apiName
   parent: apimService
   properties: {
@@ -75,8 +77,26 @@ resource apiDefinition 'Microsoft.ApiManagement/service/apis@2022-08-01' = if(en
     apiRevision: apiRevision
     description: (apiDescription == '') ? apiName : apiDescription
     displayName: apiDispalyName
-    format: contentFormat
+    format: (openApiSpecification != 'NA') ? contentFormat : null
     value: (openApiSpecification != 'NA') ? openApiSpecification : null
+    subscriptionRequired: subscriptionRequired
+    subscriptionKeyParameterNames: {
+      header: empty(subscriptionKeyName) ? 'Ocp-Apim-Subscription-Key' : subscriptionKeyName
+    }
+    type: apiType
+    protocols: apiProtocols
+    serviceUrl: (serviceUrl == '') ? 'https://to-be-replaced-by-policy' : serviceUrl
+  }
+}
+
+resource apiDefinitionWebSocket 'Microsoft.ApiManagement/service/apis@2022-08-01' = if(enableAPIDeployment && isWebSotcketAPI) {
+  name: apiName
+  parent: apimService
+  properties: {
+    path: (path == '') ? apiName : path
+    apiRevision: apiRevision
+    description: (apiDescription == '') ? apiName : apiDescription
+    displayName: apiDispalyName
     subscriptionRequired: subscriptionRequired
     subscriptionKeyParameterNames: {
       header: empty(subscriptionKeyName) ? 'Ocp-Apim-Subscription-Key' : subscriptionKeyName

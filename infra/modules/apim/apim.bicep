@@ -184,6 +184,7 @@ module apimOpenAIRealTimetApi './api.bicep' = if (enableOpenAIRealtime) {
     apiDescription: 'Access Azure OpenAI Realtime API for real-time voice and text conversion.'
     policyDocument: 'NA'
     enableAPIDeployment: true
+    serviceUrl: 'wss://to-be-replaced-by-policy'
     apiType: 'websocket'
     apiProtocols: ['wss']
   }
@@ -197,11 +198,11 @@ module apimOpenAIRealTimetApi './api.bicep' = if (enableOpenAIRealtime) {
 
 // Create AI-Retail product
 resource retailProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
-  name: 'ai-retail'
+  name: 'oai-retail-assistant'
   parent: apimService
   properties: {
-    displayName: 'AI-Retail'
-    description: 'Offering AI services for the retail and e-commerce platforms.'
+    displayName: 'OAI-Retail-Assistant'
+    description: 'Offering OpenAI services for the retail and e-commerce platforms assistant.'
     subscriptionRequired: true
     approvalRequired: true
     subscriptionsLimit: 200
@@ -231,7 +232,7 @@ resource retailProductPolicy 'Microsoft.ApiManagement/service/products/policies@
 }
 
 resource retailSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-01' = {
-  name: 'ai-retail-internal-sub'
+  name: 'oai-retail-assistant-sub-01'
   parent: apimService
   properties: {
     displayName: 'AI-Retail-Internal-Subscription'
@@ -242,11 +243,11 @@ resource retailSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-
 
 // Create AI-HR product
 resource hrProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
-  name: 'ai-hr'
+  name: 'oai-hr-assistant'
   parent: apimService
   properties: {
-    displayName: 'AI-HR'
-    description: 'Offering AI services for the internal HR platforms.'
+    displayName: 'OAI-HR-Assistant'
+    description: 'Offering OpenAI services for the internal HR platforms.'
     subscriptionRequired: true
     approvalRequired: true
     subscriptionsLimit: 200
@@ -276,10 +277,10 @@ resource hrProductPolicy 'Microsoft.ApiManagement/service/products/policies@2022
 }
 
 resource hrSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-01' = {
-  name: 'hr-retail-internal-sub'
+  name: 'oai-hr-assistant-sub-01'
   parent: apimService
   properties: {
-    displayName: 'AI-HR-Internal-Subscription'
+    displayName: 'OAI-HR-Assistant-Sub-01'
     state: 'active'
     scope: hrProduct.id
   }
@@ -287,10 +288,10 @@ resource hrSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-0
 
 // Create Search-HR product
 resource searchHRProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = if(enableAzureAISearch) {
-  name: 'search-hr'
+  name: 'src-hr-assistant'
   parent: apimService
   properties: {
-    displayName: 'Search-HR'
+    displayName: 'SRC-HR-Assistant'
     description: 'Offering AI Search services for the HR systems.'
     subscriptionRequired: true
     approvalRequired: true
@@ -301,7 +302,7 @@ resource searchHRProduct 'Microsoft.ApiManagement/service/products@2022-08-01' =
 }
 
 resource searchHRProductAISearchApi 'Microsoft.ApiManagement/service/products/apiLinks@2023-05-01-preview' = if (enableAzureAISearch) {
-  name: 'search-hr-product-ai-search-api'
+  name: 'src-hr-product-ai-search-api'
   parent: searchHRProduct
   properties: {
     apiId: apimAiSearchApi.outputs.id
@@ -318,10 +319,10 @@ resource searchHRProductProductPolicy 'Microsoft.ApiManagement/service/products/
 }
 
 resource searchHRSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-01' = if (enableAzureAISearch) {
-  name: 'search-hr-internal-sub'
+  name: 'src-hr-assistant-sub-01'
   parent: apimService
   properties: {
-    displayName: 'Search-HR-Internal-Subscription'
+    displayName: 'SRC-HR-Assistant-Sub-01'
     state: 'active'
     scope: searchHRProduct.id
   }

@@ -1,0 +1,48 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "OAI-Realtime-API",
+        "version": "1.0"
+    },
+    "host": "apim-d6vjlv67krcvy.azure-api.net",
+    "basePath": "/openai/realtime",
+    "schemes": [
+        "ws",
+        "wss"
+    ],
+    "securityDefinitions": {
+        "apiKeyHeader": {
+            "type": "apiKey",
+            "name": "api-key",
+            "in": "header"
+        },
+        "apiKeyQuery": {
+            "type": "apiKey",
+            "name": "api-key",
+            "in": "query"
+        }
+    },
+    "security": [
+        {
+            "apiKeyHeader": []
+        },
+        {
+            "apiKeyQuery": []
+        }
+    ],
+    "paths": {
+        "": {
+            "get": {
+                "description": "WebSocket opening handshake",
+                "operationId": "onHandshake",
+                "summary": "onHandshake",
+                "responses": {
+                    "200": {
+                        "description": null
+                    }
+                }
+            }
+        }
+    },
+    "tags": []
+}

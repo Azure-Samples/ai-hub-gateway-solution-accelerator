@@ -9,6 +9,7 @@ param tags object = {}
 param createDashboard bool
 
 // Networking
+param usePrivateLinkScope bool = true
 var privateLinkScopeName = 'ampls-monitoring'
 param vNetName string
 param privateEndpointSubnetName string
@@ -29,7 +30,7 @@ resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-01-01' existing 
   parent: vnet
 }
 
-resource privateLinkScope 'microsoft.insights/privateLinkScopes@2021-07-01-preview' = {
+resource privateLinkScope 'microsoft.insights/privateLinkScopes@2021-07-01-preview' = if (usePrivateLinkScope) {
   name: privateLinkScopeName
   location: 'global'
   properties: {
@@ -46,7 +47,7 @@ module logAnalytics 'loganalytics.bicep' = {
     name: logAnalyticsName
     location: location
     tags: tags
-    privateLinkScopeName: privateLinkScopeName
+    privateLinkScopeName: usePrivateLinkScope ? privateLinkScopeName : ''
   }
 }
 
@@ -59,7 +60,7 @@ module apimApplicationInsights 'applicationinsights.bicep' = {
     tags: tags
     dashboardName: apimApplicationInsightsDashboardName
     logAnalyticsWorkspaceId: logAnalytics.outputs.id
-    privateLinkScopeName: privateLinkScopeName
+    privateLinkScopeName: usePrivateLinkScope ? privateLinkScopeName : ''
     createDashboard: createDashboard
   }
 }
@@ -73,12 +74,12 @@ module functionApplicationInsights 'applicationinsights.bicep' = {
     tags: tags
     dashboardName: functionApplicationInsightsDashboardName
     logAnalyticsWorkspaceId: logAnalytics.outputs.id
-    privateLinkScopeName: privateLinkScopeName
+    privateLinkScopeName: usePrivateLinkScope ? privateLinkScopeName : ''
     createDashboard: createDashboard
   }
 }
 
-module privateEndpoint '../networking/private-endpoint.bicep' = {
+module privateEndpoint '../networking/private-endpoint.bicep' = if (usePrivateLinkScope) {
   name: '${privateLinkScopeName}-privateEndpoint'
   params: {
     groupIds: [
