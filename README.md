@@ -113,31 +113,7 @@ param openAiInstances object = {
           capacity: deploymentCapacity
         }
       }
-      {
-        name: 'gpt-4o'
-        model: {
-          format: 'OpenAI'
-          name: 'gpt-4o'
-          version: '2024-05-13'
-        }
-        sku: {
-          name: 'GlobalStandard'
-          capacity: deploymentCapacity
-        }
-      }
-      {
-        name: 'dall-e-3'
-        location: 'eastus'
-        model: {
-          format: 'OpenAI'
-          name: 'dall-e-3'
-          version: '3.0'
-        }
-        sku: {
-          name: 'Standard'
-          capacity: 1
-        }
-      }
+      ...
     ]
   }
   openAi2: {
@@ -172,7 +148,7 @@ azd up
 # You can also use to provision only the infrastructure
 # azd provision
 
-# You can also use this to deploy the Azure Function code (given that infrastructure is already deployed)
+# You can also use this to deploy the associated Logic App workflows code (given that infrastructure is already deployed)
 # azd deploy
 
 ```
@@ -194,7 +170,7 @@ To dive deeper into the AI Hub Gateway technical mechanics, you can check out th
 - [Deployment components](./guides/deployment.md)
 - [API Management configuration](./guides/apim-configuration.md)
 - [OpenAI Usage Ingestion](./guides/openai-usage-ingestion.md)
-- [Bring your own vnet](./guides/bring-your-own-network.md)
+- [Bring your own Network](./guides/bring-your-own-network.md)
 
 ### Onboarding guides
 - [OpenAI Onboarding](./guides/openai-onboarding.md)

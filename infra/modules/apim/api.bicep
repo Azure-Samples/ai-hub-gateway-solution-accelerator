@@ -43,6 +43,26 @@ param enableAPIDeployment bool = true
 // Assume the content format is JSON format if the ending is .json - otherwise, it's YAML
 var contentFormat = startsWith(openApiSpecification, '{') ? 'openapi+json' : 'openapi'
 
+@description('The type of the API')
+@allowed([
+  'http'
+  'soap'
+  'graphql'
+  'websocket'
+])
+param apiType string = 'http'
+
+@description('The protocols supported by the API')
+@allowed([
+  'http'
+  'https'
+  'ws'
+  'wss'
+])
+param apiProtocols array = [
+  'https'
+]
+
 resource apimService 'Microsoft.ApiManagement/service@2022-08-01' existing = {
   name: serviceName
 }
@@ -56,18 +76,18 @@ resource apiDefinition 'Microsoft.ApiManagement/service/apis@2022-08-01' = if(en
     description: (apiDescription == '') ? apiName : apiDescription
     displayName: apiDispalyName
     format: contentFormat
-    value: openApiSpecification
+    value: (openApiSpecification != 'NA') ? openApiSpecification : null
     subscriptionRequired: subscriptionRequired
     subscriptionKeyParameterNames: {
       header: empty(subscriptionKeyName) ? 'Ocp-Apim-Subscription-Key' : subscriptionKeyName
     }
-    type: 'http'
-    protocols: [ 'https' ]
+    type: apiType
+    protocols: apiProtocols
     serviceUrl: (serviceUrl == '') ? 'https://to-be-replaced-by-policy' : serviceUrl
   }
 }
 
-resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' = if(enableAPIDeployment) {
+resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' = if(enableAPIDeployment && policyDocument != 'NA') {
   name: 'policy'
   parent: apiDefinition
   properties: {

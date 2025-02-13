@@ -1,0 +1,816 @@
+openapi: 3.0.1
+info:
+  title: AI Model Inference API
+  description: Reference for Azure AI Model Inference API
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  version: '1.0'
+servers:
+  - url: https://REPLACE.services.ai.azure.com/models
+paths:
+  /info:
+    get:
+      summary: Get model information
+      description: Returns the information about the model deployed under the endpoint.
+      operationId: get-info-api-version-api-version
+      parameters:
+        - name: api-version
+          in: query
+          description: The version of the API in the format "YYYY-MM-DD" or "YYYY-MM-DD-preview".
+          required: true
+          schema:
+            enum:
+              - 2024-05-01-preview
+            type: string
+            default: 2024-05-01-preview
+        - name: Authorization
+          in: header
+          schema:
+            enum:
+              - ''
+            type: ''
+        - name: azureml-model-deployment
+          in: header
+          schema:
+            enum:
+              - ''
+            type: ''
+            default: ''
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelInfo'
+              example:
+                model_name: string
+                model_provider_name: string
+                model_type: audio-generation
+  /chat/completions:
+    post:
+      summary: Create chat completion
+      description: Creates a model response for the given chat conversation.
+      operationId: post-chat-completions-api-version-api-version
+      parameters:
+        - name: api-version
+          in: query
+          description: The version of the API in the format "YYYY-MM-DD" or "YYYY-MM-DD-preview".
+          required: true
+          schema:
+            enum:
+              - 2024-05-01-preview
+            type: string
+            default: 2024-05-01-preview
+        - name: x-ms-model-mesh-model-name
+          in: header
+          description: Name of the target deployment model name (like phi-4)
+          required: true
+          schema:
+            enum:
+              - ''
+            type: ''
+            default: ''
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChatCompletionRequest'
+            example:
+              messages:
+                - role: system
+                  content: You are a helpful assistant
+                - role: user
+                  content: Explain how distance between earth and the moon is calculated.
+              frequency_penalty: 0
+              presence_penalty: 0
+              max_tokens: 256
+              seed: 42
+              stop: <|endoftext|>
+              stream: false
+              temperature: 0
+              top_p: 1
+              response_format:
+                type: text
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateChatCompletionResponse'
+              example:
+                choices:
+                  - finish_reason: stop
+                    index: 0
+                    message:
+                      content: string
+                      role: assistant
+                      tool_calls:
+                        - function:
+                            arguments: string
+                            name: string
+                          id: string
+                          type: function
+                created: 0
+                id: string
+                model: string
+                object: chat.completion
+                system_fingerprint: string
+                usage:
+                  completion_tokens: 0
+                  prompt_tokens: 0
+                  total_tokens: 0
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+              example:
+                error: string
+                message: string
+                status: 0
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+              example:
+                error: string
+                message: string
+                status: 0
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnprocessableContentError'
+              example:
+                code: string
+                detail:
+                  loc:
+                    - string
+                  value: string
+                error: string
+                message: string
+                status: 0
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TooManyRequestsError'
+              example:
+                error: string
+                message: string
+                status: 0
+        '500':
+          description: Content Filter Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentFilterError'
+              example:
+                code: string
+                error: string
+                message: string
+                param: string
+                status: 0
+  /embeddings:
+    post:
+      summary: Create text embeddings
+      description: Creates an embedding vector representing the input text.
+      operationId: post-embeddings-api-version-api-version
+      parameters:
+        - name: api-version
+          in: query
+          description: The version of the API in the format "YYYY-MM-DD" or "YYYY-MM-DD-preview".
+          required: true
+          schema:
+            enum:
+              - 2024-05-01-preview
+            type: string
+            default: 2024-05-01-preview
+        - name: x-ms-model-mesh-model-name
+          in: header
+          description: Name of the target AI deployment name
+          required: true
+          schema:
+            enum:
+              - ''
+            type: ''
+            default: ''
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmbeddingRequest'
+            example:
+              input:
+                - This is a very good text
+              input_type: text
+              encoding_format: float
+              dimensions: 1024
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateEmbeddingResponse'
+              example:
+                data:
+                  - embedding:
+                      - 0
+                    index: 0
+                    object: embedding
+                model: string
+                object: list
+                usage:
+                  prompt_patches: 0
+                  prompt_tokens: 0
+                  total_patches: 0
+                  total_tokens: 0
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+              example:
+                error: string
+                message: string
+                status: 0
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+              example:
+                error: string
+                message: string
+                status: 0
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnprocessableContentError'
+              example:
+                code: string
+                detail:
+                  loc:
+                    - string
+                  value: string
+                error: string
+                message: string
+                status: 0
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TooManyRequestsError'
+              example:
+                error: string
+                message: string
+                status: 0
+        '500':
+          description: Content Filter Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentFilterError'
+              example:
+                code: string
+                error: string
+                message: string
+                param: string
+                status: 0
+  /images/embeddings:
+    post:
+      summary: Create image embeddings
+      description: Creates an embedding vector representing the input image and text pair.
+      operationId: post-images-embeddings-api-version-api-version
+      parameters:
+        - name: api-version
+          in: query
+          description: The version of the API in the format "YYYY-MM-DD" or "YYYY-MM-DD-preview".
+          required: true
+          schema:
+            enum:
+              - 2024-05-01-preview
+            type: string
+            default: 2024-05-01-preview
+        - name: x-ms-model-mesh-model-name
+          in: header
+          description: Target AI deployment name
+          required: true
+          schema:
+            enum:
+              - ''
+            type: ''
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateImageEmbeddingRequest'
+            example:
+              input:
+                - image: string
+                  text: string
+              dimensions: 0
+              encoding_format: base64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateEmbeddingResponse'
+              example:
+                data:
+                  - embedding:
+                      - 0
+                    index: 0
+                    object: embedding
+                model: string
+                object: list
+                usage:
+                  prompt_patches: 0
+                  prompt_tokens: 0
+                  total_patches: 0
+                  total_tokens: 0
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+              example:
+                error: string
+                message: string
+                status: 0
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+              example:
+                error: string
+                message: string
+                status: 0
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnprocessableContentError'
+              example:
+                code: string
+                detail:
+                  loc:
+                    - string
+                  value: string
+                error: string
+                message: string
+                status: 0
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TooManyRequestsError'
+              example:
+                error: string
+                message: string
+                status: 0
+        '500':
+          description: Content Filter Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentFilterError'
+              example:
+                code: string
+                error: string
+                message: string
+                param: string
+                status: 0
+components:
+  schemas:
+    ModelInfo:
+      type: object
+      properties:
+        model_name:
+          type: string
+          description: The name of the model.
+        model_provider_name:
+          type: string
+          description: The provider of the model.
+        model_type:
+          $ref: '#/components/schemas/ModelType'
+    ModelType:
+      enum:
+        - audio-generation
+        - chat-completions
+        - embeddings
+        - image-embeddings
+        - image-generation
+        - text-generation
+      type: string
+    CreateChatCompletionRequest:
+      type: object
+      properties:
+        model:
+          type: string
+          description: The model name. This parameter is ignored if the endpoint serves only one model.
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatCompletionRequestMessage'
+          description: A list of messages comprising the conversation so far.
+        frequency_penalty:
+          type: number
+          description: Helps prevent word repetitions by reducing the chance of a word being selected if it has already been used.
+        max_tokens:
+          type: integer
+          description: The maximum number of tokens that can be generated in the chat completion.
+        presence_penalty:
+          type: number
+          description: Helps prevent the same topics from being repeated by penalizing a word if it exists in the completion already.
+        response_format:
+          $ref: '#/components/schemas/ChatCompletionResponseFormat'
+        seed:
+          type: integer
+          description: 'If specified, our system will make a best effort to sample deterministically.'
+        stop:
+          type: array
+          items:
+            type: string
+          description: Sequences where the API will stop generating further tokens.
+        stream:
+          type: boolean
+          description: 'If set, partial message deltas will be sent.'
+        temperature:
+          type: number
+          description: Non-negative number.
+        tool_choice:
+          $ref: '#/components/schemas/ChatCompletionToolChoiceOption'
+        tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatCompletionTool'
+          description: A list of tools the model may call.
+        top_p:
+          type: number
+          description: 'An alternative to sampling with temperature, called nucleus sampling.'
+    ChatCompletionRequestMessage:
+      type: object
+      properties:
+        content:
+          type: string
+          description: The contents of the message.
+        role:
+          $ref: '#/components/schemas/ChatMessageRole'
+        tool_calls:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatCompletionMessageToolCall'
+    ChatMessageRole:
+      enum:
+        - assistant
+        - system
+        - tool
+        - user
+      type: string
+    ChatCompletionResponseFormat:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/ChatCompletionResponseFormatType'
+    ChatCompletionResponseFormatType:
+      enum:
+        - json_object
+        - text
+      type: string
+    ChatCompletionToolChoiceOption:
+      enum:
+        - none
+        - auto
+        - required
+      type: string
+    ChatCompletionTool:
+      type: object
+      properties:
+        function:
+          $ref: '#/components/schemas/FunctionObject'
+        type:
+          $ref: '#/components/schemas/ToolType'
+    FunctionObject:
+      type: object
+      properties:
+        description:
+          type: string
+          description: A description of what the function does.
+        name:
+          type: string
+          description: The name of the function to be called.
+        parameters:
+          type: object
+          description: 'The parameters the functions accepts, described as a JSON Schema object.'
+    ToolType:
+      enum:
+        - function
+      type: string
+    CreateChatCompletionResponse:
+      type: object
+      properties:
+        choices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Choices'
+        created:
+          type: integer
+          description: The Unix timestamp (in seconds) of when the chat completion was created.
+        id:
+          type: string
+          description: A unique identifier for the chat completion.
+        model:
+          type: string
+          description: The model used for the chat completion.
+        object:
+          $ref: '#/components/schemas/ChatCompletionObject'
+        system_fingerprint:
+          type: string
+          description: This fingerprint represents the backend configuration that the model runs with.
+        usage:
+          $ref: '#/components/schemas/CompletionUsage'
+    Choices:
+      type: object
+      properties:
+        finish_reason:
+          $ref: '#/components/schemas/ChatCompletionFinishReason'
+        index:
+          type: integer
+          description: The index of the choice in the list of choices.
+        message:
+          $ref: '#/components/schemas/ChatCompletionResponseMessage'
+    ChatCompletionFinishReason:
+      enum:
+        - stop
+        - length
+        - content_filter
+        - tool_calls
+      type: string
+    ChatCompletionResponseMessage:
+      type: object
+      properties:
+        content:
+          type: string
+          description: The contents of the message.
+        role:
+          $ref: '#/components/schemas/ChatMessageRole'
+        tool_calls:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatCompletionMessageToolCall'
+    ChatCompletionMessageToolCall:
+      type: object
+      properties:
+        function:
+          $ref: '#/components/schemas/Function'
+        id:
+          type: string
+          description: The ID of the tool call.
+        type:
+          $ref: '#/components/schemas/ToolType'
+    Function:
+      type: object
+      properties:
+        arguments:
+          type: string
+          description: 'The arguments to call the function with, as generated by the model in JSON format.'
+        name:
+          type: string
+          description: The name of the function to call.
+    ChatCompletionObject:
+      enum:
+        - chat.completion
+      type: string
+    CompletionUsage:
+      type: object
+      properties:
+        completion_tokens:
+          type: integer
+          description: Number of tokens in the generated completion.
+        prompt_tokens:
+          type: integer
+          description: Number of tokens in the prompt.
+        total_tokens:
+          type: integer
+          description: Total number of tokens used in the request (prompt + completion).
+    CreateEmbeddingRequest:
+      type: object
+      properties:
+        model:
+          type: string
+          description: The model name. This parameter is ignored if the endpoint serves only one model.
+        input:
+          type: array
+          items:
+            type: string
+          description: 'Input text to embed, encoded as a string or array of tokens.'
+        dimensions:
+          type: integer
+          description: The number of dimensions the resulting output embeddings should have.
+        encoding_format:
+          $ref: '#/components/schemas/EmbeddingEncodingFormat'
+        input_type:
+          $ref: '#/components/schemas/EmbeddingInputType'
+    CreateEmbeddingResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Embedding'
+        model:
+          type: string
+          description: The name of the model used to generate the embedding.
+        object:
+          $ref: '#/components/schemas/ListObject'
+        usage:
+          $ref: '#/components/schemas/Usage'
+    Embedding:
+      type: object
+      properties:
+        embedding:
+          type: array
+          items:
+            type: number
+          description: The embedding vector.
+        index:
+          type: integer
+          description: The index of the embedding in the list of embeddings.
+        object:
+          $ref: '#/components/schemas/EmbeddingObject'
+    EmbeddingEncodingFormat:
+      enum:
+        - base64
+        - float
+        - int8
+        - uint8
+        - binary
+        - ubinary
+      type: string
+    EmbeddingInputType:
+      enum:
+        - text
+        - query
+        - document
+      type: string
+    EmbeddingObject:
+      enum:
+        - embedding
+      type: string
+    ListObject:
+      enum:
+        - list
+      type: string
+    CreateImageEmbeddingRequest:
+      type: object
+      properties:
+        input:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmbeddingInput'
+          description: Input image to embed.
+        dimensions:
+          type: integer
+          description: The number of dimensions the resulting output embeddings should have.
+        encoding_format:
+          $ref: '#/components/schemas/EmbeddingEncodingFormat'
+    EmbeddingInput:
+      type: object
+      properties:
+        image:
+          type: string
+          description: The input image encoded in `base64` string as a data URL.
+        text:
+          type: string
+          description: Optional. The text input to feed into the model.
+    UnauthorizedError:
+      type: object
+      properties:
+        error:
+          type: string
+          description: The error description.
+        message:
+          type: string
+          description: The error message.
+        status:
+          type: integer
+          description: The HTTP status code.
+    NotFoundError:
+      type: object
+      properties:
+        error:
+          type: string
+          description: The error description.
+        message:
+          type: string
+          description: The error message.
+        status:
+          type: integer
+          description: The HTTP status code.
+    UnprocessableContentError:
+      type: object
+      properties:
+        code:
+          type: string
+          description: The error code.
+        detail:
+          $ref: '#/components/schemas/Detail'
+        error:
+          type: string
+          description: The error description.
+        message:
+          type: string
+          description: The error message.
+        status:
+          type: integer
+          description: The HTTP status code.
+    Detail:
+      type: object
+      properties:
+        loc:
+          type: array
+          items:
+            type: string
+          description: The parameter causing the issue.
+        value:
+          type: string
+          description: The value passed to the parameter causing issues.
+    TooManyRequestsError:
+      type: object
+      properties:
+        error:
+          type: string
+          description: The error description.
+        message:
+          type: string
+          description: The error message.
+        status:
+          type: integer
+          description: The HTTP status code.
+    ContentFilterError:
+      type: object
+      properties:
+        code:
+          type: string
+          description: The error code.
+        error:
+          type: string
+          description: The error description.
+        message:
+          type: string
+          description: The error message.
+        param:
+          type: string
+          description: The parameter that triggered the content filter.
+        status:
+          type: integer
+          description: The HTTP status code.
+    Usage:
+      type: object
+      properties:
+        prompt_patches:
+          type: integer
+          description: The number of image patches used by the image prompt.
+        prompt_tokens:
+          type: integer
+          description: The number of tokens used by the prompt.
+        total_patches:
+          type: integer
+          description: The total number of patches used by the request.
+        total_tokens:
+          type: integer
+          description: The total number of tokens used by the request.
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: api-key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]

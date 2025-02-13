@@ -127,15 +127,17 @@ param openAiInstances object = {
     location: 'eastus'
     deployments: [
       {
-        name: chatGptDeploymentName
+        name: 'chat'
         model: {
           format: 'OpenAI'
-          name: chatGptModelName
-          version: chatGptModelVersion
+          name: 'gpt-4o-mini'
+          version: '2024-07-18'
         }
-        scaleSettings: {
-          scaleType: 'Standard'
+        sku: {
+          name: 'Standard'
+          capacity: deploymentCapacity
         }
+        
       }
       {
         name: embeddingGptDeploymentName
@@ -181,15 +183,17 @@ param openAiInstances object = {
     location: 'northcentralus'
     deployments: [
       {
-        name: chatGptDeploymentName
+        name: 'chat'
         model: {
           format: 'OpenAI'
-          name: chatGptModelName
-          version: chatGptModelVersion
+          name: 'gpt-4o-mini'
+          version: '2024-07-18'
         }
-        scaleSettings: {
-          scaleType: 'Standard'
+        sku: {
+          name: 'Standard'
+          capacity: deploymentCapacity
         }
+        
       }
       {
         name: embeddingGptDeploymentName
@@ -210,15 +214,17 @@ param openAiInstances object = {
     location: 'eastus2'
     deployments: [
       {
-        name: chatGptDeploymentName
+        name: 'chat'
         model: {
           format: 'OpenAI'
-          name: chatGptModelName
-          version: chatGptModelVersion
+          name: 'gpt-4o-mini'
+          version: '2024-07-18'
         }
-        scaleSettings: {
-          scaleType: 'Standard'
+        sku: {
+          name: 'Standard'
+          capacity: deploymentCapacity
         }
+        
       }
       {
         name: embeddingGptDeploymentName

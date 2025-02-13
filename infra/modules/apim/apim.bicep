@@ -22,6 +22,10 @@ param eventHubEndpoint string
 param enableAzureAISearch bool = false
 param aiSearchInstances array
 
+param enableAIModelInference bool = true
+
+param enableOpenAIRealtime bool = true
+
 // Networking
 param apimNetworkType string = 'External'
 param apimSubnetId string
@@ -101,7 +105,7 @@ module apimOpenaiApi './api.bicep' = {
     apiDispalyName: 'Azure OpenAI API'
     subscriptionRequired: entraAuth ? false:true
     subscriptionKeyName: 'api-key'
-    openApiSpecification: string(loadYamlContent('./openai-api/oai-api-spec-2024-06-01.yaml'))
+    openApiSpecification: string(loadYamlContent('./openai-api/oai-api-spec-2024-10-21.yaml'))
     apiDescription: 'Azure OpenAI API'
     policyDocument: loadTextContent('./policies/openai_api_policy.xml')
     enableAPIDeployment: true
@@ -131,13 +135,62 @@ module apimAiSearchApi './api.bicep' = if (enableAzureAISearch) {
     openApiSpecification: loadTextContent('./ai-search-api/ai-search-api-spec.yaml')
     apiDescription: 'Azure AI Search APIs'
     policyDocument: loadTextContent('./policies/ai-search-api-policy.xml')
-    enableAPIDeployment: enableAzureAISearch
+    enableAPIDeployment: true
   }
   dependsOn: [
     aadAuthPolicyFragment
     validateRoutesPolicyFragment
     backendRoutingPolicyFragment
     aiUsagePolicyFragment
+    throttlingEventsPolicyFragment
+  ]
+}
+
+module apimAiModelInferenceApi './api.bicep' = if (enableAIModelInference) {
+  name: 'ai-model-inference-api'
+  params: {
+    serviceName: apimService.name
+    apiName: 'ai-model-inference-api'
+    path: 'models'
+    apiRevision: '1'
+    apiDispalyName: 'AI Model Inference API'
+    subscriptionRequired: entraAuth ? false:true
+    subscriptionKeyName: 'api-key'
+    openApiSpecification: loadTextContent('./ai-model-inference/ai-model-inference-api-spec.yaml')
+    apiDescription: 'Access to AI inference models published through Azure AI Foundry'
+    policyDocument: loadTextContent('./policies/ai-model-inference-api-policy.xml')
+    enableAPIDeployment: true
+  }
+  dependsOn: [
+    aadAuthPolicyFragment
+    validateRoutesPolicyFragment
+    backendRoutingPolicyFragment
+    aiUsagePolicyFragment
+    throttlingEventsPolicyFragment
+  ]
+}
+
+module apimOpenAIRealTimetApi './api.bicep' = if (enableOpenAIRealtime) {
+  name: 'openai-realtime-ws-api'
+  params: {
+    serviceName: apimService.name
+    apiName: 'openai-realtime-ws-api'
+    path: 'openai/realtime'
+    apiRevision: '1'
+    apiDispalyName: 'Azure OpenAI Realtime API'
+    subscriptionRequired: entraAuth ? false : true
+    subscriptionKeyName: 'api-key'
+    openApiSpecification: 'NA'
+    apiDescription: 'Access Azure OpenAI Realtime API for real-time voice and text conversion.'
+    policyDocument: 'NA'
+    enableAPIDeployment: true
+    apiType: 'websocket'
+    apiProtocols: ['wss']
+  }
+  dependsOn: [
+    aadAuthPolicyFragment
+    validateRoutesPolicyFragment
+    backendRoutingPolicyFragment
     throttlingEventsPolicyFragment
   ]
 }
