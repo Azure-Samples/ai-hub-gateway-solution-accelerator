@@ -166,19 +166,6 @@ param openAiInstances object = {
           capacity: deploymentCapacity
         }
       }
-      {
-        name: 'dall-e-3'
-        location: 'eastus'
-        model: {
-          format: 'OpenAI'
-          name: 'dall-e-3'
-          version: '3.0'
-        }
-        sku: {
-          name: 'Standard'
-          capacity: 1
-        }
-      }
     ]
   }
   openAi2: {
