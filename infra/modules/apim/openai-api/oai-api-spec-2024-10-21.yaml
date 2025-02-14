@@ -86,15 +86,21 @@ paths:
           name: deployment-id
           required: true
           schema:
+            enum:
+              - embedding
             type: string
             example: ada-search-index-v1
+            default: embedding
           description: The deployment id of the model which was deployed.
         - in: query
           name: api-version
           required: true
           schema:
             type: string
+            enum:
+              - '2024-10-21'
             example: '2024-10-21'
+            default: '2024-10-21'
             description: api version
       requestBody:
         required: true
@@ -141,6 +147,8 @@ paths:
                   nullable: true
               required:
                 - input
+            example:
+              input: APIM love OpenAI
       responses:
         "200":
           description: OK
@@ -198,12 +206,19 @@ paths:
           required: true
           schema:
             type: string
+            default: chat
             description: Deployment id of the model which was deployed.
+            enum:
+              - chat
+              - gpt-4o
         - in: query
           name: api-version
           required: true
           schema:
+            enum:
+              - '2024-10-21'
             type: string
+            default: '2024-10-21'
             example: '2024-10-21'
             description: api version
       requestBody:
@@ -212,6 +227,13 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/createChatCompletionRequest"
+            example:
+              model: chat
+              messages:
+                - role: system
+                  content: You are a helpful assistant that responds in Markdown. Help me with my math homework!
+                - role: user
+                  content: How to calculate the distance between earth and moon?
       responses:
         "200":
           description: OK

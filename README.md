@@ -7,8 +7,6 @@ The AI Hub Gateway Landing Zone architecture designed to be a central hub for AI
 
 ![AI Hub Gateway Landing Zone](./assets/architecture-1-0-6.png)
 
->NOTE: The V2 version is still work in progress and more features and capabilities will be added to the solution accelerator.
-
 ### Key features
 
 ![ai-hub-gateway-benefits.png](./assets/ai-hub-gateway-benefits.png)
@@ -25,7 +23,6 @@ Now this solution accelerator is updated to be **enterprise ready** with the fol
 - **Azure OpenAI API spec version** was updated to ```2024-05-01-preview``` to bring APIs for audio and batch among other advancements (note it is backward compatible with previous versions)
 - **AI usage reports enhancements** with Cosmos Db now include a container for ```model-pricing``` which include the $ pricing for AI models tokens ([sample data can be found here](./src/usage-reports/model-pricing.json)), along with updated PowerBI dashboard design.
 - **Private connectivity** now can be enabled by setting APIM deployment to External or Internal (require SKU to be either Developer or Premium) and it will provision all included Azure resources like (Azure OpenAI, Cosmos, Event Hub,...) with private endpoints.
-- **Usage ingestion** is now implemented with Azure Function to support ingesting usage data from Event Hub to Cosmos Db with full private connectivity support.
 
 The AI Hub Gateway Landing Zone provides the following features:
 

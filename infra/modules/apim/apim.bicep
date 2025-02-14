@@ -39,6 +39,11 @@ var openAiApiAudienceNamedValue = 'audience'
 
 var apiManagementMinApiVersion = '2021-08-01'
 
+// Add this variable near the top with other variables
+// var apimZones = sku == 'Premium' && skuCount > 1 ? ['1','2','3'] : []
+// Replace the existing apimZones variable
+var apimZones = (sku == 'Premium' && skuCount > 1) ? (skuCount == 2 ? ['1','2'] : ['1','2','3']) : []
+
 resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing = {
   name: applicationInsightsName
 }
@@ -93,6 +98,7 @@ resource apimService 'Microsoft.ApiManagement/service@2021-08-01' = {
       'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Backend.Protocols.Ssl30': 'false'
     }
   }
+  zones: apimZones
 }
 
 module apimOpenaiApi './api.bicep' = {
