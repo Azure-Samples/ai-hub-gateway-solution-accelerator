@@ -18,9 +18,27 @@ In this accelerator, we will be using Power BI to create a dashboard that will d
 
 > **Note:** Pricing in the sample file is based on the public Azure pricing for East US region (which in many cases similar to other regions). You can review the prices on Azure docs related to the service being used and update the ```model-pricing``` accordingly.
 
+Below is a sample pricing entry for gpt-4o:
+
+```json
+{
+    "id": "4",
+    "model": "gpt-4o",
+    "deploymentName": "gpt-4o",
+    "isActive": true,
+    "CostPerInputUnit": 0.005,
+    "CostPerOutputUnit": 0.015,
+    "CostUnit": 1000,
+    "BaseCost": 0,
+    "Currency": "USD",
+    "CalculationMethod": "tokens",
+    "region": "ALL"
+}
+```
+
 ## Preparing the Power BI Dashboard
 
-Now you can open the [src/usage-reports/AI-Hub-Gateway-Usage-Report-v1-4.pbix](../src/usage-reports/AI-Hub-Gateway-Usage-Report-v1-4.pbix) file in the Power BI Desktop application.
+Now you can open the [src/usage-reports/AI-Hub-Gateway-Usage-Report-v1-5-Incremetal.pbix](../src/usage-reports/AI-Hub-Gateway-Usage-Report-v1-5-Incremetal.pbix) file in the Power BI Desktop application.
 
 As this PowerBI file is using import mode, you should see some data already there from previously connected data source.
 

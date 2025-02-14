@@ -25,6 +25,13 @@ param apimServiceName string = ''
 @allowed([ 'None', 'External', 'Internal' ])
 param apimNetworkType string = 'External'
 
+@description('API Management service SKU. Due to networking constraints, only Developer and Premium are supported.')
+@allowed([ 'Developer', 'Premium' ])
+param apimSku string = 'Developer'
+
+@description('API Management service SKU units.')
+param apimSkuUnits int = 1
+
 @description('Azure OpenAI service public access')
 @allowed([ 'Enabled', 'Disabled' ])
 param openAIExternalNetworkAccess string = 'Disabled'
@@ -462,6 +469,8 @@ module apim './modules/apim/apim.bicep' = {
     apimNetworkType: apimNetworkType
     enableAzureAISearch: enableAzureAISearch
     aiSearchInstances: aiSearchInstances
+    sku: apimSku
+    skuCount: apimSkuUnits
   }
   dependsOn: [
     vnet
