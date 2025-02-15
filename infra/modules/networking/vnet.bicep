@@ -15,7 +15,7 @@ param functionAppSubnetAddressPrefix string
 param tags object = {}
 
 // Set to true to enable service endpoints for APIM subnet
-param enableServiceEndpointsForAPIM bool = false
+param enableServiceEndpointsForAPIM bool = true
 
 resource apimNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
   name: apimNsgName
@@ -207,7 +207,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
             {
               service: 'Microsoft.Storage'
             }
-          ]
+          ] : []
         }
       }
       {

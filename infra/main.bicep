@@ -82,9 +82,11 @@ param logicContentShareName string = 'usage-logic-content'
 param provisionStreamAnalytics bool = false
 
 @description('This is to use Azure Monitor Private Link Scope for Log Analytics and Application Insights. If exsiting vnet is used, this should not be enabled')
-param useAzureMonitorPrivateLinkScope bool = true
+param useAzureMonitorPrivateLinkScope bool = !useExistingVnet
 
 //Networking - VNet
+
+// ONLY for using existing VNet, set useExistingVnet to true and provide the existing VNet details
 param useExistingVnet bool = false
 param existingVnetRG string = ''
 param vnetName string = ''
@@ -92,6 +94,11 @@ param apimSubnetName string = ''
 param privateEndpointSubnetName string = ''
 param functionAppSubnetName string = ''
 
+// ONLY for existing VNet - Existing Private DNS zones mapping
+param dnsZoneRG string = ''
+param dnsSubscriptionId string = ''
+
+// Networking - NSG naming (leave blank to use default naming conventions)
 param apimNsgName string = ''
 param privateEndpointNsgName string = ''
 param functionAppNsgName string = ''
@@ -102,9 +109,7 @@ param apimSubnetPrefix string = '10.170.0.0/26'
 param privateEndpointSubnetPrefix string = '10.170.0.64/26'
 param functionAppSubnetPrefix string = '10.170.0.128/26'
 
-// Networking - Private DNS
-param dnsZoneRG string = ''
-param dnsSubscriptionId string = ''
+
 
 var openAiPrivateDnsZoneName = 'privatelink.openai.azure.com'
 var keyVaultPrivateDnsZoneName = 'privatelink.vaultcore.azure.net'
@@ -150,11 +155,11 @@ param openAiInstances object = {
         
       }
       {
-        name: embeddingGptDeploymentName
+        name: 'embedding'
         model: {
           format: 'OpenAI'
-          name: embeddingGptModelName
-          version: embeddingGptModelVersion
+          name: 'text-embedding-3-large'
+          version: '1'
         }
         sku: {
           name: 'Standard'
@@ -193,11 +198,11 @@ param openAiInstances object = {
         
       }
       {
-        name: embeddingGptDeploymentName
+        name: 'embedding'
         model: {
           format: 'OpenAI'
-          name: embeddingGptModelName
-          version: embeddingGptModelVersion
+          name: 'text-embedding-3-large'
+          version: '1'
         }
         sku: {
           name: 'Standard'
@@ -224,11 +229,11 @@ param openAiInstances object = {
         
       }
       {
-        name: embeddingGptDeploymentName
+        name: 'embedding'
         model: {
           format: 'OpenAI'
-          name: embeddingGptModelName
-          version: embeddingGptModelVersion
+          name: 'text-embedding-3-large'
+          version: '1'
         }
         sku: {
           name: 'Standard'
@@ -255,26 +260,9 @@ param aiSearchInstances array = [
   }
 ]
 
+// OpenAI settings
 @description('SKU name for OpenAI.')
 param openAiSkuName string = 'S0'
-
-@description('Version of the Chat GPT model.')
-param chatGptModelVersion string = '0613'
-
-@description('Name of the Chat GPT deployment.')
-param chatGptDeploymentName string = 'chat'
-
-@description('Name of the Chat GPT model.')
-param chatGptModelName string = 'gpt-35-turbo'
-
-@description('Name of the embedding model.')
-param embeddingGptModelName string = 'text-embedding-ada-002'
-
-@description('Version of the embedding model.')
-param embeddingGptModelVersion string = '2'
-
-@description('Name of the embedding deployment.')
-param embeddingGptDeploymentName string = 'embedding'
 
 @description('The OpenAI endpoints capacity (in thousands of tokens per minute)')
 param deploymentCapacity int = 20
@@ -302,7 +290,7 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   tags: tags
 }
 
-module dnsDeployment './modules/networking/dns.bicep' = [for privateDnsZoneName in privateDnsZoneNames: {
+module dnsDeployment './modules/networking/dns.bicep' = [for privateDnsZoneName in privateDnsZoneNames: if(!useExistingVnet) {
   name: 'dns-deployment-${privateDnsZoneName}'
   scope: resourceGroup
   params: {
