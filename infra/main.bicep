@@ -22,7 +22,7 @@ param identityName string = ''
 param apimServiceName string = ''
 
 @description('Network type for API Management service. Leave blank to use default naming conventions.')
-@allowed([ 'None', 'External', 'Internal' ])
+@allowed([ 'External', 'Internal' ])
 param apimNetworkType string = 'External'
 
 @description('API Management service SKU. Due to networking constraints, only Developer and Premium are supported.')

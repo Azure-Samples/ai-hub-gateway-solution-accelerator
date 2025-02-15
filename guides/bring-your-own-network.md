@@ -277,7 +277,9 @@ Accelerator provision APIM by default as ```External``` gateway, which means tha
 
 This to allow the accelerator to be accessible as soon as the deployment completes.
 
-This can be changed in the main.bicep. The following parameters need to be updated:
+This can be changed in the [main.bicep](../infra/main.bicep). 
+
+The following parameter can be updated to internal if needed:
 
 ```bicep
 description('Network type for API Management service. Leave blank to use default naming conventions.')
