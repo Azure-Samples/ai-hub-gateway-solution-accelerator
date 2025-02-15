@@ -1,5 +1,7 @@
 # Application name
 name: ai-hub-gateway-landing-zone
+metadata:
+  template: ai-hub-gateway-landing-zone-v2
 infra:
   provider: bicep
 services:

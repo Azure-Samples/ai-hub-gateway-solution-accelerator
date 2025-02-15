@@ -1,0 +1,43 @@
+<policies>
+    <inbound>
+        <base />
+        <!-- AAD Authorization -->
+        <!-- Enabled if entra-validate named value is set to true -->
+        <include-fragment fragment-id="aad-auth" />
+        
+        <!-- Deleting api-key header to it is not passed to OpenAI endpoint-->
+        <set-header name="api-key" exists-action="delete" />
+        
+        <!-- Backend Managed Identity -->
+        <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="msi-access-token" client-id="{{uami-client-id}}" ignore-error="false" />
+        <set-header name="Authorization" exists-action="override">
+            <value>@("Bearer " + (string)context.Variables["msi-access-token"])</value>
+        </set-header>
+        
+        <!-- Set the backend service URL based on the product name -->
+        <choose>
+            <when condition="@(context.Product.Name == "REPLACE1")">
+                <set-backend-service base-url="wss://REPLACE.openai.azure.com/openai/realtime://backend-for-product-a.com" />
+            </when>
+            <when condition="@(context.Product.Name == "REPLACE2")">
+                <set-backend-service base-url="wss://REPLACE.openai.azure.com/openai/realtime" />
+            </when>
+            <otherwise>
+                <set-backend-service base-url="wss://REPLACE.openai.azure.com/openai/realtime" />
+            </otherwise>
+        </choose>
+    </inbound>
+    <!-- Control if and how the requests are forwarded to services  -->
+    <backend>
+        <base />
+        <!--<include-fragment fragment-id="backend-routing" />-->
+    </backend>
+    <!-- Customize the responses -->
+    <outbound>
+        <base />
+    </outbound>
+    <!-- Handle exceptions and customize error responses  -->
+    <on-error>
+        <base />
+    </on-error>
+</policies>

@@ -1,4 +1,4 @@
-# Bring you own network
+# Bring your own network
 
 This guide will walkthrough how to bring your own network to the platform.
 
@@ -164,7 +164,7 @@ resource apimNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
 }
 ```
 
-Also important point if this subnet has a route table, it should include a route to handle APIM management traffic.
+Also important point if this subnet has a route table, it should include a route to handle APIM management control plane traffic.
 
 ```bicep
 resource apimRouteTable 'Microsoft.Network/routeTables@2023-11-01' = {
@@ -185,6 +185,15 @@ resource apimRouteTable 'Microsoft.Network/routeTables@2023-11-01' = {
   }
 }
 ```
+
+If there is a forced tunneling applied on the subnet (directly through route table or in-directly through BGP), you need to enable service endpoints for the following services (only on the APIM subnet):
+
+- Azure Active Directory
+- Event Hubs
+- Key Vault
+- Service Bus
+- SQL Database
+- Storage
 
 ### Function app subnet
 
@@ -249,6 +258,8 @@ var eventHubPrivateDnsZoneName = 'privatelink.servicebus.windows.net'
 var cosmosDbPrivateDnsZoneName = 'privatelink.documents.azure.com'
 var storageBlobPrivateDnsZoneName = 'privatelink.blob.core.windows.net'
 var storageFilePrivateDnsZoneName = 'privatelink.file.core.windows.net'
+var storageTablePrivateDnsZoneName = 'privatelink.table.core.windows.net'
+var storageQueuePrivateDnsZoneName = 'privatelink.queue.core.windows.net'
 ```
 
 Depending on the setup you have for managing private dns zones, you have these options:
@@ -256,3 +267,25 @@ Depending on the setup you have for managing private dns zones, you have these o
 - If the provisioner has ```Network Contributor``` role on the existing private zones, you can use the existing zones by updating the following information in the (main.bicep)[../infra/main.bicep] as outline in the next section
 - If the provisioner does not have the required permissions, leave both ```dnsZoneRG``` and ```dnsSubscriptionId``` empty and the script will create the required private zones so it can associate it with the private endpoint configurations. 
     - In this case, you can update the central dns zones directly with the endpoints records or just configure the private endpoint directly to use the central zones.
+
+For Azure Monitor resources, this needs to be configured after the deployment as it has a special private link service that needs to be centralized across all networks and subscriptions.
+
+
+### API Management Internal Mode
+
+Accelerator provision APIM by default as ```External``` gateway, which means that it is still fully provisioned in the network, but it has a public endpoint.
+
+This to allow the accelerator to be accessible as soon as the deployment completes.
+
+This can be changed in the [main.bicep](../infra/main.bicep). 
+
+The following parameter can be updated to internal if needed:
+
+```bicep
+description('Network type for API Management service. Leave blank to use default naming conventions.')
+@allowed([ 'None', 'External', 'Internal' ])
+param apimNetworkType string = 'External'
+```
+
+If you are using the internal mode, you need to make sure that the DNS resolution is configured as mentioned in the prerequisites of this guide.
+

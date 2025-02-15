@@ -7,8 +7,6 @@ The AI Hub Gateway Landing Zone architecture designed to be a central hub for AI
 
 ![AI Hub Gateway Landing Zone](./assets/architecture-1-0-6.png)
 
->NOTE: The V2 version is still work in progress and more features and capabilities will be added to the solution accelerator.
-
 ### Key features
 
 ![ai-hub-gateway-benefits.png](./assets/ai-hub-gateway-benefits.png)
@@ -19,13 +17,12 @@ The AI Hub Gateway Landing Zone architecture designed to be a central hub for AI
 Now this solution accelerator is updated to be **enterprise ready** with the following features:
 
 - **Improved OpenAI Usage Ingestion** with the ability to ingest usage data from Azure OpenAI API for both streaming and non-streaming requests. [Check the guide here](./guides/openai-usage-ingestion.md)
-- **Bring your own VNet** is now supported with the ability to deploy the AI Hub Gateway Landing Zone in your own VNet. [Check the guide here](./guides/bring-you-own-network.md)
+- **Bring your own VNet** is now supported with the ability to deploy the AI Hub Gateway Landing Zone in your own VNet. [Check the guide here](./guides/bring-your-own-network.md)
 - **Throttling events monitoring** is now supported with the ability to capture and raise ```429``` too many requests status code as a custom metric in Application Insights. [Check the guide here](./guides/throttling-events-handling.md)
 - **New gpt-4o Global Deployment** is now part of the OpenAI resource provisioning
 - **Azure OpenAI API spec version** was updated to ```2024-05-01-preview``` to bring APIs for audio and batch among other advancements (note it is backward compatible with previous versions)
 - **AI usage reports enhancements** with Cosmos Db now include a container for ```model-pricing``` which include the $ pricing for AI models tokens ([sample data can be found here](./src/usage-reports/model-pricing.json)), along with updated PowerBI dashboard design.
 - **Private connectivity** now can be enabled by setting APIM deployment to External or Internal (require SKU to be either Developer or Premium) and it will provision all included Azure resources like (Azure OpenAI, Cosmos, Event Hub,...) with private endpoints.
-- **Usage ingestion** is now implemented with Azure Function to support ingesting usage data from Event Hub to Cosmos Db with full private connectivity support.
 
 The AI Hub Gateway Landing Zone provides the following features:
 
@@ -113,31 +110,7 @@ param openAiInstances object = {
           capacity: deploymentCapacity
         }
       }
-      {
-        name: 'gpt-4o'
-        model: {
-          format: 'OpenAI'
-          name: 'gpt-4o'
-          version: '2024-05-13'
-        }
-        sku: {
-          name: 'GlobalStandard'
-          capacity: deploymentCapacity
-        }
-      }
-      {
-        name: 'dall-e-3'
-        location: 'eastus'
-        model: {
-          format: 'OpenAI'
-          name: 'dall-e-3'
-          version: '3.0'
-        }
-        sku: {
-          name: 'Standard'
-          capacity: 1
-        }
-      }
+      ...
     ]
   }
   openAi2: {
@@ -172,7 +145,7 @@ azd up
 # You can also use to provision only the infrastructure
 # azd provision
 
-# You can also use this to deploy the Azure Function code (given that infrastructure is already deployed)
+# You can also use this to deploy the associated Logic App workflows code (given that infrastructure is already deployed)
 # azd deploy
 
 ```
@@ -194,7 +167,7 @@ To dive deeper into the AI Hub Gateway technical mechanics, you can check out th
 - [Deployment components](./guides/deployment.md)
 - [API Management configuration](./guides/apim-configuration.md)
 - [OpenAI Usage Ingestion](./guides/openai-usage-ingestion.md)
-- [Bring your own vnet](./guides/bring-you-own-network.md)
+- [Bring your own Network](./guides/bring-your-own-network.md)
 
 ### Onboarding guides
 - [OpenAI Onboarding](./guides/openai-onboarding.md)

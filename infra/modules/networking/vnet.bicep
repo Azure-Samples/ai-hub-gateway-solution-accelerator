@@ -14,6 +14,9 @@ param privateEndpointSubnetAddressPrefix string
 param functionAppSubnetAddressPrefix string
 param tags object = {}
 
+// Set to true to enable service endpoints for APIM subnet
+param enableServiceEndpointsForAPIM bool = true
+
 resource apimNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
   name: apimNsgName
   location: location
@@ -185,6 +188,26 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
           routeTable: {
             id: apimRouteTable.id
           }
+          serviceEndpoints: enableServiceEndpointsForAPIM ? [
+            {
+              service: 'Microsoft.AzureActiveDirectory'
+            }
+            {
+              service: 'Microsoft.EventHub'
+            }
+            {
+              service: 'Microsoft.KeyVault'
+            }
+            {
+              service: 'Microsoft.ServiceBus'
+            }
+            {
+              service: 'Microsoft.Sql'
+            }
+            {
+              service: 'Microsoft.Storage'
+            }
+          ] : []
         }
       }
       {

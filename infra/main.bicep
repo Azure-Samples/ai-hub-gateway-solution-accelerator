@@ -7,7 +7,7 @@ param environmentName string
 
 @minLength(1)
 @description('Primary location for all resources (filtered on available regions for Azure Open AI Service).')
-@allowed([ 'westeurope', 'southcentralus', 'australiaeast', 'canadaeast', 'eastus', 'eastus2', 'francecentral', 'japaneast', 'northcentralus', 'swedencentral', 'switzerlandnorth', 'uksouth' ])
+@allowed([ 'uaenorth', 'sothafricanorth', 'westeurope', 'southcentralus', 'australiaeast', 'canadaeast', 'eastus', 'eastus2', 'francecentral', 'japaneast', 'northcentralus', 'swedencentral', 'switzerlandnorth', 'uksouth' ])
 param location string
 
 //Leave blank to use default naming conventions
@@ -22,8 +22,15 @@ param identityName string = ''
 param apimServiceName string = ''
 
 @description('Network type for API Management service. Leave blank to use default naming conventions.')
-@allowed([ 'None', 'External', 'Internal' ])
+@allowed([ 'External', 'Internal' ])
 param apimNetworkType string = 'External'
+
+@description('API Management service SKU. Due to networking constraints, only Developer and Premium are supported.')
+@allowed([ 'Developer', 'Premium' ])
+param apimSku string = 'Developer'
+
+@description('API Management service SKU units.')
+param apimSkuUnits int = 1
 
 @description('Azure OpenAI service public access')
 @allowed([ 'Enabled', 'Disabled' ])
@@ -74,7 +81,12 @@ param logicContentShareName string = 'usage-logic-content'
 @description('Provision stream analytics job, turn it on only if you need it. Azure Function App will be provisioned to process usage data from Event Hub.')
 param provisionStreamAnalytics bool = false
 
+@description('This is to use Azure Monitor Private Link Scope for Log Analytics and Application Insights. If exsiting vnet is used, this should not be enabled')
+param useAzureMonitorPrivateLinkScope bool = !useExistingVnet
+
 //Networking - VNet
+
+// ONLY for using existing VNet, set useExistingVnet to true and provide the existing VNet details
 param useExistingVnet bool = false
 param existingVnetRG string = ''
 param vnetName string = ''
@@ -82,6 +94,11 @@ param apimSubnetName string = ''
 param privateEndpointSubnetName string = ''
 param functionAppSubnetName string = ''
 
+// ONLY for existing VNet - Existing Private DNS zones mapping
+param dnsZoneRG string = ''
+param dnsSubscriptionId string = ''
+
+// Networking - NSG naming (leave blank to use default naming conventions)
 param apimNsgName string = ''
 param privateEndpointNsgName string = ''
 param functionAppNsgName string = ''
@@ -92,9 +109,7 @@ param apimSubnetPrefix string = '10.170.0.0/26'
 param privateEndpointSubnetPrefix string = '10.170.0.64/26'
 param functionAppSubnetPrefix string = '10.170.0.128/26'
 
-// Networking - Private DNS
-param dnsZoneRG string = ''
-param dnsSubscriptionId string = ''
+
 
 var openAiPrivateDnsZoneName = 'privatelink.openai.azure.com'
 var keyVaultPrivateDnsZoneName = 'privatelink.vaultcore.azure.net'
@@ -127,22 +142,24 @@ param openAiInstances object = {
     location: 'eastus'
     deployments: [
       {
-        name: chatGptDeploymentName
+        name: 'chat'
         model: {
           format: 'OpenAI'
-          name: chatGptModelName
-          version: chatGptModelVersion
+          name: 'gpt-4o-mini'
+          version: '2024-07-18'
         }
-        scaleSettings: {
-          scaleType: 'Standard'
+        sku: {
+          name: 'Standard'
+          capacity: deploymentCapacity
         }
+        
       }
       {
-        name: embeddingGptDeploymentName
+        name: 'embedding'
         model: {
           format: 'OpenAI'
-          name: embeddingGptModelName
-          version: embeddingGptModelVersion
+          name: 'text-embedding-3-large'
+          version: '1'
         }
         sku: {
           name: 'Standard'
@@ -161,19 +178,6 @@ param openAiInstances object = {
           capacity: deploymentCapacity
         }
       }
-      {
-        name: 'dall-e-3'
-        location: 'eastus'
-        model: {
-          format: 'OpenAI'
-          name: 'dall-e-3'
-          version: '3.0'
-        }
-        sku: {
-          name: 'Standard'
-          capacity: 1
-        }
-      }
     ]
   }
   openAi2: {
@@ -181,27 +185,17 @@ param openAiInstances object = {
     location: 'northcentralus'
     deployments: [
       {
-        name: chatGptDeploymentName
+        name: 'chat'
         model: {
           format: 'OpenAI'
-          name: chatGptModelName
-          version: chatGptModelVersion
-        }
-        scaleSettings: {
-          scaleType: 'Standard'
-        }
-      }
-      {
-        name: embeddingGptDeploymentName
-        model: {
-          format: 'OpenAI'
-          name: embeddingGptModelName
-          version: embeddingGptModelVersion
+          name: 'gpt-4o-mini'
+          version: '2024-07-18'
         }
         sku: {
           name: 'Standard'
           capacity: deploymentCapacity
         }
+        
       }
     ]
   }
@@ -210,22 +204,24 @@ param openAiInstances object = {
     location: 'eastus2'
     deployments: [
       {
-        name: chatGptDeploymentName
+        name: 'chat'
         model: {
           format: 'OpenAI'
-          name: chatGptModelName
-          version: chatGptModelVersion
+          name: 'gpt-4o-mini'
+          version: '2024-07-18'
         }
-        scaleSettings: {
-          scaleType: 'Standard'
+        sku: {
+          name: 'Standard'
+          capacity: deploymentCapacity
         }
+        
       }
       {
-        name: embeddingGptDeploymentName
+        name: 'embedding'
         model: {
           format: 'OpenAI'
-          name: embeddingGptModelName
-          version: embeddingGptModelVersion
+          name: 'text-embedding-3-large'
+          version: '1'
         }
         sku: {
           name: 'Standard'
@@ -252,26 +248,9 @@ param aiSearchInstances array = [
   }
 ]
 
+// OpenAI settings
 @description('SKU name for OpenAI.')
 param openAiSkuName string = 'S0'
-
-@description('Version of the Chat GPT model.')
-param chatGptModelVersion string = '0613'
-
-@description('Name of the Chat GPT deployment.')
-param chatGptDeploymentName string = 'chat'
-
-@description('Name of the Chat GPT model.')
-param chatGptModelName string = 'gpt-35-turbo'
-
-@description('Name of the embedding model.')
-param embeddingGptModelName string = 'text-embedding-ada-002'
-
-@description('Version of the embedding model.')
-param embeddingGptModelVersion string = '2'
-
-@description('Name of the embedding deployment.')
-param embeddingGptDeploymentName string = 'embedding'
 
 @description('The OpenAI endpoints capacity (in thousands of tokens per minute)')
 param deploymentCapacity int = 20
@@ -299,7 +278,7 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   tags: tags
 }
 
-module dnsDeployment './modules/networking/dns.bicep' = [for privateDnsZoneName in privateDnsZoneNames: {
+module dnsDeployment './modules/networking/dns.bicep' = [for privateDnsZoneName in privateDnsZoneNames: if(!useExistingVnet) {
   name: 'dns-deployment-${privateDnsZoneName}'
   scope: resourceGroup
   params: {
@@ -386,6 +365,7 @@ module monitoring './modules/monitor/monitoring.bicep' = {
     createDashboard: createAppInsightsDashboard
     dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
+    usePrivateLinkScope: useAzureMonitorPrivateLinkScope
   }
   dependsOn: [
     vnet
@@ -465,6 +445,8 @@ module apim './modules/apim/apim.bicep' = {
     apimNetworkType: apimNetworkType
     enableAzureAISearch: enableAzureAISearch
     aiSearchInstances: aiSearchInstances
+    sku: apimSku
+    skuCount: apimSkuUnits
   }
   dependsOn: [
     vnet

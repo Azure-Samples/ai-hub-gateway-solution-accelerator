@@ -22,6 +22,10 @@ param eventHubEndpoint string
 param enableAzureAISearch bool = false
 param aiSearchInstances array
 
+param enableAIModelInference bool = true
+
+param enableOpenAIRealtime bool = true
+
 // Networking
 param apimNetworkType string = 'External'
 param apimSubnetId string
@@ -32,6 +36,13 @@ var openAiApiEntraNamedValue = 'entra-auth'
 var openAiApiClientNamedValue = 'client-id'
 var openAiApiTenantNamedValue = 'tenant-id'
 var openAiApiAudienceNamedValue = 'audience'
+
+var apiManagementMinApiVersion = '2021-08-01'
+
+// Add this variable near the top with other variables
+// var apimZones = sku == 'Premium' && skuCount > 1 ? ['1','2','3'] : []
+// Replace the existing apimZones variable
+var apimZones = (sku == 'Premium' && skuCount > 1) ? (skuCount == 2 ? ['1','2'] : ['1','2','3']) : []
 
 resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing = {
   name: applicationInsightsName
@@ -66,6 +77,9 @@ resource apimService 'Microsoft.ApiManagement/service@2021-08-01' = {
     virtualNetworkConfiguration: {
       subnetResourceId: apimSubnetId
     }
+    apiVersionConstraint: {
+      minApiVersion: apiManagementMinApiVersion
+    }
     // Custom properties are not supported for Consumption SKU
     customProperties: sku == 'Consumption' ? {} : {
       'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Ciphers.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA': 'false'
@@ -84,6 +98,7 @@ resource apimService 'Microsoft.ApiManagement/service@2021-08-01' = {
       'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Backend.Protocols.Ssl30': 'false'
     }
   }
+  zones: apimZones
 }
 
 module apimOpenaiApi './api.bicep' = {
@@ -96,7 +111,7 @@ module apimOpenaiApi './api.bicep' = {
     apiDispalyName: 'Azure OpenAI API'
     subscriptionRequired: entraAuth ? false:true
     subscriptionKeyName: 'api-key'
-    openApiSpecification: string(loadYamlContent('./openai-api/oai-api-spec-2024-06-01.yaml'))
+    openApiSpecification: string(loadYamlContent('./openai-api/oai-api-spec-2024-10-21.yaml'))
     apiDescription: 'Azure OpenAI API'
     policyDocument: loadTextContent('./policies/openai_api_policy.xml')
     enableAPIDeployment: true
@@ -126,7 +141,7 @@ module apimAiSearchApi './api.bicep' = if (enableAzureAISearch) {
     openApiSpecification: loadTextContent('./ai-search-api/ai-search-api-spec.yaml')
     apiDescription: 'Azure AI Search APIs'
     policyDocument: loadTextContent('./policies/ai-search-api-policy.xml')
-    enableAPIDeployment: enableAzureAISearch
+    enableAPIDeployment: true
   }
   dependsOn: [
     aadAuthPolicyFragment
@@ -137,13 +152,63 @@ module apimAiSearchApi './api.bicep' = if (enableAzureAISearch) {
   ]
 }
 
+module apimAiModelInferenceApi './api.bicep' = if (enableAIModelInference) {
+  name: 'ai-model-inference-api'
+  params: {
+    serviceName: apimService.name
+    apiName: 'ai-model-inference-api'
+    path: 'models'
+    apiRevision: '1'
+    apiDispalyName: 'AI Model Inference API'
+    subscriptionRequired: entraAuth ? false:true
+    subscriptionKeyName: 'api-key'
+    openApiSpecification: loadTextContent('./ai-model-inference/ai-model-inference-api-spec.yaml')
+    apiDescription: 'Access to AI inference models published through Azure AI Foundry'
+    policyDocument: loadTextContent('./policies/ai-model-inference-api-policy.xml')
+    enableAPIDeployment: true
+  }
+  dependsOn: [
+    aadAuthPolicyFragment
+    validateRoutesPolicyFragment
+    backendRoutingPolicyFragment
+    aiUsagePolicyFragment
+    throttlingEventsPolicyFragment
+  ]
+}
+
+module apimOpenAIRealTimetApi './api.bicep' = if (enableOpenAIRealtime) {
+  name: 'openai-realtime-ws-api'
+  params: {
+    serviceName: apimService.name
+    apiName: 'openai-realtime-ws-api'
+    path: 'openai/realtime'
+    apiRevision: '1'
+    apiDispalyName: 'Azure OpenAI Realtime API'
+    subscriptionRequired: entraAuth ? false : true
+    subscriptionKeyName: 'api-key'
+    openApiSpecification: 'NA'
+    apiDescription: 'Access Azure OpenAI Realtime API for real-time voice and text conversion.'
+    policyDocument: 'NA'
+    enableAPIDeployment: true
+    serviceUrl: 'wss://to-be-replaced-by-policy'
+    apiType: 'websocket'
+    apiProtocols: ['wss']
+  }
+  dependsOn: [
+    aadAuthPolicyFragment
+    validateRoutesPolicyFragment
+    backendRoutingPolicyFragment
+    throttlingEventsPolicyFragment
+  ]
+}
+
 // Create AI-Retail product
 resource retailProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
-  name: 'ai-retail'
+  name: 'oai-retail-assistant'
   parent: apimService
   properties: {
-    displayName: 'AI-Retail'
-    description: 'Offering AI services for the retail and e-commerce platforms.'
+    displayName: 'OAI-Retail-Assistant'
+    description: 'Offering OpenAI services for the retail and e-commerce platforms assistant.'
     subscriptionRequired: true
     approvalRequired: true
     subscriptionsLimit: 200
@@ -173,7 +238,7 @@ resource retailProductPolicy 'Microsoft.ApiManagement/service/products/policies@
 }
 
 resource retailSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-01' = {
-  name: 'ai-retail-internal-sub'
+  name: 'oai-retail-assistant-sub-01'
   parent: apimService
   properties: {
     displayName: 'AI-Retail-Internal-Subscription'
@@ -184,11 +249,11 @@ resource retailSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-
 
 // Create AI-HR product
 resource hrProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
-  name: 'ai-hr'
+  name: 'oai-hr-assistant'
   parent: apimService
   properties: {
-    displayName: 'AI-HR'
-    description: 'Offering AI services for the internal HR platforms.'
+    displayName: 'OAI-HR-Assistant'
+    description: 'Offering OpenAI services for the internal HR platforms.'
     subscriptionRequired: true
     approvalRequired: true
     subscriptionsLimit: 200
@@ -218,10 +283,10 @@ resource hrProductPolicy 'Microsoft.ApiManagement/service/products/policies@2022
 }
 
 resource hrSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-01' = {
-  name: 'hr-retail-internal-sub'
+  name: 'oai-hr-assistant-sub-01'
   parent: apimService
   properties: {
-    displayName: 'AI-HR-Internal-Subscription'
+    displayName: 'OAI-HR-Assistant-Sub-01'
     state: 'active'
     scope: hrProduct.id
   }
@@ -229,10 +294,10 @@ resource hrSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-0
 
 // Create Search-HR product
 resource searchHRProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = if(enableAzureAISearch) {
-  name: 'search-hr'
+  name: 'src-hr-assistant'
   parent: apimService
   properties: {
-    displayName: 'Search-HR'
+    displayName: 'SRC-HR-Assistant'
     description: 'Offering AI Search services for the HR systems.'
     subscriptionRequired: true
     approvalRequired: true
@@ -243,7 +308,7 @@ resource searchHRProduct 'Microsoft.ApiManagement/service/products@2022-08-01' =
 }
 
 resource searchHRProductAISearchApi 'Microsoft.ApiManagement/service/products/apiLinks@2023-05-01-preview' = if (enableAzureAISearch) {
-  name: 'search-hr-product-ai-search-api'
+  name: 'src-hr-product-ai-search-api'
   parent: searchHRProduct
   properties: {
     apiId: apimAiSearchApi.outputs.id
@@ -260,10 +325,10 @@ resource searchHRProductProductPolicy 'Microsoft.ApiManagement/service/products/
 }
 
 resource searchHRSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-01' = if (enableAzureAISearch) {
-  name: 'search-hr-internal-sub'
+  name: 'src-hr-assistant-sub-01'
   parent: apimService
   properties: {
-    displayName: 'Search-HR-Internal-Subscription'
+    displayName: 'SRC-HR-Assistant-Sub-01'
     state: 'active'
     scope: searchHRProduct.id
   }
