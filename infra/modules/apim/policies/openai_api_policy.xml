@@ -40,8 +40,8 @@
                             // Adding all Azure OpenAI endpoints routes (which are set as APIM Backend)
                             routes.Add(new JObject()
                             {
-                                { "name", "EastUS" },
-                                { "location", "eastus" },
+                                { "name", "OpenAI 1" },
+                                { "location", "East US" },
                                 { "backend-id", "openai-backend-0" },
                                 { "priority", 1},
                                 { "isThrottling", false }, 
@@ -50,8 +50,8 @@
 
                             routes.Add(new JObject()
                             {
-                                { "name", "NorthCentralUS" },
-                                { "location", "northcentralus" },
+                                { "name", "OpenAI 2" },
+                                { "location", "North Central US" },
                                 { "backend-id", "openai-backend-1" },
                                 { "priority", 2},
                                 { "isThrottling", false },
@@ -60,8 +60,8 @@
 
                             routes.Add(new JObject()
                             {
-                                { "name", "EastUS2" },
-                                { "location", "eastus2" },
+                                { "name", "OpenAI 3" },
+                                { "location", "East US 2" },
                                 { "backend-id", "openai-backend-2" },
                                 { "priority", 2},
                                 { "isThrottling", false },
@@ -79,13 +79,7 @@
                             clusters.Add(new JObject()
                             {
                                 { "deploymentName", "embedding" },
-                                { "routes", new JArray(routes[0], routes[1], routes[2]) }
-                            });
-
-                            clusters.Add(new JObject()
-                            {
-                                { "deploymentName", "dall-e-3" },
-                                { "routes", new JArray(routes[0]) }
+                                { "routes", new JArray(routes[0], routes[2]) }
                             });
 
                             clusters.Add(new JObject()
@@ -93,20 +87,6 @@
                                 { "deploymentName", "gpt-4o" },
                                 { "routes", new JArray(routes[0]) }
                             });
-
-                            //If you want to add additional speical models like DALL-E or GPT-4, you can add them here
-                            //In this cluster, DALL-E is served by one OpenAI endpoint route and GPT-4 is served by two OpenAI endpoint routes
-                            //clusters.Add(new JObject()
-                            //{
-                            //    { "deploymentName", "dall-e-3" },
-                            //    { "routes", new JArray(routes[0]) }
-                            //});
-
-                            //clusters.Add(new JObject()
-                            //{
-                            //    { "deploymentName", "gpt-4" },
-                            //    { "routes", new JArray(routes[0], routes[1]) }
-                            //});
                             
                         }
                         else

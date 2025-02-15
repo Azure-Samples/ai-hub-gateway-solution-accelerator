@@ -197,18 +197,6 @@ param openAiInstances object = {
         }
         
       }
-      {
-        name: 'embedding'
-        model: {
-          format: 'OpenAI'
-          name: 'text-embedding-3-large'
-          version: '1'
-        }
-        sku: {
-          name: 'Standard'
-          capacity: deploymentCapacity
-        }
-      }
     ]
   }
   openAi3: {
