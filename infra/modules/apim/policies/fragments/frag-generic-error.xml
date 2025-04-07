@@ -1,0 +1,10 @@
+<fragment>
+        <choose>
+            <!--Return a generic error that does not reveal backend pool details.-->
+            <when condition="@(context.Response.StatusCode == 503)">
+                <return-response>
+                    <set-status code="503" reason="Service Unavailable" />
+                </return-response>
+            </when>
+        </choose>
+</fragment>

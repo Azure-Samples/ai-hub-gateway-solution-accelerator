@@ -28,6 +28,8 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
+
+
 resource appInsightsScopedResource 'Microsoft.Insights/privateLinkScopes/scopedResources@2021-07-01-preview' = if (privateLinkScopeName != '') {
   parent: privateLinkScope
   name: '${applicationInsights.name}-connection'

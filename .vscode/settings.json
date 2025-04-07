@@ -7,5 +7,11 @@
     "azureLogicAppsStandard.deploySubpath": "src\\usage-ingestion-logicapp",
     "azureLogicAppsStandard.projectLanguage": "JavaScript",
     "azureLogicAppsStandard.projectRuntime": "~4",
-    "azureFunctions.suppressProject": true
+    "azureFunctions.suppressProject": true,
+    "terminal.integrated.env.windows": {
+        "PATH": "C:\\Users\\lucacongiu\\.azurelogicapps\\dependencies\\DotNetSDK;${env:PATH}"
+    },
+    "omnisharp.dotNetCliPaths": [
+        "C:\\Users\\lucacongiu\\.azurelogicapps\\dependencies\\DotNetSDK"
+    ]
 }

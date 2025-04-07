@@ -7,7 +7,8 @@ param environmentName string
 
 @minLength(1)
 @description('Primary location for all resources (filtered on available regions for Azure Open AI Service).')
-@allowed([ 'uaenorth', 'sothafricanorth', 'westeurope', 'southcentralus', 'australiaeast', 'canadaeast', 'eastus', 'eastus2', 'francecentral', 'japaneast', 'northcentralus', 'swedencentral', 'switzerlandnorth', 'uksouth' ])
+//@allowed([ 'uaenorth', 'sothafricanorth', 'westeurope', 'southcentralus', 'australiaeast', 'canadaeast', 'eastus', 'eastus2', 'francecentral', 'japaneast', 'northcentralus', 'swedencentral', 'switzerlandnorth', 'uksouth' ])
+@allowed([  'westeurope', 'francecentral', 'swedencentral', 'switzerlandnorth'])
 param location string
 
 //Leave blank to use default naming conventions
@@ -27,7 +28,7 @@ param apimNetworkType string = 'External'
 
 @description('API Management service SKU. Due to networking constraints, only Developer and Premium are supported.')
 @allowed([ 'Developer', 'Premium' ])
-param apimSku string = 'Developer'
+param apimSku string // = 'Developer'
 
 @description('API Management service SKU units.')
 param apimSkuUnits int = 1
@@ -139,7 +140,9 @@ var privateDnsZoneNames = [
 param openAiInstances object = {
   openAi1: {
     name: 'openai1'
-    location: 'eastus'
+    location: 'swedencentral'
+    priority: 1
+    weight: 100
     deployments: [
       {
         name: 'chat'
@@ -149,7 +152,7 @@ param openAiInstances object = {
           version: '2024-07-18'
         }
         sku: {
-          name: 'Standard'
+          name: 'DataZoneStandard'
           capacity: deploymentCapacity
         }
         
@@ -171,10 +174,10 @@ param openAiInstances object = {
         model: {
           format: 'OpenAI'
           name: 'gpt-4o'
-          version: '2024-05-13'
+          version: '2024-11-20'
         }
         sku: {
-          name: 'GlobalStandard'
+          name: 'DataZoneStandard'
           capacity: deploymentCapacity
         }
       }
@@ -182,7 +185,9 @@ param openAiInstances object = {
   }
   openAi2: {
     name: 'openai2'
-    location: 'northcentralus'
+    location: 'francecentral'
+    priority: 2
+    weight: 50
     deployments: [
       {
         name: 'chat'
@@ -192,26 +197,7 @@ param openAiInstances object = {
           version: '2024-07-18'
         }
         sku: {
-          name: 'Standard'
-          capacity: deploymentCapacity
-        }
-        
-      }
-    ]
-  }
-  openAi3: {
-    name: 'openai3'
-    location: 'eastus2'
-    deployments: [
-      {
-        name: 'chat'
-        model: {
-          format: 'OpenAI'
-          name: 'gpt-4o-mini'
-          version: '2024-07-18'
-        }
-        sku: {
-          name: 'Standard'
+          name: 'DataZoneStandard'
           capacity: deploymentCapacity
         }
         
@@ -228,11 +214,69 @@ param openAiInstances object = {
           capacity: deploymentCapacity
         }
       }
+      {
+        name: 'gpt-4o'
+        model: {
+          format: 'OpenAI'
+          name: 'gpt-4o'
+          version: '2024-11-20'
+        }
+        sku: {
+          name: 'DataZoneStandard'
+          capacity: deploymentCapacity
+        }
+      }
+    ]
+  }
+  openAi3: {
+    name: 'openai3'
+    location: 'spaincentral'
+    priority: 2
+    weight: 50
+    deployments: [
+      {
+        name: 'chat'
+        model: {
+          format: 'OpenAI'
+          name: 'gpt-4o-mini'
+          version: '2024-07-18'
+        }
+        sku: {
+          name: 'DataZoneStandard'
+          capacity: deploymentCapacity
+        }
+        
+      }
+      {
+        name: 'embedding'
+        model: {
+          format: 'OpenAI'
+          name: 'text-embedding-3-large'
+          version: '1'
+        }
+        sku: {
+          name: 'Standard'
+          capacity: deploymentCapacity
+        }
+      }
+      {
+        name: 'gpt-4o'
+        model: {
+          format: 'OpenAI'
+          name: 'gpt-4o'
+          version: '2024-11-20'
+        }
+        sku: {
+          name: 'DataZoneStandard'
+          capacity: deploymentCapacity
+        }
+      }
     ]
   }
 }
 
-param enableAzureAISearch bool = true
+
+param enableAzureAISearch bool = false
 
 @description('Object containing AI Search existing instances. You can add more instances by adding more objects to this parameter.')
 param aiSearchInstances array = [
@@ -367,10 +411,7 @@ module monitoring './modules/monitor/monitoring.bicep' = {
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
     usePrivateLinkScope: useAzureMonitorPrivateLinkScope
   }
-  dependsOn: [
-    vnet
-    vnetExisting
-  ]
+ 
 }
 
 @batchSize(1)
@@ -397,11 +438,7 @@ module openAis 'modules/ai/cognitiveservices.bicep' = [for (config, i) in items(
     dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
-  dependsOn: [
-    vnet
-    vnetExisting
-    apimManagedIdentity
-  ]
+
 }]
 
 module eventHub './modules/event-hub/event-hub.bicep' = {
@@ -419,10 +456,7 @@ module eventHub './modules/event-hub/event-hub.bicep' = {
     dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
-  dependsOn: [
-    vnet
-    vnetExisting
-  ]
+  
 }
 
 module apim './modules/apim/apim.bicep' = {
@@ -433,6 +467,14 @@ module apim './modules/apim/apim.bicep' = {
     location: location
     tags: tags
     applicationInsightsName: monitoring.outputs.applicationInsightsName
+    openAiInstances: map(items(openAiInstances), item => {
+      name: item.value.name
+      location: item.value.location
+      priority: item.value.priority
+      weight: contains(item.value, 'weight') ? item.value.weight : null
+      deployments: item.value.deployments
+    })
+   
     openAiUris: [for i in range(0, length(openAiInstances)): openAis[i].outputs.openAiEndpointUri]
     managedIdentityName: apimManagedIdentity.outputs.managedIdentityName
     entraAuth: entraAuth
@@ -448,12 +490,7 @@ module apim './modules/apim/apim.bicep' = {
     sku: apimSku
     skuCount: apimSkuUnits
   }
-  dependsOn: [
-    vnet
-    vnetExisting
-    apimManagedIdentity
-    eventHub
-  ]
+  
 }
 
 module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
@@ -471,10 +508,7 @@ module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
     dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
-  dependsOn: [
-    vnet
-    vnetExisting
-  ]
+ 
 }
 
 module streamAnalyticsJob './modules/stream-analytics/stream-analytics.bicep' = if(provisionStreamAnalytics) {
@@ -517,10 +551,7 @@ module storageAccount './modules/functionapp/storageaccount.bicep' = {
     dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
-  dependsOn: [
-    vnet
-    vnetExisting
-  ]
+  
 }
 
 module functionApp './modules/functionapp/functionapp.bicep' = if(provisionFunctionApp) {
@@ -542,15 +573,7 @@ module functionApp './modules/functionapp/functionapp.bicep' = if(provisionFunct
     functionAppSubnetId: useExistingVnet ? vnetExisting.outputs.functionAppSubnetId : vnet.outputs.functionAppSubnetId
     functionContentShareName: functionContentShareName
   }
-  dependsOn: [
-    vnet
-    vnetExisting
-    storageAccount
-    usageManagedIdentity
-    monitoring
-    eventHub
-    cosmosDb
-  ]
+  
 }
 
 module logicApp './modules/logicapp/logicapp.bicep' = {
@@ -579,16 +602,14 @@ module logicApp './modules/logicapp/logicapp.bicep' = {
     functionAppSubnetId: useExistingVnet ? vnetExisting.outputs.functionAppSubnetId : vnet.outputs.functionAppSubnetId
     fileShareName: logicContentShareName
   }
-  dependsOn: [
-    vnet
-    vnetExisting
-    storageAccount
-    monitoring
-    eventHub
-    cosmosDb
-  ]
+  
 }
 
 output APIM_NAME string = apim.outputs.apimName
 output APIM_AOI_PATH string = apim.outputs.apimOpenaiApiPath
 output APIM_GATEWAY_URL string = apim.outputs.apimGatewayUrl
+output extendedOpenAiInstances array = apim.outputs.extendedOpenAiInstances
+
+output eventHubName string = eventHub.outputs.eventHubName
+output eventHubNamespaceName string = eventHub.outputs.eventHubNamespaceName
+output eventHubEndpoint string = eventHub.outputs.eventHubEndpoint

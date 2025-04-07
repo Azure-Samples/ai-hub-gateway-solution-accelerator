@@ -1,0 +1,14 @@
+<fragment>
+    <!-- AAD Authorization -->
+    <!-- Enable AAD is named value set to true -->
+    <set-variable name="entra-validate" value="{{entra-auth}}" />
+    <!--<choose>
+        <when condition='@(context.Variables.GetValueOrDefault("entra-auth") == "true")'>
+            <validate-azure-ad-token tenant-id="{{tenant-id}}">
+                <client-application-ids>
+                    <application-id>{{client-id}}</application-id>
+                </client-application-ids>
+            </validate-azure-ad-token>
+        </when>
+    </choose>-->
+</fragment>

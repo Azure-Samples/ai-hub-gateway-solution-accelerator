@@ -11,6 +11,7 @@ param publisherName string = 'n/a'
 param sku string = 'Developer'
 param skuCount int = 1
 param applicationInsightsName string
+param openAiInstances array
 param openAiUris array
 param managedIdentityName string
 param clientAppId string = ' '
@@ -22,13 +23,18 @@ param eventHubEndpoint string
 param enableAzureAISearch bool = false
 param aiSearchInstances array
 
-param enableAIModelInference bool = true
-
-param enableOpenAIRealtime bool = true
+param enableAIModelInference bool = false
+param enableOpenAIRealtime bool = false
 
 // Networking
 param apimNetworkType string = 'External'
 param apimSubnetId string
+
+param productEnvironments string[] = [
+  'development'
+  'staging'
+  'production'
+]
 
 var openAiApiBackendId = 'openai-backend'
 var openAiApiUamiNamedValue = 'uami-client-id'
@@ -51,11 +57,11 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' existing = {
   name: managedIdentityName
 }
-
-resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2023-01-01-preview' existing = {
+/*
+resource eventHub 'Microsoft.EventHub/namespaces/@2024-01-01' existing = {
   name: eventHubName
 }
-
+*/
 resource apimService 'Microsoft.ApiManagement/service@2021-08-01' = {
   name: name
   location: location
@@ -111,20 +117,14 @@ module apimOpenaiApi './api.bicep' = {
     apiDispalyName: 'Azure OpenAI API'
     subscriptionRequired: entraAuth ? false:true
     subscriptionKeyName: 'api-key'
-    openApiSpecification: string(loadYamlContent('./openai-api/oai-api-spec-2024-10-21.yaml'))
+    openApiSpecification: string(loadYamlContent('./api-specs/openai-api/oai-api-spec-2024-10-21.yaml'))
     apiDescription: 'Azure OpenAI API'
-    policyDocument: loadTextContent('./policies/openai_api_policy.xml')
+    policyDocument: loadTextContent('./policies/api/openai_api_policy.xml')
     enableAPIDeployment: true
   }
   dependsOn: [
-    aadAuthPolicyFragment
-    validateRoutesPolicyFragment
-    backendRoutingPolicyFragment
-    openAIUsagePolicyFragment
-    openAIUsageStreamingPolicyFragment
+    policyFragments
     openAiBackends
-    throttlingEventsPolicyFragment
-    dynamicThrottlingAssignmentFragment
   ]
 }
 
@@ -138,17 +138,13 @@ module apimAiSearchApi './api.bicep' = if (enableAzureAISearch) {
     apiDispalyName: 'Azure AI Search API'
     subscriptionRequired: entraAuth ? false:true
     subscriptionKeyName: 'api-key'
-    openApiSpecification: loadTextContent('./ai-search-api/ai-search-api-spec.yaml')
+    openApiSpecification: loadTextContent('./api-specs/ai-search-api/ai-search-api-spec.yaml')
     apiDescription: 'Azure AI Search APIs'
-    policyDocument: loadTextContent('./policies/ai-search-api-policy.xml')
+    policyDocument: loadTextContent('./policies/api/ai-search-api-policy.xml')
     enableAPIDeployment: true
   }
   dependsOn: [
-    aadAuthPolicyFragment
-    validateRoutesPolicyFragment
-    backendRoutingPolicyFragment
-    aiUsagePolicyFragment
-    throttlingEventsPolicyFragment
+    policyFragments
   ]
 }
 
@@ -162,17 +158,13 @@ module apimAiModelInferenceApi './api.bicep' = if (enableAIModelInference) {
     apiDispalyName: 'AI Model Inference API'
     subscriptionRequired: entraAuth ? false:true
     subscriptionKeyName: 'api-key'
-    openApiSpecification: loadTextContent('./ai-model-inference/ai-model-inference-api-spec.yaml')
+    openApiSpecification: loadTextContent('./api-specs/ai-model-inference/ai-model-inference-api-spec.yaml')
     apiDescription: 'Access to AI inference models published through Azure AI Foundry'
-    policyDocument: loadTextContent('./policies/ai-model-inference-api-policy.xml')
+    policyDocument: loadTextContent('./policies/api/ai-model-inference-api-policy.xml')
     enableAPIDeployment: true
   }
   dependsOn: [
-    aadAuthPolicyFragment
-    validateRoutesPolicyFragment
-    backendRoutingPolicyFragment
-    aiUsagePolicyFragment
-    throttlingEventsPolicyFragment
+    policyFragments
   ]
 }
 
@@ -195,147 +187,97 @@ module apimOpenAIRealTimetApi './api.bicep' = if (enableOpenAIRealtime) {
     apiProtocols: ['wss']
   }
   dependsOn: [
-    aadAuthPolicyFragment
-    validateRoutesPolicyFragment
-    backendRoutingPolicyFragment
-    throttlingEventsPolicyFragment
+    policyFragments
   ]
 }
 
-// Create AI-Retail product
-resource retailProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
-  name: 'oai-retail-assistant'
-  parent: apimService
-  properties: {
-    displayName: 'OAI-Retail-Assistant'
-    description: 'Offering OpenAI services for the retail and e-commerce platforms assistant.'
-    subscriptionRequired: true
-    approvalRequired: true
-    subscriptionsLimit: 200
-    state: 'published'
-    terms: 'By subscribing to this product, you agree to the terms and conditions.'
-  }
+var apimOpenAIProductPolicies = {
+  development: loadTextContent('./policies/products/openai_product_policy_development.xml')
+  staging: loadTextContent('./policies/products/openai_product_policy_staging.xml')
+  production: loadTextContent('./policies/products/openai_product_policy_production.xml')
 }
 
-resource retailProductOpenAIApi 'Microsoft.ApiManagement/service/products/apiLinks@2023-05-01-preview' = {
-  name: 'retail-product-openai-api'
-  parent: retailProduct
-  properties: {
-    apiId: apimOpenaiApi.outputs.id
+module apimOpenAIProduct './product.bicep' = [for (environment, i) in productEnvironments: {
+  name: 'product-openai-${environment}'
+  params: {
+    serviceName: apimService.name
+    productDisplayName: 'OpenAI Product ${environment}'
+    productDescription: 'Product for OpenAI services in the ${environment} environment.'
+    apiList: [
+      {
+        name: 'openai-api'
+        id: apimOpenaiApi.outputs.id
+      }
+    ]
+    xmlPolicy: apimOpenAIProductPolicies[environment]
   }
+}]
+
+var apimAIInferenceProductPolicies = {
+  development: loadTextContent('./policies/products/ai_inference_product_policy_development.xml')
+  staging: loadTextContent('./policies/products/ai_inference_product_policy_staging.xml')
+  production: loadTextContent('./policies/products/ai_inference_product_policy_production.xml')
 }
 
-resource retailProductPolicy 'Microsoft.ApiManagement/service/products/policies@2022-08-01' =  {
-  name: 'policy'
-  parent: retailProduct
-  properties: {
-    value: loadTextContent('./policies/retail_product_policy.xml')
-    format: 'rawxml'
-  }
-  dependsOn: [
-    apimOpenaiApi
-  ]
-}
+module aiInferenceProduct './product.bicep' = [for (environment, i) in productEnvironments: if(enableAIModelInference) {
+  name: 'product-ai-inference-${environment}'
+  params: {
+    serviceName: apimService.name
+    productDisplayName: 'AI Inference Product ${environment}'
+    productDescription: 'Product for AI inference services in the ${environment} environment.'
+    apiList: [
+      {
+        name: 'ai-model-inference-api'  
+        id: apimAiModelInferenceApi.outputs.id
+      }
+    ]
+    xmlPolicy: apimAIInferenceProductPolicies[environment]
+    }
+}]
 
-resource retailSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-01' = {
-  name: 'oai-retail-assistant-sub-01'
-  parent: apimService
-  properties: {
-    displayName: 'AI-Retail-Internal-Subscription'
-    state: 'active'
-    scope: retailProduct.id
-  }
-}
 
-// Create AI-HR product
-resource hrProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
-  name: 'oai-hr-assistant'
-  parent: apimService
-  properties: {
-    displayName: 'OAI-HR-Assistant'
-    description: 'Offering OpenAI services for the internal HR platforms.'
-    subscriptionRequired: true
-    approvalRequired: true
-    subscriptionsLimit: 200
-    state: 'published'
-    terms: 'By subscribing to this product, you agree to the terms and conditions.'
-  }
-}
 
-resource hrProductOpenAIApi 'Microsoft.ApiManagement/service/products/apiLinks@2023-05-01-preview' = {
-  name: 'hr-product-openai-api'
-  parent: hrProduct
-  properties: {
-    apiId: apimOpenaiApi.outputs.id
+module openAIRealtimeProduct './product.bicep' = [for (environment, i) in productEnvironments: if(enableOpenAIRealtime){
+  name: 'product-openai-realtime-${environment}'
+  params: {
+    serviceName: apimService.name
+    productDisplayName: 'OpenAI Realtime Product ${environment}'
+    productDescription: 'Product for OpenAI realtime services in the ${environment} environment.'
+    apiList: [
+      {
+        name: 'openai-realtime-ws-api'  
+        id: apimOpenAIRealTimetApi.outputs.id
+      }
+    ]
+    xmlPolicy: ''
   }
-}
+}]
 
-resource hrProductPolicy 'Microsoft.ApiManagement/service/products/policies@2022-08-01' =  {
-  name: 'policy'
-  parent: hrProduct
-  properties: {
-    value: loadTextContent('./policies/hr_product_policy.xml')
-    format: 'rawxml'
+
+var apimSearchProductPolicies = {
+  development: loadTextContent('./policies/products/search_product_policy_development.xml')
+  staging: loadTextContent('./policies/products/search_product_policy_staging.xml')
+  production: loadTextContent('./policies/products/search_product_policy_production.xml')
+}
+module apimSearchProduct './product.bicep' = [for (environment, i) in productEnvironments: if (enableAzureAISearch) {
+  name: 'product-search-${environment}'
+  params: {
+    serviceName: apimService.name
+    productDisplayName: 'Search Product ${environment}'
+    productDescription: 'Product for Search services in the ${environment} environment.'
+    apiList: [
+      {
+        name: 'search-api'  
+        id: apimAiSearchApi.outputs.id
+      }
+    ]
+    xmlPolicy: apimSearchProductPolicies[environment]
   }
-  dependsOn: [
-    apimOpenaiApi
-  ]
-}
+}]
 
-resource hrSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-01' = {
-  name: 'oai-hr-assistant-sub-01'
-  parent: apimService
-  properties: {
-    displayName: 'OAI-HR-Assistant-Sub-01'
-    state: 'active'
-    scope: hrProduct.id
-  }
-}
 
-// Create Search-HR product
-resource searchHRProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = if(enableAzureAISearch) {
-  name: 'src-hr-assistant'
-  parent: apimService
-  properties: {
-    displayName: 'SRC-HR-Assistant'
-    description: 'Offering AI Search services for the HR systems.'
-    subscriptionRequired: true
-    approvalRequired: true
-    subscriptionsLimit: 200
-    state: 'published'
-    terms: 'By subscribing to this product, you agree to the terms and conditions.'
-  }
-}
-
-resource searchHRProductAISearchApi 'Microsoft.ApiManagement/service/products/apiLinks@2023-05-01-preview' = if (enableAzureAISearch) {
-  name: 'src-hr-product-ai-search-api'
-  parent: searchHRProduct
-  properties: {
-    apiId: apimAiSearchApi.outputs.id
-  }
-}
-
-resource searchHRProductProductPolicy 'Microsoft.ApiManagement/service/products/policies@2022-08-01' =  if (enableAzureAISearch) {
-  name: 'policy'
-  parent: searchHRProduct
-  properties: {
-    value: loadTextContent('./policies/search_hr_product_policy.xml')
-    format: 'rawxml'
-  }
-}
-
-resource searchHRSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-01' = if (enableAzureAISearch) {
-  name: 'src-hr-assistant-sub-01'
-  parent: apimService
-  properties: {
-    displayName: 'SRC-HR-Assistant-Sub-01'
-    state: 'active'
-    scope: searchHRProduct.id
-  }
-}
-
-resource openAiBackends 'Microsoft.ApiManagement/service/backends@2022-08-01' = [for (openAiUri, i) in openAiUris: {
-  name: '${openAiApiBackendId}-${i}'
+resource openAiBackends 'Microsoft.ApiManagement/service/backends@2024-06-01-preview' = [for (openAiUri, i) in openAiUris: {
+  name: '${openAiInstances[i].name}-backend'
   parent: apimService
   properties: {
     description: openAiApiBackendId
@@ -345,10 +287,55 @@ resource openAiBackends 'Microsoft.ApiManagement/service/backends@2022-08-01' = 
       validateCertificateChain: true
       validateCertificateName: true
     }
+    circuitBreaker: {
+      rules: [
+        {
+          failureCondition: {
+            count: 3
+            errorReasons: [
+              'Server errors'
+            ]
+            interval: 'PT5M'
+            statusCodeRanges: [
+              {
+                min: 429
+                max: 429
+              }
+            ]
+          }
+          name: 'openAIBreakerRule'
+          tripDuration: 'PT1M'
+          acceptRetryAfter: true
+        }
+      ]
+    }
   }
 }]
 
-resource aiSearchBackends 'Microsoft.ApiManagement/service/backends@2022-08-01' = [for (aiSearchInstance, i) in aiSearchInstances: if(enableAzureAISearch) {
+// https://learn.microsoft.com/azure/templates/microsoft.apimanagement/service/backends
+resource backendPoolOpenAI 'Microsoft.ApiManagement/service/backends@2024-06-01-preview' = if(length(openAiInstances) > 1) {
+  name: 'openai-backend-pool'
+  parent: apimService
+  // BCP035: protocol and url are not needed in the Pool type. This is an incorrect error.
+  #disable-next-line BCP035
+  properties: {
+    description: 'OpenAI Backend Pool'
+    type: 'Pool'
+    pool: {
+      services: [for (config, i) in openAiInstances: {
+        id: '/backends/${config.name}-backend'
+        priority: config.?priority
+        weight: config.?weight
+      }]
+    }
+  }
+  dependsOn: [
+    openAiBackends
+  ]
+}
+
+
+resource aiSearchBackends 'Microsoft.ApiManagement/service/backends@2024-06-01-preview' = [for (aiSearchInstance, i) in aiSearchInstances: if(enableAzureAISearch) {
   name: aiSearchInstance.name
   parent: apimService
   properties: {
@@ -362,7 +349,7 @@ resource aiSearchBackends 'Microsoft.ApiManagement/service/backends@2022-08-01' 
   }
 }]
 
-resource apimOpenaiApiUamiNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' = {
+resource apimOpenaiApiUamiNamedValue 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = {
   name: openAiApiUamiNamedValue
   parent: apimService
   properties: {
@@ -372,7 +359,7 @@ resource apimOpenaiApiUamiNamedValue 'Microsoft.ApiManagement/service/namedValue
   }
 }
 
-resource apiopenAiApiEntraNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' = {
+resource apiopenAiApiEntraNamedValue 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = {
   name: openAiApiEntraNamedValue
   parent: apimService
   properties: {
@@ -381,7 +368,7 @@ resource apiopenAiApiEntraNamedValue 'Microsoft.ApiManagement/service/namedValue
     value: entraAuth
   }
 }
-resource apiopenAiApiClientNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' = {
+resource apiopenAiApiClientNamedValue 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = {
   name: openAiApiClientNamedValue
   parent: apimService
   properties: {
@@ -390,7 +377,7 @@ resource apiopenAiApiClientNamedValue 'Microsoft.ApiManagement/service/namedValu
     value: clientAppId
   }
 }
-resource apiopenAiApiTenantNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' = {
+resource apiopenAiApiTenantNamedValue 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = {
   name: openAiApiTenantNamedValue
   parent: apimService
   properties: {
@@ -399,7 +386,7 @@ resource apiopenAiApiTenantNamedValue 'Microsoft.ApiManagement/service/namedValu
     value: tenantId
   }
 }
-resource apimOpenaiApiAudienceiNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' =  {
+resource apimOpenaiApiAudienceiNamedValue 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' =  {
   name: openAiApiAudienceNamedValue
   parent: apimService
   properties: {
@@ -410,93 +397,18 @@ resource apimOpenaiApiAudienceiNamedValue 'Microsoft.ApiManagement/service/named
 }
 
 // Adding Policy Fragments
-resource aadAuthPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'aad-auth'
-  properties: {
-    value: loadTextContent('./policies/frag-aad-auth.xml')
-    format: 'rawxml'
+module policyFragments './policy-fragments.bicep' = {
+  name: 'policy-fragments'
+  params: {
+    serviceName: apimService.name
   }
   dependsOn: [
-    apiopenAiApiClientNamedValue
-    apiopenAiApiEntraNamedValue
-    apimOpenaiApiAudienceiNamedValue
-    apiopenAiApiTenantNamedValue
+    //ehUsageLogger
   ]
 }
 
-resource validateRoutesPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'validate-routes'
-  properties: {
-    value: loadTextContent('./policies/frag-validate-routes.xml')
-    format: 'rawxml'
-  }
-}
 
-resource backendRoutingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'backend-routing'
-  properties: {
-    value: loadTextContent('./policies/frag-backend-routing.xml')
-    format: 'rawxml'
-  }
-}
-
-resource openAIUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'openai-usage'
-  properties: {
-    value: loadTextContent('./policies/frag-openai-usage.xml')
-    format: 'rawxml'
-  }
-  dependsOn: [
-    ehUsageLogger
-  ]
-}
-
-resource openAIUsageStreamingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'openai-usage-streaming'
-  properties: {
-    value: loadTextContent('./policies/frag-openai-usage-streaming.xml')
-    format: 'rawxml'
-  }
-  dependsOn: [
-  ]
-}
-
-resource aiUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'ai-usage'
-  properties: {
-    value: loadTextContent('./policies/frag-ai-usage.xml')
-    format: 'rawxml'
-  }
-  dependsOn: [
-    ehUsageLogger
-  ]
-}
-
-resource throttlingEventsPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'throttling-events'
-  properties: {
-    value: loadTextContent('./policies/frag-throttling-events.xml')
-    format: 'rawxml'
-  }
-}
-
-resource dynamicThrottlingAssignmentFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'dynamic-throttling-assignment'
-  properties: {
-    value: loadTextContent('./policies/frag-dynamic-throttling-assignment.xml')
-    format: 'rawxml'
-  }
-}
-
-resource apimLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
+resource apimLogger 'Microsoft.ApiManagement/service/loggers@2024-06-01-preview' = {
   name: 'appinsights-logger'
   parent: apimService
   properties: {
@@ -510,13 +422,18 @@ resource apimLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
   }
 }
 
-resource apimAppInsights 'Microsoft.ApiManagement/service/diagnostics@2022-08-01' = {
+var logSettings = {
+  headers: [ 'Content-type', 'User-agent', 'x-ms-region', 'x-ratelimit-remaining-tokens' , 'x-ratelimit-remaining-requests' ]
+  body: { bytes: 8192 }
+}
+
+resource apimAppInsights 'Microsoft.ApiManagement/service/diagnostics@2024-06-01-preview' = {
   parent: apimService
   name: 'applicationinsights'
   properties: {
     alwaysLog: 'allErrors'
-    httpCorrelationProtocol: 'Legacy'
-    verbosity: 'information'
+    httpCorrelationProtocol: 'W3C'
+    verbosity: 'verbose'
     logClientIp: true
     loggerId: apimLogger.id
     metrics: true
@@ -525,31 +442,16 @@ resource apimAppInsights 'Microsoft.ApiManagement/service/diagnostics@2022-08-01
       percentage: 100
     }
     frontend: {
-      request: {
-        body: {
-          bytes: 0
-        }
-      }
-      response: {
-        body: {
-          bytes: 0
-        }
-      }
+      request: logSettings
+      response: logSettings
     }
     backend: {
-      request: {
-        body: {
-          bytes: 0
-        }
-      }
-      response: {
-        body: {
-          bytes: 0
-        }
-      }
+      request: logSettings
+      response: logSettings
     }
   }
 }
+
 
 resource ehUsageLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
   name: 'usage-eventhub-logger'
@@ -558,33 +460,18 @@ resource ehUsageLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
     loggerType: 'azureEventHub'
     description: 'Event Hub logger for OpenAI usage metrics'
     credentials: {
-      name: eventHub.name
+      name: eventHubName
       endpointAddress: replace(eventHubEndpoint, 'https://', '')
       identityClientId: managedIdentity.properties.clientId
     }
   }
+  
 }
 
-resource apimRetailDevUser 'Microsoft.ApiManagement/service/users@2022-08-01' = {
-  parent: apimService
-  name: 'ai-retail-dev-user'
-  properties: {
-    firstName: 'Retail AI'
-    lastName: 'Developer'
-    email: 'myuser@example.com'
-    state: 'active'
-  }
-}
-
-resource apimRetailDevUserSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-01' = {
-  parent: apimService
-  name: 'retail-ai-dev-user-subscription'
-  properties: {
-    displayName: 'Retail AI Dev User Subscription'
-    ownerId: '/users/${apimRetailDevUser.id}'
-    state: 'active'
-    allowTracing: true
-    scope: '/products/${retailProduct.id}'
+module workbooks 'workbooks.bicep' = {
+  name : 'workbooks'
+  params: {
+    applicationInsightsName: applicationInsights.name
   }
 }
 
@@ -596,3 +483,13 @@ output apimOpenaiApiPath string = apimOpenaiApi.outputs.path
 
 @description('Gateway URL for the deployed API Management resource.')
 output apimGatewayUrl string = apimService.properties.gatewayUrl
+
+@description('List of OpenAI instances deployed.')
+output extendedOpenAiInstances array = [for (config, i) in openAiInstances: {
+  // Original openAIConfig properties
+  name: config.name
+  location: config.location
+  priority: config.?priority
+  weight: config.?weight
+
+}]

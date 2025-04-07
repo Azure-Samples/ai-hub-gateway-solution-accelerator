@@ -28,7 +28,7 @@ resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-01-01' existing 
   parent: vnet
 }
 
-resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-05-01-preview' = {
+resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' = {
   name: name
   location: location
   tags: union(tags, { 'azd-service-name': name })
@@ -44,7 +44,8 @@ resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-05-01-preview' = 
   }
 }
 
-resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-05-01-preview' = {
+resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = {
+  //name: '${eventHubNamespace.name}/${eventHubName}'
   name: 'ai-usage'
   parent: eventHubNamespace
   properties: {

@@ -1,0 +1,19 @@
+<fragment>
+	<!-- Usage logs for "streaming" requests only -->
+	<choose>
+		<!-- Usage logs for streaming requests -->
+		<when condition="@(context.Variables.GetValueOrDefault<string>("isStream","false").Equals("true", StringComparison.OrdinalIgnoreCase))">
+			<set-variable name="deploymentName" value="@((string)context.Variables["deployment-id"])" />
+			<azure-openai-emit-token-metric namespace="ai-streaming">
+				<dimension name="SubscriptionId" value="@(context.Subscription.Id)" />
+				<dimension name="productName" value="@(context.Product?.Name?.ToString() ?? "Portal-Admin")" />
+				<dimension name="gatewayName" value="@(context.Deployment?.ServiceName ?? "NA")" />
+				<dimension name="routeName" value="@((string)context.Variables.GetValueOrDefault<string>("routeName", "Streaming"))" />
+				<dimension name="deploymentName" value="@((string)context.Variables.GetValueOrDefault<string>("deploymentName", "Streaming"))" />
+				<dimension name="operationName" value="@(context.Operation?.Id ?? "Streaming")" />
+				<dimension name="backendId" value="@((string)context.Variables.GetValueOrDefault<string>("backendId", "DefaultStreaming"))" />
+			
+			</azure-openai-emit-token-metric>
+		</when>
+	</choose>
+</fragment>

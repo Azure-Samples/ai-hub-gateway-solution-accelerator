@@ -107,7 +107,7 @@ resource apiDefinitionWebSocket 'Microsoft.ApiManagement/service/apis@2022-08-01
   }
 }
 
-resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' = if(enableAPIDeployment && policyDocument != 'NA') {
+resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01-preview' = if(enableAPIDeployment && policyDocument != 'NA') {
   name: 'policy'
   parent: apiDefinition
   properties: {

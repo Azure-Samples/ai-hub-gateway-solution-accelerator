@@ -1,0 +1,20 @@
+<policies>
+    <inbound>
+        <base />
+        <azure-openai-token-limit counter-key="@(context.Subscription.Id)" 
+            tokens-per-minute="20000" 
+            estimate-prompt-tokens="false" 
+            tokens-consumed-header-name="consumed-tokens" 
+            remaining-tokens-header-name="remaining-tokens" 
+            retry-after-header-name="retry-after" />
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

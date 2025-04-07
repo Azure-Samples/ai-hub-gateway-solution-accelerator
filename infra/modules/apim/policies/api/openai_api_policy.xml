@@ -1,0 +1,60 @@
+<policies>
+    <inbound>
+        <base />
+        <!-- EntraID Authorization -->
+        <!-- Enabled if entra-validate named value is set to true -->
+        <include-fragment fragment-id="entraid-auth" />
+        <!-- Detecting streaming request to adjust token calculations -->
+        <choose>
+            <when condition="@(context.Request.Body.As<JObject>(true)["stream"] != null && context.Request.Body.As<JObject>(true)["stream"].Type != JTokenType.Null)">
+                <set-variable name="isStream" value="@{
+                var content = (context.Request.Body?.As<JObject>(true));
+                string streamValue = content["stream"].ToString().ToLower();
+                return streamValue;
+            }" />
+            </when>
+        </choose>
+        
+        <!-- Deleting api-key header to it is not passed to OpenAI endpoint-->
+        <set-header name="api-key" exists-action="delete" />
+        <!-- Setting cache keys -->
+        <set-variable name="deployment-id" value="@((string)context.Request.MatchedParameters["deployment-id"])" />
+        <!-- Backend Managed Identity -->
+        <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="managed-id-access-token" client-id="{{uami-client-id}}" ignore-error="false" />
+        <set-header name="Authorization" exists-action="override">
+            <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value>
+        </set-header>
+        <set-backend-service backend-id="openai-backend-pool" />
+        <azure-openai-emit-token-metric namespace="openai">
+            <dimension name="Subscription ID" value="@(context.Subscription.Id)" />
+            <dimension name="Client IP" value="@(context.Request.IpAddress)" />
+            <dimension name="Product" value="@(context.Product.Id)" />
+            <dimension name="API ID" value="@(context.Api.Id)" />
+            <dimension name="Model" value="@(context.Request.MatchedParameters["deployment-id"])" />
+            <dimension name="User ID" value="@(context.Request.Headers.GetValueOrDefault("x-user-id", "N/A"))" />
+        </azure-openai-emit-token-metric>
+    </inbound>
+    <backend>
+      <base />
+    </backend>
+    <outbound>
+        <base />
+        <!-- Streaming-->
+        <set-header name="x-ms-stream" exists-action="override">
+            <value>@{
+                    return context.Variables.GetValueOrDefault<string>("isStream","false").Equals("true", StringComparison.OrdinalIgnoreCase).ToString();
+                }</value>
+        </set-header>
+    </outbound>
+   <on-error>
+        <base />
+        <choose>
+            <!--Return a generic error that does not reveal backend pool details.-->
+            <when condition="@(context.Response.StatusCode == 503)">
+                <return-response>
+                    <set-status code="503" reason="Service Unavailable" />
+                </return-response>
+            </when>
+        </choose>
+    </on-error>
+</policies>
