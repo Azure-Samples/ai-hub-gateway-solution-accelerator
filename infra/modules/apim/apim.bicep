@@ -291,11 +291,11 @@ resource openAiBackends 'Microsoft.ApiManagement/service/backends@2024-06-01-pre
       rules: [
         {
           failureCondition: {
-            count: 3
+            count: 1
             errorReasons: [
               'Server errors'
             ]
-            interval: 'PT5M'
+            interval: 'PT3M'
             statusCodeRanges: [
               {
                 min: 429

@@ -25,14 +25,8 @@
             <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value>
         </set-header>
         <set-backend-service backend-id="openai-backend-pool" />
-        <azure-openai-emit-token-metric namespace="openai">
-            <dimension name="Subscription ID" value="@(context.Subscription.Id)" />
-            <dimension name="Client IP" value="@(context.Request.IpAddress)" />
-            <dimension name="Product" value="@(context.Product.Id)" />
-            <dimension name="API ID" value="@(context.Api.Id)" />
-            <dimension name="Model" value="@(context.Request.MatchedParameters["deployment-id"])" />
-            <dimension name="User ID" value="@(context.Request.Headers.GetValueOrDefault("x-user-id", "N/A"))" />
-        </azure-openai-emit-token-metric>
+        <!-- Handling usage for streaming requests -->
+        <include-fragment fragment-id="openai-usage-streaming" />
     </inbound>
     <backend>
       <base />
@@ -45,6 +39,8 @@
                     return context.Variables.GetValueOrDefault<string>("isStream","false").Equals("true", StringComparison.OrdinalIgnoreCase).ToString();
                 }</value>
         </set-header>
+        <!-- Handling usage for non-streaming requests -->
+        <include-fragment fragment-id="openai-usage" />
     </outbound>
    <on-error>
         <base />

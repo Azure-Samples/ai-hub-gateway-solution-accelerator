@@ -28,7 +28,7 @@ param apimNetworkType string = 'External'
 
 @description('API Management service SKU. Due to networking constraints, only Developer and Premium are supported.')
 @allowed([ 'Developer', 'Premium' ])
-param apimSku string // = 'Developer'
+param apimSku string
 
 @description('API Management service SKU units.')
 param apimSkuUnits int = 1
@@ -41,7 +41,7 @@ param openAIExternalNetworkAccess string = 'Disabled'
 param logAnalyticsName string = ''
 
 @description('Create Application Insights dashboard. Turn it on only if you need it.')
-param createAppInsightsDashboard bool = false
+param createAppInsightsDashboard bool = true
 
 @description('Name of the Application Insights dashboard. Leave blank to use default naming conventions.')
 param applicationInsightsDashboardName string = ''
@@ -299,6 +299,7 @@ param openAiSkuName string = 'S0'
 @description('The OpenAI endpoints capacity (in thousands of tokens per minute)')
 param deploymentCapacity int = 20
 
+
 @description('Tags to be applied to resources.')
 param tags object = { 'azd-env-name': environmentName }
 
@@ -432,7 +433,7 @@ module openAis 'modules/ai/cognitiveservices.bicep' = [for (config, i) in items(
     sku: {
       name: openAiSkuName
     }
-    deploymentCapacity: deploymentCapacity
+    deploymentCapacity: config.value.?sku.?capacity ?? deploymentCapacity
     deployments: config.value.deployments
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
     dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name

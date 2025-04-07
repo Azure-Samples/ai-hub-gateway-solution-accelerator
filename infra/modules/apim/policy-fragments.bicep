@@ -22,24 +22,6 @@ resource entraIdAuthPolicyFragment 'Microsoft.ApiManagement/service/policyFragme
  
 }
 
-resource validateRoutesPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2024-06-01-preview' = {
-  parent: apimService
-  name: 'validate-routes'
-  properties: {
-    value: loadTextContent('./policies/fragments/frag-validate-routes.xml')
-    format: 'rawxml'
-  }
-}
-
-resource backendRoutingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2024-06-01-preview' = {
-  parent: apimService
-  name: 'backend-routing'
-  properties: {
-    value: loadTextContent('./policies/fragments/frag-backend-routing.xml')
-    format: 'rawxml'
-  }
-}
-
 
 resource openAIUsageStreamingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2024-06-01-preview' = {
   parent: apimService
@@ -56,15 +38,6 @@ resource throttlingEventsPolicyFragment 'Microsoft.ApiManagement/service/policyF
   name: 'throttling-events'
   properties: {
     value: loadTextContent('./policies/fragments/frag-throttling-events.xml')
-    format: 'rawxml'
-  }
-}
-
-resource dynamicThrottlingAssignmentFragment 'Microsoft.ApiManagement/service/policyFragments@2024-06-01-preview' = {
-  parent: apimService
-  name: 'dynamic-throttling-assignment'
-  properties: {
-    value: loadTextContent('./policies/fragments/frag-dynamic-throttling-assignment.xml')
     format: 'rawxml'
   }
 }
@@ -98,3 +71,34 @@ resource openAIUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragme
  
 }
 
+/*
+
+
+resource validateRoutesPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2024-06-01-preview' = {
+  parent: apimService
+  name: 'validate-routes'
+  properties: {
+    value: loadTextContent('./policies/fragments/frag-validate-routes.xml')
+    format: 'rawxml'
+  }
+}
+
+resource backendRoutingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2024-06-01-preview' = {
+  parent: apimService
+  name: 'backend-routing'
+  properties: {
+    value: loadTextContent('./policies/fragments/frag-backend-routing.xml')
+    format: 'rawxml'
+  }
+}
+
+
+resource dynamicThrottlingAssignmentFragment 'Microsoft.ApiManagement/service/policyFragments@2024-06-01-preview' = {
+  parent: apimService
+  name: 'dynamic-throttling-assignment'
+  properties: {
+    value: loadTextContent('./policies/fragments/frag-dynamic-throttling-assignment.xml')
+    format: 'rawxml'
+  }
+}
+*/
