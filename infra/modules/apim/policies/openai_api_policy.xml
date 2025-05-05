@@ -7,13 +7,28 @@
         
         <!-- Detecting streaming request to adjust token calculations -->
         <choose>
-            <when condition="@(context.Request.Body.As<JObject>(true)["stream"] != null && context.Request.Body.As<JObject>(true)["stream"].Type != JTokenType.Null)">
+            <when condition="@{
+                try 
+                {
+                    var body = context.Request.Body.As<JObject>(true);
+                    return body != null && 
+                        body["stream"] != null && 
+                        body["stream"].Type != JTokenType.Null;
+                }
+                catch
+                {
+                    return false;
+                }
+            }">
                 <set-variable name="isStream" value="@{
                 var content = (context.Request.Body?.As<JObject>(true));
                 string streamValue = content["stream"].ToString().ToLower();
                 return streamValue;
             }" />
             </when>
+            <otherwise>
+                <set-variable name="isStream" value="false" />
+            </otherwise>
         </choose>
         
         <!-- Deleting api-key header to it is not passed to OpenAI endpoint-->

@@ -10,7 +10,7 @@ param vNetName string
 param privateEndpointSubnetName string
 param eventHubDnsZoneName string
 
-param publicNetworkAccess string = 'Disabled'
+param publicNetworkAccess string = 'Enabled'
 
 // Use existing network/dns zone
 param dnsZoneRG string

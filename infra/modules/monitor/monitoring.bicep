@@ -92,6 +92,7 @@ module privateEndpoint '../networking/private-endpoint.bicep' = if (usePrivateLi
     dnsZoneRG: dnsZoneRG
     privateEndpointSubnetId: subnet.id
     dnsSubId: dnsSubscriptionId
+    enableDnsIntegration: usePrivateLinkScope
   }
   dependsOn: [
     logAnalytics

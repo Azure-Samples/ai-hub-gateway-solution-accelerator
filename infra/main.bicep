@@ -7,7 +7,7 @@ param environmentName string
 
 @minLength(1)
 @description('Primary location for all resources (filtered on available regions for Azure Open AI Service).')
-@allowed([ 'uaenorth', 'sothafricanorth', 'westeurope', 'southcentralus', 'australiaeast', 'canadaeast', 'eastus', 'eastus2', 'francecentral', 'japaneast', 'northcentralus', 'swedencentral', 'switzerlandnorth', 'uksouth' ])
+@allowed([ 'uaenorth', 'southafricanorth', 'westeurope', 'southcentralus', 'australiaeast', 'canadaeast', 'eastus', 'eastus2', 'francecentral', 'japaneast', 'northcentralus', 'swedencentral', 'switzerlandnorth', 'uksouth' ])
 param location string
 
 //Leave blank to use default naming conventions
@@ -108,8 +108,6 @@ param vnetAddressPrefix string = '10.170.0.0/24'
 param apimSubnetPrefix string = '10.170.0.0/26'
 param privateEndpointSubnetPrefix string = '10.170.0.64/26'
 param functionAppSubnetPrefix string = '10.170.0.128/26'
-
-
 
 var openAiPrivateDnsZoneName = 'privatelink.openai.azure.com'
 var keyVaultPrivateDnsZoneName = 'privatelink.vaultcore.azure.net'
@@ -237,12 +235,12 @@ param enableAzureAISearch bool = true
 @description('Object containing AI Search existing instances. You can add more instances by adding more objects to this parameter.')
 param aiSearchInstances array = [
   {
-    name: 'ai-search-swn'
+    name: 'ai-search-01'
     url: 'https://REPLACE1.search.windows.net/'
     description: 'AI Search Instance 1'
   }
   {
-    name: 'ai-search-sec'
+    name: 'ai-search-02'
     url: 'https://REPLACE2.search.windows.net/'
     description: 'AI Search Instance 2'
   }
@@ -363,7 +361,7 @@ module monitoring './modules/monitor/monitoring.bicep' = {
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
     applicationInsightsDnsZoneName: monitorPrivateDnsZoneName
     createDashboard: createAppInsightsDashboard
-    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
+    dnsZoneRG: !useExistingVnet ? resourceGroup.name : dnsZoneRG
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
     usePrivateLinkScope: useAzureMonitorPrivateLinkScope
   }
@@ -394,7 +392,7 @@ module openAis 'modules/ai/cognitiveservices.bicep' = [for (config, i) in items(
     deploymentCapacity: deploymentCapacity
     deployments: config.value.deployments
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
-    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
+    dnsZoneRG: !useExistingVnet ? resourceGroup.name : dnsZoneRG
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
   dependsOn: [
@@ -415,8 +413,9 @@ module eventHub './modules/event-hub/event-hub.bicep' = {
     vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
     eventHubDnsZoneName: eventHubPrivateDnsZoneName
+    publicNetworkAccess: 'Disabled'
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
-    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
+    dnsZoneRG: !useExistingVnet ? resourceGroup.name : dnsZoneRG
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
   dependsOn: [
@@ -468,7 +467,7 @@ module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
     cosmosPrivateEndpointName: '${abbrs.documentDBDatabaseAccounts}pe-${resourceToken}'
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
-    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
+    dnsZoneRG: !useExistingVnet ? resourceGroup.name : dnsZoneRG
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
   dependsOn: [
@@ -514,7 +513,7 @@ module storageAccount './modules/functionapp/storageaccount.bicep' = {
     functionContentShareName: functionContentShareName
     logicContentShareName: logicContentShareName
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
-    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
+    dnsZoneRG: !useExistingVnet ? resourceGroup.name : dnsZoneRG
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
   dependsOn: [

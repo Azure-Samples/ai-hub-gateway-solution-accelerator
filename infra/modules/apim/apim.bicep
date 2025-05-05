@@ -26,6 +26,8 @@ param enableAIModelInference bool = true
 
 param enableOpenAIRealtime bool = true
 
+param enableDocumentIntelligence bool = true
+
 // Networking
 param apimNetworkType string = 'External'
 param apimSubnetId string
@@ -74,9 +76,9 @@ resource apimService 'Microsoft.ApiManagement/service@2021-08-01' = {
     publisherEmail: publisherEmail
     publisherName: publisherName
     virtualNetworkType: apimNetworkType
-    virtualNetworkConfiguration: {
+    virtualNetworkConfiguration: apimNetworkType != 'None' ? {
       subnetResourceId: apimSubnetId
-    }
+    } : null
     apiVersionConstraint: {
       minApiVersion: apiManagementMinApiVersion
     }
@@ -198,6 +200,30 @@ module apimOpenAIRealTimetApi './api.bicep' = if (enableOpenAIRealtime) {
     aadAuthPolicyFragment
     validateRoutesPolicyFragment
     backendRoutingPolicyFragment
+    throttlingEventsPolicyFragment
+  ]
+}
+
+module apimDocumentIntelligence './api.bicep' = if (enableDocumentIntelligence) {
+  name: 'document-intelligence-api'
+  params: {
+    serviceName: apimService.name
+    apiName: 'document-intelligence-api'
+    path: 'documentintelligence'
+    apiRevision: '1'
+    apiDispalyName: 'Document Intelligence API'
+    subscriptionRequired: entraAuth ? false:true
+    subscriptionKeyName: 'Ocp-Apim-Subscription-Key'
+    openApiSpecification: loadTextContent('./doc-intel-api/document-intelligence-2024-11-30.openapi.yaml')
+    apiDescription: 'Extracts content, layout, and structured data from documents.'
+    policyDocument: loadTextContent('./policies/doc-intelligence-api-policy.xml')
+    enableAPIDeployment: true
+  }
+  dependsOn: [
+    aadAuthPolicyFragment
+    validateRoutesPolicyFragment
+    backendRoutingPolicyFragment
+    aiUsagePolicyFragment
     throttlingEventsPolicyFragment
   ]
 }

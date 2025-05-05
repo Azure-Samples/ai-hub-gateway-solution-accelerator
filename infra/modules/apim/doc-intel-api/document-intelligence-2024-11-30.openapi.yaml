@@ -1,0 +1,3710 @@
+openapi: 3.0.1
+info:
+  title: Document Intelligence
+  description: 'Extracts content, layout, and structured data from documents.'
+  version: '1.0'
+servers:
+  - url: https://REPLACED-BY-POLICY/documentintelligence
+paths:
+  /documentClassifiers:
+    get:
+      summary: DocumentClassifiers_ListClassifiers
+      description: List all document classifiers.
+      operationId: DocumentClassifiers_ListClassifiers
+      parameters:
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+        - name: x-ms-client-request-id
+          in: header
+          description: 'An opaque, globally-unique, client-generated string identifier for the request.'
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The request has succeeded.
+          headers:
+            x-ms-client-request-id:
+              description: 'An opaque, globally-unique, client-generated string identifier for the request.'
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedDocumentClassifierDetails'
+              example:
+                value:
+                  - classifierId: string
+                    description: string
+                    createdDateTime: string
+                    expirationDateTime: string
+                    modifiedDateTime: string
+                    apiVersion: string
+                    baseClassifierId: string
+                    docTypes: { }
+                    warnings:
+                      - code: string
+                        message: string
+                        target: string
+                nextLink: string
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  '/documentClassifiers/{classifierId}':
+    get:
+      summary: DocumentClassifiers_GetClassifier
+      description: Gets detailed document classifier information.
+      operationId: DocumentClassifiers_GetClassifier
+      parameters:
+        - name: classifierId
+          in: path
+          description: Unique document classifier name.
+          required: true
+          schema:
+            maxLength: 64
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            type: string
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+        - name: x-ms-client-request-id
+          in: header
+          description: 'An opaque, globally-unique, client-generated string identifier for the request.'
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The request has succeeded.
+          headers:
+            x-ms-client-request-id:
+              description: 'An opaque, globally-unique, client-generated string identifier for the request.'
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentClassifierDetails'
+              example:
+                classifierId: string
+                description: string
+                createdDateTime: string
+                expirationDateTime: string
+                modifiedDateTime: string
+                apiVersion: string
+                baseClassifierId: string
+                docTypes: { }
+                warnings:
+                  - code: string
+                    message: string
+                    target: string
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+    delete:
+      summary: DocumentClassifiers_DeleteClassifier
+      description: Deletes document classifier.
+      operationId: DocumentClassifiers_DeleteClassifier
+      parameters:
+        - name: classifierId
+          in: path
+          description: Unique document classifier name.
+          required: true
+          schema:
+            maxLength: 64
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            type: string
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+        - name: x-ms-client-request-id
+          in: header
+          description: 'An opaque, globally-unique, client-generated string identifier for the request.'
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+          headers:
+            x-ms-client-request-id:
+              description: 'An opaque, globally-unique, client-generated string identifier for the request.'
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json: { }
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  '/documentClassifiers/{classifierId}:analyze':
+    post:
+      summary: DocumentClassifiers_ClassifyDocumentFromStream
+      description: "Classifies document with document classifier. This operation can be used in two ways:\n1. With a binary document stream in the request body (current endpoint)\n2. With a ClassifyDocumentRequest object containing URL or base64-encoded document (add '_overload=classifyDocument' query parameter)"
+      operationId: DocumentClassifiers_ClassifyDocumentFromStream
+      parameters:
+        - name: classifierId
+          in: path
+          description: Unique document classifier name.
+          required: true
+          schema:
+            maxLength: 64
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            type: string
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+        - name: stringIndexType
+          in: query
+          description: Method used to compute string offset and length.
+          schema:
+            enum:
+              - textElements
+              - unicodeCodePoint
+              - utf16CodeUnit
+            type: string
+            default: textElements
+        - name: split
+          in: query
+          description: Document splitting mode.
+          schema:
+            enum:
+              - auto
+              - none
+              - perPage
+            type: string
+            default: none
+        - name: pages
+          in: query
+          description: '1-based page numbers to analyze.  Ex. "1-3,5,7-9"'
+          schema:
+            pattern: '^(\d+(-\d+)?)(,\s*(\d+(-\d+)?))*$'
+            type: string
+        - name: _overload
+          in: query
+          description: Optional parameter to specify the operation variant. Use 'classifyDocument' for URL or base64 encoded document input.
+          schema:
+            enum:
+              - classifyDocument
+            type: string
+      requestBody:
+        description: Input content. Can be either a binary document stream or a ClassifyDocumentRequest object depending on the _overload parameter.
+        content:
+          application/octet-stream:
+            schema:
+              $ref: '#/components/schemas/Input'
+            examples:
+              default:
+                value: 
+          application/pdf:
+            schema:
+              $ref: '#/components/schemas/Input'
+            examples:
+              default:
+                value: 
+          image/jpeg:
+            schema:
+              $ref: '#/components/schemas/Input'
+            examples:
+              default:
+                value: 
+          image/png:
+            schema:
+              $ref: '#/components/schemas/Input'
+            examples:
+              default:
+                value: 
+          image/tiff:
+            schema:
+              $ref: '#/components/schemas/Input'
+            examples:
+              default:
+                value: 
+          image/bmp:
+            schema:
+              $ref: '#/components/schemas/Input'
+            examples:
+              default:
+                value: 
+          image/heif:
+            schema:
+              $ref: '#/components/schemas/Input'
+            examples:
+              default:
+                value: 
+          text/html:
+            schema:
+              $ref: '#/components/schemas/Input'
+            example: <Input />
+          application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+            schema:
+              $ref: '#/components/schemas/Input'
+            example: <Input />
+          application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+            schema:
+              $ref: '#/components/schemas/Input'
+            example: <Input />
+          application/vnd.openxmlformats-officedocument.presentationml.presentation:
+            schema:
+              $ref: '#/components/schemas/Input'
+            example: <Input />
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Input'
+      responses:
+        '202':
+          description: 'The request has been accepted for processing, but processing has not yet completed.'
+          headers:
+            Operation-Location:
+              description: The location of an instance of AnalyzeOperation
+              schema:
+                type: string
+                format: uri
+            Retry-After:
+              description: The Retry-After header can indicate how long the client should wait before polling the operation status.
+              schema:
+                type: integer
+                format: int32
+          content:
+            application/json: { }
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  '/documentClassifiers/{classifierId}:copyTo':
+    post:
+      summary: DocumentClassifiers_CopyClassifierTo
+      description: 'Copies document classifier to the target resource, region, and classifierId.'
+      operationId: DocumentClassifiers_CopyClassifierTo
+      parameters:
+        - name: classifierId
+          in: path
+          description: Unique document classifier name.
+          required: true
+          schema:
+            maxLength: 64
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            type: string
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+      requestBody:
+        description: Copy to request parameters.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassifierCopyAuthorization'
+            example:
+              targetResourceId: string
+              targetResourceRegion: string
+              targetClassifierId: string
+              targetClassifierLocation: string
+              accessToken: string
+              expirationDateTime: string
+      responses:
+        '202':
+          description: 'The request has been accepted for processing, but processing has not yet completed.'
+          headers:
+            Operation-Location:
+              description: The location of an instance of DocumentClassifierCopyToOperationDetails
+              schema:
+                type: string
+                format: uri
+            Retry-After:
+              description: The Retry-After header can indicate how long the client should wait before polling the operation status.
+              schema:
+                type: integer
+                format: int32
+          content:
+            application/json: { }
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  '/documentClassifiers/{classifierId}/analyzeResults/{resultId}':
+    get:
+      summary: DocumentClassifiers_GetClassifyResult
+      description: Gets the result of document classifier.
+      operationId: DocumentClassifiers_GetClassifyResult
+      parameters:
+        - name: classifierId
+          in: path
+          description: Unique document classifier name.
+          required: true
+          schema:
+            maxLength: 64
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            type: string
+        - name: resultId
+          in: path
+          description: Analyze operation result ID.
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeOperation'
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  /documentClassifiers:authorizeCopy:
+    post:
+      summary: DocumentClassifiers_AuthorizeClassifierCopy
+      description: "Generates authorization to copy a document classifier to this location with\nspecified classifierId and optional description."
+      operationId: DocumentClassifiers_AuthorizeClassifierCopy
+      parameters:
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+      requestBody:
+        description: Authorize copy request parameters.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorizeClassifierCopyRequest'
+            example:
+              classifierId: string
+              description: string
+              tags: { }
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassifierCopyAuthorization'
+              example:
+                targetResourceId: string
+                targetResourceRegion: string
+                targetClassifierId: string
+                targetClassifierLocation: string
+                accessToken: string
+                expirationDateTime: string
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  /documentClassifiers:build:
+    post:
+      summary: DocumentClassifiers_BuildClassifier
+      description: Builds a custom document classifier.
+      operationId: DocumentClassifiers_BuildClassifier
+      parameters:
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+      requestBody:
+        description: Build request parameters.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuildDocumentClassifierRequest'
+            example:
+              classifierId: string
+              description: string
+              baseClassifierId: string
+              docTypes: { }
+              allowOverwrite: false
+      responses:
+        '202':
+          description: 'The request has been accepted for processing, but processing has not yet completed.'
+          headers:
+            Operation-Location:
+              description: The location of an instance of DocumentClassifierBuildOperationDetails
+              schema:
+                type: string
+                format: uri
+            Retry-After:
+              description: The Retry-After header can indicate how long the client should wait before polling the operation status.
+              schema:
+                type: integer
+                format: int32
+          content:
+            application/json: { }
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  /documentModels:
+    get:
+      summary: DocumentModels_ListModels
+      description: List all document models
+      operationId: DocumentModels_ListModels
+      parameters:
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+        - name: x-ms-client-request-id
+          in: header
+          description: 'An opaque, globally-unique, client-generated string identifier for the request.'
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The request has succeeded.
+          headers:
+            x-ms-client-request-id:
+              description: 'An opaque, globally-unique, client-generated string identifier for the request.'
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedDocumentModelDetails'
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  '/documentModels/{modelId}:analyze':
+    post:
+      summary: DocumentModels_AnalyzeDocument
+      description: "Analyzes document with document model. This operation can be used in two ways:\n1. With a binary document stream in the request body (when _overload is not specified)\n2. With an AnalyzeDocumentRequest object containing URL or base64-encoded document (add '_overload=analyzeDocument' query parameter)"
+      operationId: DocumentModels_AnalyzeDocument
+      parameters:
+        - name: modelId
+          in: path
+          description: Unique document model name.
+          required: true
+          schema:
+            maxLength: 64
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            type: string
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+        - name: pages
+          in: query
+          description: '1-based page numbers to analyze.  Ex. "1-3,5,7-9"'
+          schema:
+            pattern: '^(\d+(-\d+)?)(,\s*(\d+(-\d+)?))*$'
+            type: string
+        - name: locale
+          in: query
+          description: "Locale hint for text recognition and document analysis.  Value may contain only\nthe language code (ex. \"en\", \"fr\") or BCP 47 language tag (ex. \"en-US\")."
+          schema:
+            type: string
+        - name: stringIndexType
+          in: query
+          description: Method used to compute string offset and length.
+          schema:
+            enum:
+              - textElements
+              - unicodeCodePoint
+              - utf16CodeUnit
+            type: string
+            default: textElements
+        - name: features
+          in: query
+          description: List of optional analysis features.
+          schema:
+            type: array
+            items:
+              enum:
+                - ocrHighResolution
+                - languages
+                - barcodes
+                - formulas
+                - keyValuePairs
+                - styleFont
+                - queryFields
+              type: string
+              x-ms-enum:
+                name: DocumentAnalysisFeature
+                modelAsString: true
+                values:
+                  - name: ocrHighResolution
+                    value: ocrHighResolution
+                    description: Perform OCR at a higher resolution to handle documents with fine print.
+                  - name: languages
+                    value: languages
+                    description: Enable the detection of the text content language.
+                  - name: barcodes
+                    value: barcodes
+                    description: Enable the detection of barcodes in the document.
+                  - name: formulas
+                    value: formulas
+                    description: Enable the detection of mathematical expressions in the document.
+                  - name: keyValuePairs
+                    value: keyValuePairs
+                    description: Enable the detection of general key value pairs (form fields) in the document.
+                  - name: styleFont
+                    value: styleFont
+                    description: Enable the recognition of various font styles.
+                  - name: queryFields
+                    value: queryFields
+                    description: Enable the extraction of additional fields via the queryFields query parameter.
+        - name: queryFields
+          in: query
+          description: 'List of additional fields to extract.  Ex. "NumberOfGuests,StoreNumber"'
+          schema:
+            type: array
+            items:
+              type: string
+        - name: outputContentFormat
+          in: query
+          description: Format of the analyze result top-level content.
+          schema:
+            enum:
+              - text
+              - markdown
+            type: string
+            default: text
+        - name: output
+          in: query
+          description: Additional outputs to generate during analysis.
+          schema:
+            type: array
+            items:
+              enum:
+                - pdf
+                - figures
+              type: string
+              x-ms-enum:
+                name: AnalyzeOutputOption
+                modelAsString: true
+                values:
+                  - name: pdf
+                    value: pdf
+                    description: Generate searchable PDF output.
+                  - name: figures
+                    value: figures
+                    description: Generate cropped images of detected figures.
+        - name: _overload
+          in: query
+          description: Optional parameter to specify the operation variant. Use 'analyzeDocument' for URL or base64 encoded document input.
+          schema:
+            enum:
+              - analyzeDocument
+            type: string
+      requestBody:
+        description: Input content. Can be either a binary document stream or an AnalyzeDocumentRequest object depending on the _overload parameter.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Input'
+            example:
+              urlSource: https://raw.githubusercontent.com/Azure-Samples/cognitive-services-REST-api-samples/master/curl/form-recognizer/rest-api/read.png
+      responses:
+        '202':
+          description: 'The request has been accepted for processing, but processing has not yet completed.'
+          headers:
+            Operation-Location:
+              description: The location of an instance of AnalyzeOperation
+              schema:
+                type: string
+            Retry-After:
+              description: The Retry-After header can indicate how long the client should wait before polling the operation status.
+              schema:
+                type: integer
+          content:
+            application/json: { }
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  '/documentModels/{modelId}:analyzeBatch':
+    post:
+      summary: DocumentModels_AnalyzeBatchDocuments
+      description: Analyzes batch documents with document model.
+      operationId: DocumentModels_AnalyzeBatchDocuments
+      parameters:
+        - name: modelId
+          in: path
+          description: Unique document model name.
+          required: true
+          schema:
+            maxLength: 64
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            type: string
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+        - name: pages
+          in: query
+          description: '1-based page numbers to analyze.  Ex. "1-3,5,7-9"'
+          schema:
+            pattern: '^(\d+(-\d+)?)(,\s*(\d+(-\d+)?))*$'
+            type: string
+        - name: locale
+          in: query
+          description: "Locale hint for text recognition and document analysis.  Value may contain only\nthe language code (ex. \"en\", \"fr\") or BCP 47 language tag (ex. \"en-US\")."
+          schema:
+            type: string
+        - name: stringIndexType
+          in: query
+          description: Method used to compute string offset and length.
+          schema:
+            enum:
+              - textElements
+              - unicodeCodePoint
+              - utf16CodeUnit
+            type: string
+            default: textElements
+        - name: features
+          in: query
+          description: List of optional analysis features.
+          schema:
+            type: array
+            items:
+              enum:
+                - ocrHighResolution
+                - languages
+                - barcodes
+                - formulas
+                - keyValuePairs
+                - styleFont
+                - queryFields
+              type: string
+              x-ms-enum:
+                name: DocumentAnalysisFeature
+                modelAsString: true
+                values:
+                  - name: ocrHighResolution
+                    value: ocrHighResolution
+                    description: Perform OCR at a higher resolution to handle documents with fine print.
+                  - name: languages
+                    value: languages
+                    description: Enable the detection of the text content language.
+                  - name: barcodes
+                    value: barcodes
+                    description: Enable the detection of barcodes in the document.
+                  - name: formulas
+                    value: formulas
+                    description: Enable the detection of mathematical expressions in the document.
+                  - name: keyValuePairs
+                    value: keyValuePairs
+                    description: Enable the detection of general key value pairs (form fields) in the document.
+                  - name: styleFont
+                    value: styleFont
+                    description: Enable the recognition of various font styles.
+                  - name: queryFields
+                    value: queryFields
+                    description: Enable the extraction of additional fields via the queryFields query parameter.
+        - name: queryFields
+          in: query
+          description: 'List of additional fields to extract.  Ex. "NumberOfGuests,StoreNumber"'
+          schema:
+            type: array
+            items:
+              type: string
+        - name: outputContentFormat
+          in: query
+          description: Format of the analyze result top-level content.
+          schema:
+            enum:
+              - text
+              - markdown
+            type: string
+            default: text
+        - name: output
+          in: query
+          description: Additional outputs to generate during analysis.
+          schema:
+            type: array
+            items:
+              enum:
+                - pdf
+                - figures
+              type: string
+              x-ms-enum:
+                name: AnalyzeOutputOption
+                modelAsString: true
+                values:
+                  - name: pdf
+                    value: pdf
+                    description: Generate searchable PDF output.
+                  - name: figures
+                    value: figures
+                    description: Generate cropped images of detected figures.
+      requestBody:
+        description: Analyze batch request parameters.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyzeBatchDocumentsRequest'
+            example:
+              azureBlobSource:
+                containerUrl: string
+                prefix: string
+              azureBlobFileListSource:
+                containerUrl: string
+                fileList: string
+              resultContainerUrl: string
+              resultPrefix: string
+              overwriteExisting: false
+      responses:
+        '202':
+          description: 'The request has been accepted for processing, but processing has not yet completed.'
+          headers:
+            Operation-Location:
+              description: The location of an instance of AnalyzeBatchOperation
+              schema:
+                type: string
+                format: uri
+            Retry-After:
+              description: The Retry-After header can indicate how long the client should wait before polling the operation status.
+              schema:
+                type: integer
+                format: int32
+          content:
+            application/json: { }
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  '/documentModels/{modelId}':
+    get:
+      summary: DocumentModels_GetModel
+      description: Gets detailed document model information.
+      operationId: DocumentModels_GetModel
+      parameters:
+        - name: modelId
+          in: path
+          description: Unique document model name.
+          required: true
+          schema:
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            type: string
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+        - name: x-ms-client-request-id
+          in: header
+          description: 'An opaque, globally-unique, client-generated string identifier for the request.'
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The request has succeeded.
+          headers:
+            x-ms-client-request-id:
+              description: 'An opaque, globally-unique, client-generated string identifier for the request.'
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentModelDetails'
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+    delete:
+      summary: DocumentModels_DeleteModel
+      description: Deletes document model.
+      operationId: DocumentModels_DeleteModel
+      parameters:
+        - name: modelId
+          in: path
+          description: Unique document model name.
+          required: true
+          schema:
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            type: string
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+        - name: x-ms-client-request-id
+          in: header
+          description: 'An opaque, globally-unique, client-generated string identifier for the request.'
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+          headers:
+            x-ms-client-request-id:
+              description: 'An opaque, globally-unique, client-generated string identifier for the request.'
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json: { }
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  '/documentModels/{modelId}:copyTo':
+    post:
+      summary: DocumentModels_CopyModelTo
+      description: 'Copies document model to the target resource, region, and modelId.'
+      operationId: DocumentModels_CopyModelTo
+      parameters:
+        - name: modelId
+          in: path
+          description: Unique document model name.
+          required: true
+          schema:
+            maxLength: 64
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            type: string
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+      requestBody:
+        description: Copy to request parameters.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelCopyAuthorization'
+            example:
+              targetResourceId: string
+              targetResourceRegion: string
+              targetModelId: string
+              targetModelLocation: string
+              accessToken: string
+              expirationDateTime: string
+      responses:
+        '202':
+          description: 'The request has been accepted for processing, but processing has not yet completed.'
+          headers:
+            Operation-Location:
+              description: The location of an instance of DocumentModelCopyToOperationDetails
+              schema:
+                type: string
+                format: uri
+            Retry-After:
+              description: The Retry-After header can indicate how long the client should wait before polling the operation status.
+              schema:
+                type: integer
+                format: int32
+          content:
+            application/json: { }
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  '/documentModels/{modelId}/analyzeBatchResults':
+    get:
+      summary: DocumentModels_ListAnalyzeBatchResults
+      description: List batch document analysis results.
+      operationId: DocumentModels_ListAnalyzeBatchResults
+      parameters:
+        - name: modelId
+          in: path
+          description: Unique document model name.
+          required: true
+          schema:
+            maxLength: 64
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            type: string
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedAnalyzeBatchOperation'
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  '/documentModels/{modelId}/analyzeBatchResults/{resultId}':
+    get:
+      summary: DocumentModels_GetAnalyzeBatchResult
+      description: Gets the result of batch document analysis.
+      operationId: DocumentModels_GetAnalyzeBatchResult
+      parameters:
+        - name: modelId
+          in: path
+          description: Unique document model name.
+          required: true
+          schema:
+            maxLength: 64
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            type: string
+        - name: resultId
+          in: path
+          description: Analyze batch operation result ID.
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeBatchOperation'
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+    delete:
+      summary: DocumentModels_DeleteAnalyzeBatchResult
+      description: Mark the batch document analysis result for deletion.
+      operationId: DocumentModels_DeleteAnalyzeBatchResult
+      parameters:
+        - name: modelId
+          in: path
+          description: Unique document model name.
+          required: true
+          schema:
+            maxLength: 64
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            type: string
+        - name: resultId
+          in: path
+          description: Analyze batch operation result ID.
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful.'
+          content:
+            application/json: { }
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  '/documentModels/{modelId}/analyzeResults/{resultId}':
+    get:
+      summary: DocumentModels_GetAnalyzeResult
+      description: Gets the result of document analysis.
+      operationId: DocumentModels_GetAnalyzeResult
+      parameters:
+        - name: modelId
+          in: path
+          description: Unique document model name.
+          required: true
+          schema:
+            maxLength: 64
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            type: string
+        - name: resultId
+          in: path
+          description: Analyze operation result ID.
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeOperation'
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+    delete:
+      summary: DocumentModels_DeleteAnalyzeResult
+      description: Mark the result of document analysis for deletion.
+      operationId: DocumentModels_DeleteAnalyzeResult
+      parameters:
+        - name: modelId
+          in: path
+          description: Unique document model name.
+          required: true
+          schema:
+            maxLength: 64
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            type: string
+        - name: resultId
+          in: path
+          description: Analyze operation result ID.
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful.'
+          content:
+            application/json: { }
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  '/documentModels/{modelId}/analyzeResults/{resultId}/figures/{figureId}':
+    get:
+      summary: DocumentModels_GetAnalyzeResultFigure
+      description: Gets the generated cropped image of specified figure from document analysis.
+      operationId: DocumentModels_GetAnalyzeResultFigure
+      parameters:
+        - name: modelId
+          in: path
+          description: Unique document model name.
+          required: true
+          schema:
+            maxLength: 64
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            type: string
+        - name: resultId
+          in: path
+          description: Analyze operation result ID.
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: figureId
+          in: path
+          description: Figure ID.
+          required: true
+          schema:
+            type: string
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            image/png:
+              schema:
+                $ref: '#/components/schemas/DocumentModelsModelIdAnalyzeResultsResultIdFiguresFigureIdGet200ImagePngResp'
+              examples:
+                default:
+                  value: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentModelsModelIdAnalyzeResultsResultIdFiguresFigureIdGet200ApplicationJ'
+              examples:
+                default:
+                  value: 
+        '500':
+          description: An unexpected error response.
+          content:
+            image/png:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  '/documentModels/{modelId}/analyzeResults/{resultId}/pdf':
+    get:
+      summary: DocumentModels_GetAnalyzeResultPdf
+      description: Gets the generated searchable PDF output from document analysis.
+      operationId: DocumentModels_GetAnalyzeResultPdf
+      parameters:
+        - name: modelId
+          in: path
+          description: Unique document model name.
+          required: true
+          schema:
+            maxLength: 64
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            type: string
+        - name: resultId
+          in: path
+          description: Analyze operation result ID.
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/pdf:
+              schema:
+                $ref: '#/components/schemas/DocumentModelsModelIdAnalyzeResultsResultIdPdfGet200ApplicationPdfResponse'
+              examples:
+                default:
+                  value: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentModelsModelIdAnalyzeResultsResultIdPdfGet200ApplicationJsonResponse'
+              examples:
+                default:
+                  value: 
+        '500':
+          description: An unexpected error response.
+          content:
+            application/pdf:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  /documentModels:authorizeCopy:
+    post:
+      summary: DocumentModels_AuthorizeModelCopy
+      description: "Generates authorization to copy a document model to this location with\nspecified modelId and optional description."
+      operationId: DocumentModels_AuthorizeModelCopy
+      parameters:
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+      requestBody:
+        description: Authorize copy request parameters.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorizeCopyRequest'
+            example:
+              modelId: string
+              description: string
+              tags: { }
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelCopyAuthorization'
+              example:
+                targetResourceId: string
+                targetResourceRegion: string
+                targetModelId: string
+                targetModelLocation: string
+                accessToken: string
+                expirationDateTime: string
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  /documentModels:build:
+    post:
+      summary: DocumentModels_BuildModel
+      description: Builds a custom document analysis model.
+      operationId: DocumentModels_BuildModel
+      parameters:
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+      requestBody:
+        description: Build request parameters.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuildDocumentModelRequest'
+            example:
+              modelId: string
+              description: string
+              buildMode: template
+              azureBlobSource:
+                containerUrl: string
+                prefix: string
+              azureBlobFileListSource:
+                containerUrl: string
+                fileList: string
+              tags: { }
+              maxTrainingHours: 0.5
+              allowOverwrite: false
+      responses:
+        '202':
+          description: 'The request has been accepted for processing, but processing has not yet completed.'
+          headers:
+            Operation-Location:
+              description: The location of an instance of DocumentModelBuildOperationDetails
+              schema:
+                type: string
+                format: uri
+            Retry-After:
+              description: The Retry-After header can indicate how long the client should wait before polling the operation status.
+              schema:
+                type: integer
+                format: int32
+          content:
+            application/json: { }
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  /documentModels:compose:
+    post:
+      summary: DocumentModels_ComposeModel
+      description: Creates a new document model from document types of existing document models.
+      operationId: DocumentModels_ComposeModel
+      parameters:
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+      requestBody:
+        description: Compose request parameters.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComposeDocumentModelRequest'
+      responses:
+        '202':
+          description: 'The request has been accepted for processing, but processing has not yet completed.'
+          headers:
+            Operation-Location:
+              description: The location of an instance of DocumentModelComposeOperationDetails
+              schema:
+                type: string
+                format: uri
+            Retry-After:
+              description: The Retry-After header can indicate how long the client should wait before polling the operation status.
+              schema:
+                type: integer
+                format: int32
+          content:
+            application/json: { }
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  /info:
+    get:
+      summary: MiscellaneousOperations_GetResourceDetails
+      description: Return information about the current resource.
+      operationId: MiscellaneousOperations_GetResourceDetails
+      parameters:
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceResourceDetails'
+              example:
+                customDocumentModels:
+                  count: 0
+                  limit: 0
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  /operations:
+    get:
+      summary: MiscellaneousOperations_ListOperations
+      description: Lists all operations.
+      operationId: MiscellaneousOperations_ListOperations
+      parameters:
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+        - name: x-ms-client-request-id
+          in: header
+          description: 'An opaque, globally-unique, client-generated string identifier for the request.'
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The request has succeeded.
+          headers:
+            x-ms-client-request-id:
+              description: 'An opaque, globally-unique, client-generated string identifier for the request.'
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedDocumentIntelligenceOperationDetails'
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+  '/operations/{operationId}':
+    get:
+      summary: MiscellaneousOperations_GetOperation
+      description: "Gets operation info. Different operation types can be retrieved:\n1. General operation: no _overload parameter needed\n2. Document Model Build operation: use _overload=getDocumentModelBuildOperation\n3. Document Model Compose operation: use _overload=getDocumentModelComposeOperation\n4. Document Model Copy To operation: use _overload=getDocumentModelCopyToOperation\n5. Document Classifier Copy To operation: use _overload=getDocumentClassifierCopyToOperation\n6. Document Classifier Build operation: use _overload=getDocumentClassifierBuildOperation"
+      operationId: MiscellaneousOperations_GetOperation
+      parameters:
+        - name: operationId
+          in: path
+          description: Operation ID
+          required: true
+          schema:
+            type: string
+        - name: api-version
+          in: query
+          description: The API version to use for this operation.
+          required: true
+          schema:
+            minLength: 1
+            type: string
+        - name: _overload
+          in: query
+          description: Optional parameter to specify the operation type to retrieve.
+          schema:
+            enum:
+              - getOperation
+              - getDocumentModelBuildOperation
+              - getDocumentModelComposeOperation
+              - getDocumentModelCopyToOperation
+              - getDocumentClassifierCopyToOperation
+              - getDocumentClassifierBuildOperation
+            type: string
+        - name: x-ms-client-request-id
+          in: header
+          description: 'An opaque, globally-unique, client-generated string identifier for the request.'
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The request has succeeded.
+          headers:
+            x-ms-client-request-id:
+              description: 'An opaque, globally-unique, client-generated string identifier for the request.'
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceOperationDetails'
+        '500':
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentIntelligenceErrorResponse'
+components:
+  schemas:
+    AddressValue:
+      type: object
+      properties:
+        houseNumber:
+          type: string
+          description: House or building number.
+        poBox:
+          type: string
+          description: Post office box number.
+        road:
+          type: string
+          description: Street name.
+        city:
+          type: string
+          description: 'Name of city, town, village, etc.'
+        state:
+          type: string
+          description: First-level administrative division.
+        postalCode:
+          type: string
+          description: Postal code used for mail sorting.
+        countryRegion:
+          type: string
+          description: Country/region.
+        streetAddress:
+          type: string
+          description: 'Street-level address, excluding city, state, countryRegion, and postalCode.'
+        unit:
+          type: string
+          description: Apartment or office number
+        cityDistrict:
+          type: string
+          description: "Districts or boroughs within a city, such as Brooklyn in New York City or City\nof Westminster in London."
+        stateDistrict:
+          type: string
+          description: Second-level administrative division used in certain locales.
+        suburb:
+          type: string
+          description: 'Unofficial neighborhood name, like Chinatown.'
+        house:
+          type: string
+          description: 'Build name, such as World Trade Center.'
+        level:
+          type: string
+          description: 'Floor number, such as 3F.'
+      description: Address field value.
+    AnalyzeBatchDocumentsRequest:
+      required:
+        - resultContainerUrl
+      type: object
+      properties:
+        azureBlobSource:
+          $ref: '#/components/schemas/AzureBlobContentSource'
+        azureBlobFileListSource:
+          $ref: '#/components/schemas/AzureBlobFileListContentSource'
+        resultContainerUrl:
+          type: string
+          description: Azure Blob Storage container URL where analyze result files will be stored.
+          format: uri
+        resultPrefix:
+          type: string
+          description: Blob name prefix of result files.
+        overwriteExisting:
+          type: boolean
+          description: Overwrite existing analyze result files?
+          default: false
+      description: Batch document analysis parameters.
+    AnalyzeBatchOperation:
+      required:
+        - status
+        - createdDateTime
+        - lastUpdatedDateTime
+      type: object
+      properties:
+        resultId:
+          $ref: '#/components/schemas/Azure.Core.uuid'
+        status:
+          $ref: '#/components/schemas/DocumentIntelligenceOperationStatus'
+        createdDateTime:
+          type: string
+          description: Date and time (UTC) when the operation was submitted.
+          format: date-time
+        lastUpdatedDateTime:
+          type: string
+          description: Date and time (UTC) when the status was last updated.
+          format: date-time
+        percentCompleted:
+          maximum: 100
+          minimum: 0
+          type: integer
+          description: Operation progress (0-100).
+          format: int32
+        error:
+          $ref: '#/components/schemas/DocumentIntelligenceError'
+        result:
+          $ref: '#/components/schemas/AnalyzeBatchResult'
+      description: Status and result of the analyze batch operation.
+    AnalyzeBatchOperationDetail:
+      required:
+        - status
+        - sourceUrl
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/DocumentIntelligenceOperationStatus'
+        sourceUrl:
+          type: string
+          description: URL of the source document.
+          format: uri
+        resultUrl:
+          type: string
+          description: URL of the analyze result JSON.
+          format: uri
+        error:
+          $ref: '#/components/schemas/DocumentIntelligenceError'
+      description: Operation detail for a document in a batch analysis.
+    AnalyzeBatchResult:
+      required:
+        - succeededCount
+        - failedCount
+        - skippedCount
+      type: object
+      properties:
+        succeededCount:
+          type: integer
+          description: Number of documents that completed with status succeeded.
+          format: int32
+        failedCount:
+          type: integer
+          description: Number of documents that completed with status failed.
+          format: int32
+        skippedCount:
+          type: integer
+          description: Number of documents that completed with status skipped.
+          format: int32
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnalyzeBatchOperationDetail'
+          description: Operation detail for each document in the batch.
+          x-ms-identifiers: [ ]
+      description: Batch document analysis result.
+    AnalyzeDocumentRequest:
+      type: object
+      properties:
+        urlSource:
+          type: string
+          description: Document URL to analyze.  Either urlSource or base64Source must be specified.
+          format: uri
+        base64Source:
+          type: string
+          description: "Base64 encoding of the document to analyze.  Either urlSource or base64Source\nmust be specified."
+          format: byte
+      description: Document analysis parameters.
+    AnalyzeOperation:
+      required:
+        - status
+        - createdDateTime
+        - lastUpdatedDateTime
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/DocumentIntelligenceOperationStatus'
+        createdDateTime:
+          type: string
+          description: Date and time (UTC) when the analyze operation was submitted.
+          format: date-time
+        lastUpdatedDateTime:
+          type: string
+          description: Date and time (UTC) when the status was last updated.
+          format: date-time
+        error:
+          $ref: '#/components/schemas/DocumentIntelligenceError'
+        analyzeResult:
+          $ref: '#/components/schemas/AnalyzeResult'
+      description: Status and result of the analyze operation.
+    AnalyzeResult:
+      required:
+        - apiVersion
+        - modelId
+        - stringIndexType
+        - content
+        - pages
+      type: object
+      properties:
+        apiVersion:
+          type: string
+          description: API version used to produce this result.
+        modelId:
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+          type: string
+          description: Document model ID used to produce this result.
+        stringIndexType:
+          $ref: '#/components/schemas/StringIndexType'
+        contentFormat:
+          $ref: '#/components/schemas/DocumentContentFormat'
+        content:
+          type: string
+          description: "Concatenate string representation of all textual and visual elements in reading\norder."
+        pages:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentPage'
+          description: Analyzed pages.
+          x-ms-identifiers: [ ]
+        paragraphs:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentParagraph'
+          description: Extracted paragraphs.
+          x-ms-identifiers: [ ]
+        tables:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentTable'
+          description: Extracted tables.
+          x-ms-identifiers: [ ]
+        figures:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentFigure'
+          description: Extracted figures.
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSection'
+          description: Extracted sections.
+          x-ms-identifiers: [ ]
+        keyValuePairs:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentKeyValuePair'
+          description: Extracted key-value pairs.
+          x-ms-identifiers: [ ]
+        styles:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentStyle'
+          description: Extracted font styles.
+          x-ms-identifiers: [ ]
+        languages:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentLanguage'
+          description: Detected languages.
+          x-ms-identifiers: [ ]
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnalyzedDocument'
+          description: Extracted documents.
+          x-ms-identifiers: [ ]
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentIntelligenceWarning'
+          description: List of warnings encountered.
+          x-ms-identifiers: [ ]
+      description: Document analysis result.
+    AnalyzedDocument:
+      required:
+        - docType
+        - spans
+        - confidence
+      type: object
+      properties:
+        docType:
+          maxLength: 64
+          minLength: 2
+          type: string
+          description: Document type.
+        boundingRegions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoundingRegion'
+          description: Bounding regions covering the document.
+          x-ms-identifiers: [ ]
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSpan'
+          description: Location of the document in the reading order concatenated content.
+          x-ms-identifiers: [ ]
+        fields:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/DocumentField'
+          description: Dictionary of named field values.
+        confidence:
+          maximum: 1
+          minimum: 0
+          type: number
+          description: Confidence of correctly extracting the document.
+          format: float
+      description: An object describing the location and semantic content of a document.
+    AuthorizeClassifierCopyRequest:
+      required:
+        - classifierId
+      type: object
+      properties:
+        classifierId:
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+          type: string
+          description: Unique document classifier name.
+        description:
+          maxLength: 4096
+          type: string
+          description: Document classifier description.
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: List of key-value tag attributes associated with the document classifier.
+      description: Request body to authorize document classifier copy.
+    AuthorizeCopyRequest:
+      required:
+        - modelId
+      type: object
+      properties:
+        modelId:
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+          type: string
+          description: Unique document model name.
+        description:
+          maxLength: 4096
+          type: string
+          description: Document model description.
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: List of key-value tag attributes associated with the document model.
+      description: Request body to authorize document model copy.
+    Azure.Core.uuid:
+      type: string
+      description: Universally Unique Identifier
+      format: uuid
+    AzureBlobContentSource:
+      required:
+        - containerUrl
+      type: object
+      properties:
+        containerUrl:
+          type: string
+          description: Azure Blob Storage container URL.
+          format: uri
+        prefix:
+          type: string
+          description: Blob name prefix.
+      description: Azure Blob Storage content.
+    AzureBlobFileListContentSource:
+      required:
+        - containerUrl
+        - fileList
+      type: object
+      properties:
+        containerUrl:
+          type: string
+          description: Azure Blob Storage container URL.
+          format: uri
+        fileList:
+          type: string
+          description: Path to a JSONL file within the container specifying a subset of documents.
+      description: File list in Azure Blob Storage.
+    BoundingRegion:
+      required:
+        - pageNumber
+        - polygon
+      type: object
+      properties:
+        pageNumber:
+          minimum: 1
+          type: integer
+          description: 1-based page number of page containing the bounding region.
+          format: int32
+        polygon:
+          type: array
+          items:
+            type: number
+            format: float
+          description: "Bounding polygon on the page, or the entire page if not specified.\nCoordinates specified relative to the top-left of the page. The numbers\nrepresent the x, y values of the polygon vertices, clockwise from the left\n(-180 degrees inclusive) relative to the element orientation."
+      description: Bounding polygon on a specific page of the input.
+    BuildDocumentClassifierRequest:
+      required:
+        - classifierId
+        - docTypes
+      type: object
+      properties:
+        classifierId:
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+          type: string
+          description: Unique document classifier name.
+        description:
+          maxLength: 4096
+          type: string
+          description: Document classifier description.
+        baseClassifierId:
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+          type: string
+          description: Base classifierId on top of which to train the classifier.
+        docTypes:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ClassifierDocumentTypeDetails'
+          description: List of document types to classify against.
+        allowOverwrite:
+          type: boolean
+          description: Allow overwriting an existing classifier with the same name.
+          default: false
+      description: Request body to build a new custom document classifier.
+    BuildDocumentModelRequest:
+      required:
+        - modelId
+        - buildMode
+      type: object
+      properties:
+        modelId:
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+          type: string
+          description: Unique document model name.
+        description:
+          maxLength: 4096
+          type: string
+          description: Document model description.
+        buildMode:
+          $ref: '#/components/schemas/DocumentBuildMode'
+        azureBlobSource:
+          $ref: '#/components/schemas/AzureBlobContentSource'
+        azureBlobFileListSource:
+          $ref: '#/components/schemas/AzureBlobFileListContentSource'
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: List of key-value tag attributes associated with the document model.
+        maxTrainingHours:
+          type: number
+          description: Max number of V100-equivalent GPU hours to use for model training.  Default=0.5.
+          format: float
+          default: 0.5
+        allowOverwrite:
+          type: boolean
+          description: Allow overwriting an existing model with the same name.
+          default: false
+      description: Request body to build a new custom document model.
+    ClassifierCopyAuthorization:
+      required:
+        - targetResourceId
+        - targetResourceRegion
+        - targetClassifierId
+        - targetClassifierLocation
+        - accessToken
+        - expirationDateTime
+      type: object
+      properties:
+        targetResourceId:
+          type: string
+          description: ID of the target Azure resource where the document classifier should be copied to.
+        targetResourceRegion:
+          type: string
+          description: "Location of the target Azure resource where the document classifier should be copied\nto."
+        targetClassifierId:
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+          type: string
+          description: Identifier of the target document classifier.
+        targetClassifierLocation:
+          type: string
+          description: URL of the copied document classifier in the target account.
+          format: uri
+        accessToken:
+          type: string
+          description: Token used to authorize the request.
+        expirationDateTime:
+          type: string
+          description: Date/time when the access token expires.
+          format: date-time
+      description: "Authorization to copy a document classifier to the specified target resource and\nclassifierId."
+    ClassifierDocumentTypeDetails:
+      type: object
+      properties:
+        sourceKind:
+          $ref: '#/components/schemas/ContentSourceKind'
+        azureBlobSource:
+          $ref: '#/components/schemas/AzureBlobContentSource'
+        azureBlobFileListSource:
+          $ref: '#/components/schemas/AzureBlobFileListContentSource'
+      description: Classifier document type info.
+    ClassifyDocumentRequest:
+      type: object
+      properties:
+        urlSource:
+          type: string
+          description: Document URL to classify.  Either urlSource or base64Source must be specified.
+          format: uri
+        base64Source:
+          type: string
+          description: "Base64 encoding of the document to classify.  Either urlSource or base64Source\nmust be specified."
+          format: byte
+      description: Document classification parameters.
+    ComposeDocumentModelRequest:
+      required:
+        - modelId
+        - classifierId
+        - docTypes
+      type: object
+      properties:
+        modelId:
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+          type: string
+          description: Unique document model name.
+        description:
+          maxLength: 4096
+          type: string
+          description: Document model description.
+        classifierId:
+          type: string
+          description: Custom classifier to split and classify the input file.
+        split:
+          enum:
+            - auto
+            - none
+            - perPage
+          type: string
+          description: File splitting behavior.
+          default: none
+          x-ms-enum:
+            name: SplitMode
+            modelAsString: true
+            values:
+              - name: auto
+                value: auto
+                description: Automatically split file into documents.
+              - name: none
+                value: none
+                description: Treat the entire file as a single document.
+              - name: perPage
+                value: perPage
+                description: Treat each page in the file as a separate document.
+        docTypes:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/DocumentTypeDetails'
+          description: Dictionary mapping supported docTypes to the corresponding document models.
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: List of key-value tag attributes associated with the document model.
+      description: Request body to create a composed document model from component document models.
+    ContentSourceKind:
+      enum:
+        - url
+        - base64
+        - azureBlob
+        - azureBlobFileList
+      type: string
+      description: Type of content source.
+      x-ms-enum:
+        name: ContentSourceKind
+        modelAsString: true
+        values:
+          - name: url
+            value: url
+            description: Content at a specific URL.
+          - name: base64
+            value: base64
+            description: Content represented via Base64 encoding.
+          - name: azureBlob
+            value: azureBlob
+            description: Files in a path within an Azure Blob Storage container.
+          - name: azureBlobFileList
+            value: azureBlobFileList
+            description: A file list specifying individual files in an Azure Blob Storage container.
+    CurrencyValue:
+      required:
+        - amount
+      type: object
+      properties:
+        amount:
+          type: number
+          description: Currency amount.
+          format: double
+        currencySymbol:
+          type: string
+          description: 'Currency symbol label, if any.'
+        currencyCode:
+          type: string
+          description: 'Resolved currency code (ISO 4217), if any.'
+      description: Currency field value.
+    CustomDocumentModelsDetails:
+      required:
+        - count
+        - limit
+      type: object
+      properties:
+        count:
+          type: integer
+          description: Number of custom document models in the current resource.
+          format: int32
+        limit:
+          type: integer
+          description: Maximum number of custom document models supported in the current resource.
+          format: int32
+      description: Details regarding custom document models.
+    DocumentAnalysisFeature:
+      enum:
+        - ocrHighResolution
+        - languages
+        - barcodes
+        - formulas
+        - keyValuePairs
+        - styleFont
+        - queryFields
+      type: string
+      description: Document analysis features to enable.
+      x-ms-enum:
+        name: DocumentAnalysisFeature
+        modelAsString: true
+        values:
+          - name: ocrHighResolution
+            value: ocrHighResolution
+            description: Perform OCR at a higher resolution to handle documents with fine print.
+          - name: languages
+            value: languages
+            description: Enable the detection of the text content language.
+          - name: barcodes
+            value: barcodes
+            description: Enable the detection of barcodes in the document.
+          - name: formulas
+            value: formulas
+            description: Enable the detection of mathematical expressions in the document.
+          - name: keyValuePairs
+            value: keyValuePairs
+            description: Enable the detection of general key value pairs (form fields) in the document.
+          - name: styleFont
+            value: styleFont
+            description: Enable the recognition of various font styles.
+          - name: queryFields
+            value: queryFields
+            description: Enable the extraction of additional fields via the queryFields query parameter.
+    DocumentBarcode:
+      required:
+        - kind
+        - value
+        - span
+        - confidence
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/DocumentBarcodeKind'
+        value:
+          type: string
+          description: Barcode value.
+        polygon:
+          type: array
+          items:
+            type: number
+            format: float
+          description: "Bounding polygon of the barcode, with coordinates specified relative to the\ntop-left of the page. The numbers represent the x, y values of the polygon\nvertices, clockwise from the left (-180 degrees inclusive) relative to the\nelement orientation."
+        span:
+          $ref: '#/components/schemas/DocumentSpan'
+        confidence:
+          maximum: 1
+          minimum: 0
+          type: number
+          description: Confidence of correctly extracting the barcode.
+          format: float
+      description: A barcode object.
+    DocumentBarcodeKind:
+      enum:
+        - QRCode
+        - PDF417
+        - UPCA
+        - UPCE
+        - Code39
+        - Code128
+        - EAN8
+        - EAN13
+        - DataBar
+        - Code93
+        - Codabar
+        - DataBarExpanded
+        - ITF
+        - MicroQRCode
+        - Aztec
+        - DataMatrix
+        - MaxiCode
+      type: string
+      description: Barcode kind.
+      x-ms-enum:
+        name: DocumentBarcodeKind
+        modelAsString: true
+        values:
+          - name: QRCode
+            value: QRCode
+            description: 'QR code, as defined in ISO/IEC 18004:2015.'
+          - name: PDF417
+            value: PDF417
+            description: 'PDF417, as defined in ISO 15438.'
+          - name: UPCA
+            value: UPCA
+            description: GS1 12-digit Universal Product Code.
+          - name: UPCE
+            value: UPCE
+            description: GS1 6-digit Universal Product Code.
+          - name: Code39
+            value: Code39
+            description: 'Code 39 barcode, as defined in ISO/IEC 16388:2007.'
+          - name: Code128
+            value: Code128
+            description: 'Code 128 barcode, as defined in ISO/IEC 15417:2007.'
+          - name: EAN8
+            value: EAN8
+            description: GS1 8-digit International Article Number (European Article Number).
+          - name: EAN13
+            value: EAN13
+            description: GS1 13-digit International Article Number (European Article Number).
+          - name: DataBar
+            value: DataBar
+            description: GS1 DataBar barcode.
+          - name: Code93
+            value: Code93
+            description: 'Code 93 barcode, as defined in ANSI/AIM BC5-1995.'
+          - name: Codabar
+            value: Codabar
+            description: 'Codabar barcode, as defined in ANSI/AIM BC3-1995.'
+          - name: DataBarExpanded
+            value: DataBarExpanded
+            description: GS1 DataBar Expanded barcode.
+          - name: ITF
+            value: ITF
+            description: 'Interleaved 2 of 5 barcode, as defined in ANSI/AIM BC2-1995.'
+          - name: MicroQRCode
+            value: MicroQRCode
+            description: 'Micro QR code, as defined in ISO/IEC 23941:2022.'
+          - name: Aztec
+            value: Aztec
+            description: 'Aztec code, as defined in ISO/IEC 24778:2008.'
+          - name: DataMatrix
+            value: DataMatrix
+            description: 'Data matrix code, as defined in ISO/IEC 16022:2006.'
+          - name: MaxiCode
+            value: MaxiCode
+            description: 'MaxiCode, as defined in ISO/IEC 16023:2000.'
+    DocumentBuildMode:
+      enum:
+        - template
+        - neural
+      type: string
+      description: Custom document model build mode.
+      x-ms-enum:
+        name: DocumentBuildMode
+        modelAsString: true
+        values:
+          - name: template
+            value: template
+            description: Target documents with similar visual templates.
+          - name: neural
+            value: neural
+            description: Support documents with diverse visual templates.
+    DocumentCaption:
+      required:
+        - content
+        - spans
+      type: object
+      properties:
+        content:
+          type: string
+          description: Content of the caption.
+        boundingRegions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoundingRegion'
+          description: Bounding regions covering the caption.
+          x-ms-identifiers: [ ]
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSpan'
+          description: Location of the caption in the reading order concatenated content.
+          x-ms-identifiers: [ ]
+        elements:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentElement'
+          description: Child elements of the caption.
+      description: A caption object describing a table or figure.
+    DocumentClassifierBuildOperationDetails:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/DocumentIntelligenceOperationDetails'
+      properties:
+        result:
+          $ref: '#/components/schemas/DocumentClassifierDetails'
+      description: Get Operation response object.
+      x-ms-discriminator-value: documentClassifierBuild
+    DocumentClassifierCopyToOperationDetails:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/DocumentIntelligenceOperationDetails'
+      properties:
+        result:
+          $ref: '#/components/schemas/DocumentClassifierDetails'
+      description: Get Operation response object.
+      x-ms-discriminator-value: documentClassifierCopyTo
+    DocumentClassifierDetails:
+      required:
+        - classifierId
+        - createdDateTime
+        - apiVersion
+        - docTypes
+      type: object
+      properties:
+        classifierId:
+          maxLength: 64
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+          type: string
+          description: Unique document classifier name.
+          x-ms-mutability:
+            - read
+            - create
+        description:
+          maxLength: 4096
+          type: string
+          description: Document classifier description.
+        createdDateTime:
+          type: string
+          description: Date and time (UTC) when the document classifier was created.
+          format: date-time
+        expirationDateTime:
+          type: string
+          description: Date and time (UTC) when the document classifier will expire.
+          format: date-time
+        modifiedDateTime:
+          type: string
+          description: Date and time (UTC) when the document model was last modified.
+          format: date-time
+          readOnly: true
+        apiVersion:
+          type: string
+          description: API version used to create this document classifier.
+        baseClassifierId:
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+          type: string
+          description: Base classifierId on top of which the classifier was trained.
+        docTypes:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ClassifierDocumentTypeDetails'
+          description: List of document types to classify against.
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentIntelligenceWarning'
+          description: List of warnings encountered while building the classifier.
+          x-ms-identifiers: [ ]
+      description: Document classifier info.
+    DocumentContentFormat:
+      enum:
+        - text
+        - markdown
+      type: string
+      description: Format of the content in analyzed result.
+      x-ms-enum:
+        name: DocumentContentFormat
+        modelAsString: true
+        values:
+          - name: text
+            value: text
+            description: Plain text representation of the document content without any formatting.
+          - name: markdown
+            value: markdown
+            description: "Markdown representation of the document content with section headings, tables,\netc."
+    DocumentElement:
+      type: string
+      description: "An JSON pointer referencing an element of the document, such as paragraph,\ntable, section, etc."
+    DocumentField:
+      required:
+        - type
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/DocumentFieldType'
+        valueString:
+          type: string
+          description: String value.
+        valueDate:
+          type: string
+          description: Date value in YYYY-MM-DD format (ISO 8601).
+          format: date
+        valueTime:
+          type: string
+          description: Time value in hh:mm:ss format (ISO 8601).
+          format: time
+        valuePhoneNumber:
+          type: string
+          description: Phone number value in E.164 format (ex. +19876543210).
+        valueNumber:
+          type: number
+          description: Floating point value.
+          format: double
+        valueInteger:
+          type: integer
+          description: Integer value.
+          format: int64
+        valueSelectionMark:
+          $ref: '#/components/schemas/DocumentSelectionMarkState'
+        valueSignature:
+          $ref: '#/components/schemas/DocumentSignatureType'
+        valueCountryRegion:
+          type: string
+          description: 3-letter country code value (ISO 3166-1 alpha-3).
+        valueArray:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentField'
+          description: Array of field values.
+          x-ms-identifiers: [ ]
+        valueObject:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/DocumentField'
+          description: Dictionary of named field values.
+        valueCurrency:
+          $ref: '#/components/schemas/CurrencyValue'
+        valueAddress:
+          $ref: '#/components/schemas/AddressValue'
+        valueBoolean:
+          type: boolean
+          description: Boolean value.
+        valueSelectionGroup:
+          type: array
+          items:
+            type: string
+          description: Selection group value.
+        content:
+          type: string
+          description: Field content.
+        boundingRegions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoundingRegion'
+          description: Bounding regions covering the field.
+          x-ms-identifiers: [ ]
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSpan'
+          description: Location of the field in the reading order concatenated content.
+          x-ms-identifiers: [ ]
+        confidence:
+          maximum: 1
+          minimum: 0
+          type: number
+          description: Confidence of correctly extracting the field.
+          format: float
+      description: An object representing the content and location of a field value.
+    DocumentFieldSchema:
+      required:
+        - type
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/DocumentFieldType'
+        description:
+          maxLength: 4096
+          type: string
+          description: Field description.
+        example:
+          type: string
+          description: Example field content.
+        items:
+          $ref: '#/components/schemas/DocumentFieldSchema'
+        properties:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/DocumentFieldSchema'
+          description: Named sub-fields of the object field.
+      description: Description of the field semantic schema using a JSON Schema style syntax.
+    DocumentFieldType:
+      enum:
+        - string
+        - date
+        - time
+        - phoneNumber
+        - number
+        - integer
+        - selectionMark
+        - countryRegion
+        - signature
+        - array
+        - object
+        - currency
+        - address
+        - boolean
+        - selectionGroup
+      type: string
+      description: Semantic data type of the field value.
+      x-ms-enum:
+        name: DocumentFieldType
+        modelAsString: true
+        values:
+          - name: string
+            value: string
+            description: Plain text.
+          - name: date
+            value: date
+            description: 'Date, normalized to ISO 8601 (YYYY-MM-DD) format.'
+          - name: time
+            value: time
+            description: 'Time, normalized to ISO 8601 (hh:mm:ss) format.'
+          - name: phoneNumber
+            value: phoneNumber
+            description: 'Phone number, normalized to E.164 (+{CountryCode}{SubscriberNumber}) format.'
+          - name: number
+            value: number
+            description: 'Floating point number, normalized to double precision floating point.'
+          - name: integer
+            value: integer
+            description: 'Integer number, normalized to 64-bit signed integer.'
+          - name: selectionMark
+            value: selectionMark
+            description: Is field selected?
+          - name: countryRegion
+            value: countryRegion
+            description: 'Country/region, normalized to ISO 3166-1 alpha-3 format (ex. USA).'
+          - name: signature
+            value: signature
+            description: Is signature present?
+          - name: array
+            value: array
+            description: List of subfields of the same type.
+          - name: object
+            value: object
+            description: Named list of subfields of potentially different types.
+          - name: currency
+            value: currency
+            description: Currency amount with optional currency symbol and unit.
+          - name: address
+            value: address
+            description: Parsed address.
+          - name: boolean
+            value: boolean
+            description: 'Boolean value, normalized to true or false.'
+          - name: selectionGroup
+            value: selectionGroup
+            description: Array of selected string values.
+    DocumentFigure:
+      required:
+        - spans
+      type: object
+      properties:
+        boundingRegions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoundingRegion'
+          description: Bounding regions covering the figure.
+          x-ms-identifiers: [ ]
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSpan'
+          description: Location of the figure in the reading order concatenated content.
+          x-ms-identifiers: [ ]
+        elements:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentElement'
+          description: 'Child elements of the figure, excluding any caption or footnotes.'
+        caption:
+          $ref: '#/components/schemas/DocumentCaption'
+        footnotes:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentFootnote'
+          description: List of footnotes associated with the figure.
+          x-ms-identifiers: [ ]
+        id:
+          type: string
+          description: Figure ID.
+      description: An object representing a figure in the document.
+    DocumentFontStyle:
+      enum:
+        - normal
+        - italic
+      type: string
+      description: Font style.
+      x-ms-enum:
+        name: DocumentFontStyle
+        modelAsString: true
+        values:
+          - name: normal
+            value: normal
+            description: Characters are represented normally.
+          - name: italic
+            value: italic
+            description: Characters are visually slanted to the right.
+    DocumentFontWeight:
+      enum:
+        - normal
+        - bold
+      type: string
+      description: Font weight.
+      x-ms-enum:
+        name: DocumentFontWeight
+        modelAsString: true
+        values:
+          - name: normal
+            value: normal
+            description: Characters are represented normally.
+          - name: bold
+            value: bold
+            description: Characters are represented with thicker strokes.
+    DocumentFootnote:
+      required:
+        - content
+        - spans
+      type: object
+      properties:
+        content:
+          type: string
+          description: Content of the footnote.
+        boundingRegions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoundingRegion'
+          description: Bounding regions covering the footnote.
+          x-ms-identifiers: [ ]
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSpan'
+          description: Location of the footnote in the reading order concatenated content.
+          x-ms-identifiers: [ ]
+        elements:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentElement'
+          description: Child elements of the footnote.
+      description: A footnote object describing a table or figure.
+    DocumentFormula:
+      required:
+        - kind
+        - value
+        - span
+        - confidence
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/DocumentFormulaKind'
+        value:
+          type: string
+          description: LaTex expression describing the formula.
+        polygon:
+          type: array
+          items:
+            type: number
+            format: float
+          description: "Bounding polygon of the formula, with coordinates specified relative to the\ntop-left of the page. The numbers represent the x, y values of the polygon\nvertices, clockwise from the left (-180 degrees inclusive) relative to the\nelement orientation."
+        span:
+          $ref: '#/components/schemas/DocumentSpan'
+        confidence:
+          maximum: 1
+          minimum: 0
+          type: number
+          description: Confidence of correctly extracting the formula.
+          format: float
+      description: A formula object.
+    DocumentFormulaKind:
+      enum:
+        - inline
+        - display
+      type: string
+      description: Formula kind.
+      x-ms-enum:
+        name: DocumentFormulaKind
+        modelAsString: true
+        values:
+          - name: inline
+            value: inline
+            description: A formula embedded within the content of a paragraph.
+          - name: display
+            value: display
+            description: A formula in display mode that takes up an entire line.
+    DocumentIntelligenceError:
+      required:
+        - code
+        - message
+      type: object
+      properties:
+        code:
+          type: string
+          description: One of a server-defined set of error codes.
+        message:
+          type: string
+          description: A human-readable representation of the error.
+        target:
+          type: string
+          description: The target of the error.
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentIntelligenceError'
+          description: An array of details about specific errors that led to this reported error.
+          x-ms-identifiers: [ ]
+        innererror:
+          $ref: '#/components/schemas/DocumentIntelligenceInnerError'
+      description: The error object.
+    DocumentIntelligenceErrorResponse:
+      required:
+        - error
+      type: object
+      properties:
+        error:
+          $ref: '#/components/schemas/DocumentIntelligenceError'
+      description: Error response object.
+    DocumentIntelligenceInnerError:
+      type: object
+      properties:
+        code:
+          type: string
+          description: One of a server-defined set of error codes.
+        message:
+          type: string
+          description: A human-readable representation of the error.
+        innererror:
+          $ref: '#/components/schemas/DocumentIntelligenceInnerError'
+      description: An object containing more specific information about the error.
+    DocumentIntelligenceOperationDetails:
+      required:
+        - operationId
+        - status
+        - createdDateTime
+        - lastUpdatedDateTime
+        - kind
+        - resourceLocation
+      type: object
+      properties:
+        operationId:
+          type: string
+          description: Operation ID
+          x-ms-mutability:
+            - read
+            - create
+        status:
+          $ref: '#/components/schemas/DocumentIntelligenceOperationStatus'
+        percentCompleted:
+          maximum: 100
+          minimum: 0
+          type: integer
+          description: Operation progress (0-100).
+          format: int32
+        createdDateTime:
+          type: string
+          description: Date and time (UTC) when the operation was created.
+          format: date-time
+        lastUpdatedDateTime:
+          type: string
+          description: Date and time (UTC) when the status was last updated.
+          format: date-time
+        kind:
+          $ref: '#/components/schemas/OperationKind'
+        resourceLocation:
+          type: string
+          description: URL of the resource targeted by this operation.
+          format: uri
+        apiVersion:
+          type: string
+          description: API version used to create this operation.
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: List of key-value tag attributes associated with the document model.
+        error:
+          $ref: '#/components/schemas/DocumentIntelligenceError'
+      description: Operation info.
+      discriminator:
+        propertyName: kind
+    DocumentIntelligenceOperationStatus:
+      enum:
+        - notStarted
+        - running
+        - failed
+        - succeeded
+        - canceled
+        - skipped
+      type: string
+      description: Operation status.
+      x-ms-enum:
+        name: DocumentIntelligenceOperationStatus
+        modelAsString: true
+        values:
+          - name: notStarted
+            value: notStarted
+            description: The operation has not started yet.
+          - name: running
+            value: running
+            description: The operation is in progress.
+          - name: failed
+            value: failed
+            description: The operation has failed.
+          - name: succeeded
+            value: succeeded
+            description: The operation has succeeded.
+          - name: canceled
+            value: canceled
+            description: The operation has been canceled.
+          - name: skipped
+            value: skipped
+            description: The operation has been skipped.
+    DocumentIntelligenceResourceDetails:
+      required:
+        - customDocumentModels
+      type: object
+      properties:
+        customDocumentModels:
+          $ref: '#/components/schemas/CustomDocumentModelsDetails'
+      description: General information regarding the current resource.
+    DocumentIntelligenceWarning:
+      required:
+        - code
+        - message
+      type: object
+      properties:
+        code:
+          type: string
+          description: One of a server-defined set of warning codes.
+        message:
+          type: string
+          description: A human-readable representation of the warning.
+        target:
+          type: string
+          description: The target of the error.
+      description: The error object.
+    DocumentKeyValueElement:
+      required:
+        - content
+        - spans
+      type: object
+      properties:
+        content:
+          type: string
+          description: Concatenated content of the key-value element in reading order.
+        boundingRegions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoundingRegion'
+          description: Bounding regions covering the key-value element.
+          x-ms-identifiers: [ ]
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSpan'
+          description: Location of the key-value element in the reading order concatenated content.
+          x-ms-identifiers: [ ]
+      description: An object representing the field key or value in a key-value pair.
+    DocumentKeyValuePair:
+      required:
+        - key
+        - confidence
+      type: object
+      properties:
+        key:
+          $ref: '#/components/schemas/DocumentKeyValueElement'
+        value:
+          $ref: '#/components/schemas/DocumentKeyValueElement'
+        confidence:
+          maximum: 1
+          minimum: 0
+          type: number
+          description: Confidence of correctly extracting the key-value pair.
+          format: float
+      description: "An object representing a form field with distinct field label (key) and field\nvalue (may be empty)."
+    DocumentLanguage:
+      required:
+        - locale
+        - spans
+        - confidence
+      type: object
+      properties:
+        locale:
+          type: string
+          description: "Detected language.  Value may an ISO 639-1 language code (ex. \"en\", \"fr\")\nor BCP 47 language tag (ex. \"zh-Hans\")."
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSpan'
+          description: "Location of the text elements in the concatenated content the language applies\nto."
+          x-ms-identifiers: [ ]
+        confidence:
+          maximum: 1
+          minimum: 0
+          type: number
+          description: Confidence of correctly identifying the language.
+          format: float
+      description: An object representing the detected language for a given text span.
+    DocumentLine:
+      required:
+        - content
+        - spans
+      type: object
+      properties:
+        content:
+          type: string
+          description: Concatenated content of the contained elements in reading order.
+        polygon:
+          type: array
+          items:
+            type: number
+            format: float
+          description: "Bounding polygon of the line, with coordinates specified relative to the\ntop-left of the page. The numbers represent the x, y values of the polygon\nvertices, clockwise from the left (-180 degrees inclusive) relative to the\nelement orientation."
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSpan'
+          description: Location of the line in the reading order concatenated content.
+          x-ms-identifiers: [ ]
+      description: "A content line object consisting of an adjacent sequence of content elements,\nsuch as words and selection marks."
+    DocumentModelBuildOperationDetails:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/DocumentIntelligenceOperationDetails'
+      properties:
+        result:
+          $ref: '#/components/schemas/DocumentModelDetails'
+      description: Get Operation response object.
+      x-ms-discriminator-value: documentModelBuild
+    DocumentModelComposeOperationDetails:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/DocumentIntelligenceOperationDetails'
+      properties:
+        result:
+          $ref: '#/components/schemas/DocumentModelDetails'
+      description: Get Operation response object.
+      x-ms-discriminator-value: documentModelCompose
+    DocumentModelCopyToOperationDetails:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/DocumentIntelligenceOperationDetails'
+      properties:
+        result:
+          $ref: '#/components/schemas/DocumentModelDetails'
+      description: Get Operation response object.
+      x-ms-discriminator-value: documentModelCopyTo
+    DocumentModelDetails:
+      required:
+        - modelId
+        - createdDateTime
+      type: object
+      properties:
+        modelId:
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+          type: string
+          description: Unique document model name.
+          x-ms-mutability:
+            - read
+            - create
+        description:
+          maxLength: 4096
+          type: string
+          description: Document model description.
+        createdDateTime:
+          type: string
+          description: Date and time (UTC) when the document model was created.
+          format: date-time
+          readOnly: true
+        expirationDateTime:
+          type: string
+          description: Date and time (UTC) when the document model will expire.
+          format: date-time
+          readOnly: true
+        modifiedDateTime:
+          type: string
+          description: Date and time (UTC) when the document model was last modified.
+          format: date-time
+          readOnly: true
+        apiVersion:
+          type: string
+          description: API version used to create this document model.
+          readOnly: true
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: List of key-value tag attributes associated with the document model.
+        buildMode:
+          $ref: '#/components/schemas/DocumentBuildMode'
+        azureBlobSource:
+          $ref: '#/components/schemas/AzureBlobContentSource'
+        azureBlobFileListSource:
+          $ref: '#/components/schemas/AzureBlobFileListContentSource'
+        classifierId:
+          type: string
+          description: 'For composed models, the custom classifier to split and classify the input file.'
+        split:
+          enum:
+            - auto
+            - none
+            - perPage
+          type: string
+          description: 'For composed models, the file splitting behavior.'
+          default: none
+          x-ms-enum:
+            name: SplitMode
+            modelAsString: true
+            values:
+              - name: auto
+                value: auto
+                description: Automatically split file into documents.
+              - name: none
+                value: none
+                description: Treat the entire file as a single document.
+              - name: perPage
+                value: perPage
+                description: Treat each page in the file as a separate document.
+        docTypes:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/DocumentTypeDetails'
+          description: Supported document types.
+          readOnly: true
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentIntelligenceWarning'
+          description: List of warnings encountered while building the model.
+          readOnly: true
+          x-ms-identifiers: [ ]
+        trainingHours:
+          type: number
+          description: Number of V100-equivalent GPU hours consumed for model training.
+          format: float
+          readOnly: true
+      description: Document model info.
+    DocumentPage:
+      required:
+        - pageNumber
+        - spans
+      type: object
+      properties:
+        pageNumber:
+          minimum: 1
+          type: integer
+          description: 1-based page number in the input document.
+          format: int32
+        angle:
+          maximum: 180
+          type: number
+          description: "The general orientation of the content in clockwise direction, measured in\ndegrees between (-180, 180]."
+          format: float
+        width:
+          minimum: 0
+          type: number
+          description: 'The width of the image/PDF in pixels/inches, respectively.'
+          format: float
+        height:
+          minimum: 0
+          type: number
+          description: 'The height of the image/PDF in pixels/inches, respectively.'
+          format: float
+        unit:
+          $ref: '#/components/schemas/LengthUnit'
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSpan'
+          description: Location of the page in the reading order concatenated content.
+          x-ms-identifiers: [ ]
+        words:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentWord'
+          description: Extracted words from the page.
+          x-ms-identifiers: [ ]
+        selectionMarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSelectionMark'
+          description: Extracted selection marks from the page.
+          x-ms-identifiers: [ ]
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentLine'
+          description: "Extracted lines from the page, potentially containing both textual and visual\nelements."
+          x-ms-identifiers: [ ]
+        barcodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentBarcode'
+          description: Extracted barcodes from the page.
+          x-ms-identifiers: [ ]
+        formulas:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentFormula'
+          description: Extracted formulas from the page.
+          x-ms-identifiers: [ ]
+      description: Content and layout elements extracted from a page from the input.
+    DocumentParagraph:
+      required:
+        - content
+        - spans
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/ParagraphRole'
+        content:
+          type: string
+          description: Concatenated content of the paragraph in reading order.
+        boundingRegions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoundingRegion'
+          description: Bounding regions covering the paragraph.
+          x-ms-identifiers: [ ]
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSpan'
+          description: Location of the paragraph in the reading order concatenated content.
+          x-ms-identifiers: [ ]
+      description: "A paragraph object consisting with contiguous lines generally with common\nalignment and spacing."
+    DocumentSection:
+      required:
+        - spans
+      type: object
+      properties:
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSpan'
+          description: Location of the section in the reading order concatenated content.
+          x-ms-identifiers: [ ]
+        elements:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentElement'
+          description: Child elements of the section.
+      description: An object representing a section in the document.
+    DocumentSelectionMark:
+      required:
+        - state
+        - span
+        - confidence
+      type: object
+      properties:
+        state:
+          $ref: '#/components/schemas/DocumentSelectionMarkState'
+        polygon:
+          type: array
+          items:
+            type: number
+            format: float
+          description: "Bounding polygon of the selection mark, with coordinates specified relative\nto the top-left of the page. The numbers represent the x, y values of the\npolygon vertices, clockwise from the left (-180 degrees inclusive) relative\nto the element orientation."
+        span:
+          $ref: '#/components/schemas/DocumentSpan'
+        confidence:
+          maximum: 1
+          minimum: 0
+          type: number
+          description: Confidence of correctly extracting the selection mark.
+          format: float
+      description: "A selection mark object representing check boxes, radio buttons, and other\nelements indicating a selection."
+    DocumentSelectionMarkState:
+      enum:
+        - selected
+        - unselected
+      type: string
+      description: State of the selection mark.
+      x-ms-enum:
+        name: DocumentSelectionMarkState
+        modelAsString: true
+        values:
+          - name: selected
+            value: selected
+            description: "The selection mark is selected, often indicated by a check ✓ or cross X inside\nthe selection mark."
+          - name: unselected
+            value: unselected
+            description: The selection mark is not selected.
+    DocumentSignatureType:
+      enum:
+        - signed
+        - unsigned
+      type: string
+      description: Presence of signature.
+      x-ms-enum:
+        name: DocumentSignatureType
+        modelAsString: true
+        values:
+          - name: signed
+            value: signed
+            description: A signature is detected.
+          - name: unsigned
+            value: unsigned
+            description: No signatures are detected.
+    DocumentSpan:
+      required:
+        - offset
+        - length
+      type: object
+      properties:
+        offset:
+          minimum: 0
+          type: integer
+          description: Zero-based index of the content represented by the span.
+          format: int32
+        length:
+          minimum: 0
+          type: integer
+          description: Number of characters in the content represented by the span.
+          format: int32
+      description: "Contiguous region of the concatenated content property, specified as an offset\nand length."
+    DocumentStyle:
+      required:
+        - spans
+        - confidence
+      type: object
+      properties:
+        isHandwritten:
+          type: boolean
+          description: Is content handwritten?
+        similarFontFamily:
+          type: string
+          description: "Visually most similar font from among the set of supported font families, with\nfallback fonts following CSS convention (ex. 'Arial, sans-serif')."
+        fontStyle:
+          $ref: '#/components/schemas/DocumentFontStyle'
+        fontWeight:
+          $ref: '#/components/schemas/DocumentFontWeight'
+        color:
+          pattern: '^#[0-9a-f]{6}$'
+          type: string
+          description: 'Foreground color in #rrggbb hexadecimal format.'
+        backgroundColor:
+          pattern: '^#[0-9a-f]{6}$'
+          type: string
+          description: 'Background color in #rrggbb hexadecimal format..'
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSpan'
+          description: Location of the text elements in the concatenated content the style applies to.
+          x-ms-identifiers: [ ]
+        confidence:
+          maximum: 1
+          minimum: 0
+          type: number
+          description: Confidence of correctly identifying the style.
+          format: float
+      description: An object representing observed text styles.
+    DocumentTable:
+      required:
+        - rowCount
+        - columnCount
+        - cells
+        - spans
+      type: object
+      properties:
+        rowCount:
+          minimum: 1
+          type: integer
+          description: Number of rows in the table.
+          format: int32
+        columnCount:
+          minimum: 1
+          type: integer
+          description: Number of columns in the table.
+          format: int32
+        cells:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentTableCell'
+          description: Cells contained within the table.
+          x-ms-identifiers: [ ]
+        boundingRegions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoundingRegion'
+          description: Bounding regions covering the table.
+          x-ms-identifiers: [ ]
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSpan'
+          description: Location of the table in the reading order concatenated content.
+          x-ms-identifiers: [ ]
+        caption:
+          $ref: '#/components/schemas/DocumentCaption'
+        footnotes:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentFootnote'
+          description: List of footnotes associated with the table.
+          x-ms-identifiers: [ ]
+      description: A table object consisting table cells arranged in a rectangular layout.
+    DocumentTableCell:
+      required:
+        - rowIndex
+        - columnIndex
+        - content
+        - spans
+      type: object
+      properties:
+        kind:
+          enum:
+            - content
+            - rowHeader
+            - columnHeader
+            - stubHead
+            - description
+          type: string
+          description: Table cell kind.
+          default: content
+          x-ms-enum:
+            name: DocumentTableCellKind
+            modelAsString: true
+            values:
+              - name: content
+                value: content
+                description: Contains the main content/data.
+              - name: rowHeader
+                value: rowHeader
+                description: Describes the content of the row.
+              - name: columnHeader
+                value: columnHeader
+                description: Describes the content of the column.
+              - name: stubHead
+                value: stubHead
+                description: 'Describes the row headers, usually located at the top left corner of a table.'
+              - name: description
+                value: description
+                description: Describes the content in (parts of) the table.
+        rowIndex:
+          type: integer
+          description: Row index of the cell.
+          format: int32
+        columnIndex:
+          type: integer
+          description: Column index of the cell.
+          format: int32
+        rowSpan:
+          minimum: 1
+          type: integer
+          description: Number of rows spanned by this cell.
+          format: int32
+          default: 1
+        columnSpan:
+          minimum: 1
+          type: integer
+          description: Number of columns spanned by this cell.
+          format: int32
+          default: 1
+        content:
+          type: string
+          description: Concatenated content of the table cell in reading order.
+        boundingRegions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoundingRegion'
+          description: Bounding regions covering the table cell.
+          x-ms-identifiers: [ ]
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSpan'
+          description: Location of the table cell in the reading order concatenated content.
+          x-ms-identifiers: [ ]
+        elements:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentElement'
+          description: Child elements of the table cell.
+      description: An object representing the location and content of a table cell.
+    DocumentTypeDetails:
+      type: object
+      properties:
+        description:
+          maxLength: 4096
+          type: string
+          description: Document model description.
+        buildMode:
+          $ref: '#/components/schemas/DocumentBuildMode'
+        fieldSchema:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/DocumentFieldSchema'
+          description: Description of the document semantic schema using a JSON Schema style syntax.
+        fieldConfidence:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+          description: Estimated confidence for each field.
+        modelId:
+          maxLength: 64
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+          type: string
+          description: Document model to use for analyzing documents with specified type.
+        confidenceThreshold:
+          type: number
+          description: Only perform analysis if docType confidence is above threshold.
+          format: float
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentAnalysisFeature'
+          description: List of optional analysis features.
+        queryFields:
+          type: array
+          items:
+            type: string
+          description: 'List of additional fields to extract.  Ex. "NumberOfGuests,StoreNumber"'
+        maxDocumentsToAnalyze:
+          type: integer
+          description: Maximum number of documents of specified type to analyze.  Default=all.
+          format: int32
+      description: Document type info.
+    DocumentWord:
+      required:
+        - content
+        - span
+        - confidence
+      type: object
+      properties:
+        content:
+          type: string
+          description: Text content of the word.
+        polygon:
+          type: array
+          items:
+            type: number
+            format: float
+          description: "Bounding polygon of the word, with coordinates specified relative to the\ntop-left of the page. The numbers represent the x, y values of the polygon\nvertices, clockwise from the left (-180 degrees inclusive) relative to the\nelement orientation."
+        span:
+          $ref: '#/components/schemas/DocumentSpan'
+        confidence:
+          maximum: 1
+          minimum: 0
+          type: number
+          description: Confidence of correctly extracting the word.
+          format: float
+      description: "A word object consisting of a contiguous sequence of characters.  For non-space\ndelimited languages, such as Chinese, Japanese, and Korean, each character is\nrepresented as its own word."
+    LengthUnit:
+      enum:
+        - pixel
+        - inch
+      type: string
+      description: 'The unit used by the width, height, and polygon properties. For images, the unit is "pixel". For PDF, the unit is "inch".'
+      x-ms-enum:
+        name: LengthUnit
+        modelAsString: true
+        values:
+          - name: pixel
+            value: pixel
+            description: Length unit for image files.
+          - name: inch
+            value: inch
+            description: Length unit for PDF files.
+    ModelCopyAuthorization:
+      required:
+        - targetResourceId
+        - targetResourceRegion
+        - targetModelId
+        - targetModelLocation
+        - accessToken
+        - expirationDateTime
+      type: object
+      properties:
+        targetResourceId:
+          type: string
+          description: ID of the target Azure resource where the document model should be copied to.
+        targetResourceRegion:
+          type: string
+          description: "Location of the target Azure resource where the document model should be copied\nto."
+        targetModelId:
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+          type: string
+          description: Identifier of the target document model.
+        targetModelLocation:
+          type: string
+          description: URL of the copied document model in the target account.
+          format: uri
+        accessToken:
+          type: string
+          description: Token used to authorize the request.
+        expirationDateTime:
+          type: string
+          description: Date/time when the access token expires.
+          format: date-time
+      description: "Authorization to copy a document model to the specified target resource and\nmodelId."
+    OperationKind:
+      enum:
+        - documentModelBuild
+        - documentModelCompose
+        - documentModelCopyTo
+        - documentClassifierCopyTo
+        - documentClassifierBuild
+      type: string
+      description: Type of operation.
+      x-ms-enum:
+        name: OperationKind
+        modelAsString: true
+        values:
+          - name: documentModelBuild
+            value: documentModelBuild
+            description: Build a new custom document model.
+          - name: documentModelCompose
+            value: documentModelCompose
+            description: Compose a new custom document model from existing models.
+          - name: documentModelCopyTo
+            value: documentModelCopyTo
+            description: "Copy an existing document model to potentially a different resource, region, or\nsubscription."
+          - name: documentClassifierCopyTo
+            value: documentClassifierCopyTo
+            description: "Copy an existing document classifier to potentially a different resource, region, or\nsubscription."
+          - name: documentClassifierBuild
+            value: documentClassifierBuild
+            description: Build a new custom classifier model.
+    PagedAnalyzeBatchOperation:
+      required:
+        - value
+      type: object
+      properties:
+        value:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnalyzeBatchOperation'
+          description: The AnalyzeBatchOperation items on this page
+          x-ms-identifiers: [ ]
+        nextLink:
+          type: string
+          description: The link to the next page of items
+          format: uri
+      description: Paged collection of AnalyzeBatchOperation items
+    PagedDocumentClassifierDetails:
+      required:
+        - value
+      type: object
+      properties:
+        value:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentClassifierDetails'
+          description: The DocumentClassifierDetails items on this page
+          x-ms-identifiers: [ ]
+        nextLink:
+          type: string
+          description: The link to the next page of items
+          format: uri
+      description: Paged collection of DocumentClassifierDetails items
+    PagedDocumentIntelligenceOperationDetails:
+      required:
+        - value
+      type: object
+      properties:
+        value:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentIntelligenceOperationDetails'
+          description: The DocumentIntelligenceOperationDetails items on this page
+          x-ms-identifiers: [ ]
+        nextLink:
+          type: string
+          description: The link to the next page of items
+          format: uri
+      description: Paged collection of DocumentIntelligenceOperationDetails items
+    PagedDocumentModelDetails:
+      required:
+        - value
+      type: object
+      properties:
+        value:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentModelDetails'
+          description: The DocumentModelDetails items on this page
+          x-ms-identifiers: [ ]
+        nextLink:
+          type: string
+          description: The link to the next page of items
+          format: uri
+      description: Paged collection of DocumentModelDetails items
+    ParagraphRole:
+      enum:
+        - pageHeader
+        - pageFooter
+        - pageNumber
+        - title
+        - sectionHeading
+        - footnote
+        - formulaBlock
+      type: string
+      description: Semantic role of the paragraph.
+      x-ms-enum:
+        name: ParagraphRole
+        modelAsString: true
+        values:
+          - name: pageHeader
+            value: pageHeader
+            description: Text near the top edge of the page.
+          - name: pageFooter
+            value: pageFooter
+            description: Text near the bottom edge of the page.
+          - name: pageNumber
+            value: pageNumber
+            description: Page number.
+          - name: title
+            value: title
+            description: Top-level title describing the entire document.
+          - name: sectionHeading
+            value: sectionHeading
+            description: Sub heading describing a section of the document.
+          - name: footnote
+            value: footnote
+            description: A note usually placed after the main content on a page.
+          - name: formulaBlock
+            value: formulaBlock
+            description: 'A block of formulas, often with shared alignment.'
+    StringIndexType:
+      enum:
+        - textElements
+        - unicodeCodePoint
+        - utf16CodeUnit
+      type: string
+      description: Method used to compute string offset and length.
+      x-ms-enum:
+        name: StringIndexType
+        modelAsString: true
+        values:
+          - name: textElements
+            value: textElements
+            description: "User-perceived display character, or grapheme cluster, as defined by Unicode\n8.0.0."
+          - name: unicodeCodePoint
+            value: unicodeCodePoint
+            description: Character unit represented by a single unicode code point.  Used by Python 3.
+          - name: utf16CodeUnit
+            value: utf16CodeUnit
+            description: "Character unit represented by a 16-bit Unicode code unit.  Used by JavaScript,\nJava, and .NET."
+    Input:
+      type: object
+    DocumentModelsModelIdAnalyzeResultsResultIdFiguresFigureIdGet200ImagePngResp:
+      type: file
+    DocumentModelsModelIdAnalyzeResultsResultIdFiguresFigureIdGet200ApplicationJ:
+      type: file
+    DocumentModelsModelIdAnalyzeResultsResultIdPdfGet200ApplicationPdfResponse:
+      type: file
+    DocumentModelsModelIdAnalyzeResultsResultIdPdfGet200ApplicationJsonResponse:
+      type: file
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]
