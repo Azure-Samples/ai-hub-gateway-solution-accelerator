@@ -17,6 +17,10 @@ The AI Hub Gateway Landing Zone architecture designed to be a central hub for AI
 Now this solution accelerator is updated to be **enterprise ready** with the following features:
 
 - **PII detection and masking** is now supported with the ability to detect and redact PII entities in the user input before sending it to the AI backend service. [Check the guide here](./guides/pii-masking-apim.md)
+- **Bring in more AI services to AI Hub Gateway**: the following services are now part of the standard deployment of this solution accelerator:
+  - **Azure OpenAI Realtime API** that leverage websockets to established a persistent connection to the Azure OpenAI service and enable real-time chat experience (both text and audio).
+  - **Azure Document Intelligence** that provide suprior document processing capabilities to extract and analyze data from documents.
+  - **AI Model Inference** which unlocks the ability to manage custom AI models provisioned in AI Foundry in the AI Hub Gateway.
 - **Bring your own VNet** is now supported with the ability to deploy the AI Hub Gateway Landing Zone in your own VNet. [Check the guide here](./guides/bring-your-own-network.md)
 - **Throttling events monitoring** is now supported with the ability to capture and raise ```429``` too many requests status code as a custom metric in Application Insights. [Check the guide here](./guides/throttling-events-handling.md)
 - **AI usage reports enhancements** with Cosmos Db now include a container for ```model-pricing``` which include the $ pricing for AI models tokens ([sample data can be found here](./src/usage-reports/model-pricing.json)), along with updated PowerBI dashboard design.
