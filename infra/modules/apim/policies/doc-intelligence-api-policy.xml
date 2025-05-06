@@ -124,7 +124,7 @@
         <set-variable name="isValidJson" value="@{
             try 
             {
-                context.Variables["parsedBody"] = JObject.Parse((string)context.Variables["responseBody"]);
+                var responseJson = JObject.Parse((string)context.Variables["responseBody"]);
                 return true;
             }
             catch
@@ -134,7 +134,7 @@
         }" />
 
         <choose>
-            <when condition="@(context.Variables["isValidJson"])">
+            <when condition="@((bool)context.Variables["isValidJson"])">
                 <set-variable name="numberOfPages" value="@{
                     try 
                     {

@@ -1,0 +1,90 @@
+<fragment>
+    <!-- Get confidence score threshold and category exclusions from configuration -->
+    <set-variable name="piiConfidenceThreshold" value="@(double.Parse(context.Variables.GetValueOrDefault<string>("piiConfidenceThreshold", "0.8")))" />
+    <set-variable name="piiEntityCategoryExclusions" value="@(context.Variables.GetValueOrDefault<string>("piiEntityCategoryExclusions", ""))" />
+    
+    <!-- Call PII Anonymization API -->
+    <send-request mode="new" response-variable-name="piiAnalysisResponse" timeout="20" ignore-error="true">
+        <set-url>{{piiServiceUrl}}/language/:analyze-text?api-version=2022-05-01</set-url>
+        <set-method>POST</set-method>
+        <set-header name="Content-Type" exists-action="override">
+            <value>application/json</value>
+        </set-header>
+        <set-header name="Ocp-Apim-Subscription-Key" exists-action="override">
+            <value>{{piiServiceKey}}</value>
+        </set-header>
+        <set-body>@{
+            var request = new JObject();
+            request["kind"] = "PiiEntityRecognition";
+            request["parameters"] = new JObject{
+                {"modelVersion", "latest"},
+                {"redactionPolicy", new JObject{
+                    {"policyKind", "CharacterMask"},
+                    {"redactionCharacter", "#"}
+                }}
+            };
+            request["analysisInput"] = new JObject{
+                {"documents", new JArray{
+                    new JObject{
+                        {"text", context.Variables.GetValueOrDefault<string>("piiInputContent")},
+                        {"id", "1"},
+                        {"language", "en"}
+                    }
+                }}
+            };
+            return request.ToString();
+        }</set-body>
+    </send-request>
+    <!-- Process PII Analysis Response and store mappings -->
+    <set-variable name="piiMappings" value="@{
+        var response = context.Variables.GetValueOrDefault<IResponse>("piiAnalysisResponse");
+        var confidenceThreshold = context.Variables.GetValueOrDefault<double>("piiConfidenceThreshold");
+        var exclusions = context.Variables.GetValueOrDefault<string>("piiEntityCategoryExclusions")
+            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(c => c.Trim())
+            .ToList();
+        
+        var entities = JObject.Parse(response.Body.As<string>())
+            .SelectToken("$.results.documents[0].entities")
+            .ToObject<JArray>()
+            .Where(e => e["confidenceScore"].Value<double>() >= confidenceThreshold)
+            .Where(e => !exclusions.Contains(e["category"].ToString()))
+            .OrderByDescending(e => e["text"].ToString().Length);
+        
+        var mappings = new JArray();
+        var categoryCounts = new Dictionary<string, int>();
+        
+        foreach (var entity in entities) {
+            var text = entity["text"].ToString().TrimEnd('.', ',', ' ');
+            var category = entity["category"].ToString();
+            
+            if (!categoryCounts.ContainsKey(category)) {
+                categoryCounts[category] = 0;
+            }
+            
+            var placeholder = $"<{category}_{categoryCounts[category]}>";
+            mappings.Add(new JObject {
+                ["original"] = text,
+                ["placeholder"] = placeholder
+            });
+            
+            categoryCounts[category]++;
+        }
+        
+        return mappings.ToString();
+    }" />
+    <!-- Replace PII with placeholders and set output variable -->
+    <set-variable name="piiAnonymizedContent" value="@{
+        var content = context.Variables.GetValueOrDefault<string>("piiInputContent");
+        var mappings = JArray.Parse(
+            context.Variables.GetValueOrDefault<string>("piiMappings"));
+            
+        foreach (var mapping in mappings) {
+            var original = mapping["original"].ToString();
+            var placeholder = mapping["placeholder"].ToString();
+            content = content.Replace(original, placeholder);
+        }
+        
+        return content;
+    }" />
+</fragment>
