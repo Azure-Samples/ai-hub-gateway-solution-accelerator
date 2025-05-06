@@ -178,6 +178,10 @@ To dive deeper into the AI Hub Gateway technical mechanics, you can check out th
 - [Throttling Events Alerts](./guides/throttling-events-handling.md)
 - [AI Studio Integration](./guides/ai-studio-integration.md)
 
+### Pluggable components
+- [PII Masking](./guides/pii-masking-apim.md)
+- [Dynamic Throttling Assignment](./guides/dynamic-throttling-assignment.md)
+
 ### Additional guides
 - [End-to-end scenario (Chat with data)](./guides/end-to-end-scenario.md)
 - [Hybrid deployment of AI Hub Gateway](./guides/ai-hub-gateway-hybrid-deployment.md)
