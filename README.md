@@ -16,11 +16,9 @@ The AI Hub Gateway Landing Zone architecture designed to be a central hub for AI
 
 Now this solution accelerator is updated to be **enterprise ready** with the following features:
 
-- **Improved OpenAI Usage Ingestion** with the ability to ingest usage data from Azure OpenAI API for both streaming and non-streaming requests. [Check the guide here](./guides/openai-usage-ingestion.md)
+- **PII detection and masking** is now supported with the ability to detect and redact PII entities in the user input before sending it to the AI backend service. [Check the guide here](./guides/pii-masking-apim.md)
 - **Bring your own VNet** is now supported with the ability to deploy the AI Hub Gateway Landing Zone in your own VNet. [Check the guide here](./guides/bring-your-own-network.md)
 - **Throttling events monitoring** is now supported with the ability to capture and raise ```429``` too many requests status code as a custom metric in Application Insights. [Check the guide here](./guides/throttling-events-handling.md)
-- **New gpt-4o Global Deployment** is now part of the OpenAI resource provisioning
-- **Azure OpenAI API spec version** was updated to ```2024-05-01-preview``` to bring APIs for audio and batch among other advancements (note it is backward compatible with previous versions)
 - **AI usage reports enhancements** with Cosmos Db now include a container for ```model-pricing``` which include the $ pricing for AI models tokens ([sample data can be found here](./src/usage-reports/model-pricing.json)), along with updated PowerBI dashboard design.
 - **Private connectivity** now can be enabled by setting APIM deployment to External or Internal (require SKU to be either Developer or Premium) and it will provision all included Azure resources like (Azure OpenAI, Cosmos, Event Hub,...) with private endpoints.
 

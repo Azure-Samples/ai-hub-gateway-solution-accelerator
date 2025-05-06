@@ -122,6 +122,9 @@ Anonymization service connection information used by this fragment are stored in
 - `piiServiceUrl`: The URL of the PII anonymization API.
 - `piiServiceKey`: The subscription key for the PII anonymization API.
 
+>**NOTE:**Before adding the policy fragment to the API, make sure to create the above named values in APIM and set their values accordingly.
+>You need to have also an Azure Language Service resource created in your Azure subscription and the endpoint URL and subscription key for the resource should be set in the above named values.
+
 This policy fragment is expecting the following variables to be set in the target API inbound policy:
 
 - `piiConfidenceThreshold`: The confidence score threshold for PII entity detection (default is 0.8).
