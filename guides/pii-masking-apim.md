@@ -111,18 +111,18 @@ Sample output for the above request:
 
 ## APIM implementation
 
-Handling PII anonymization and deanonymization in APIM are done using policy framgments. The following policies can be used to implement the above process:
+Handling PII anonymization and deanonymization in APIM are done using policy fragments. The following policies can be used to implement the above process:
 
 ### Setting up policy fragments
 
-1. **pii-anonymization** policy fragement:
+1. **pii-anonymization** policy fragment:
 
 Anonymization service connection information used by this fragment are stored in APIM named values. The following named values are used in the policy fragment:
 
 - `piiServiceUrl`: The URL of the PII anonymization API.
 - `piiServiceKey`: The subscription key for the PII anonymization API.
 
-This policy framgment is expecting the following variables to be set in the target API inbound policy:
+This policy fragment is expecting the following variables to be set in the target API inbound policy:
 
 - `piiConfidenceThreshold`: The confidence score threshold for PII entity detection (default is 0.8).
 - `piiEntityCategoryExclusions`: A comma-separated list of PII entity categories to exclude from the anonymization process (default is PersonType only). [Full list of categories](https://learn.microsoft.com/en-us/azure/ai-services/language-service/personally-identifiable-information/concepts/entity-categories)
@@ -245,7 +245,7 @@ This policy expects variables named `piiDeanonymizeContentInput` and `piiMapping
 
 ### Determining the scope of PII anonymization and deanonymization
 
-To implement the above policiy framtements, they need to be referenced in the target API in APIM.
+To implement the above policy fragments, they need to be referenced in the target API in APIM.
 
 It is important to decide the scope of PII anonymization and deanonymization.
 
@@ -317,7 +317,7 @@ Below APIM policy can be used with `Product`, `API` or `Operation` scope. The ex
 
 You can use the above approach to apply PII anonymization and deanonymization to Azure OpenAI API requests managed through APIM as AI Gateway.
 
-Applyting the policy at the level of the chat completion API will ensure that all requests to the chat completion API are processed by the PII anonymization and deanonymization policies.
+Applying the policy at the level of the chat completion API will ensure that all requests to the chat completion API are processed by the PII anonymization and deanonymization policies.
 
 Below is a sample Azure OpenAI request body that can be used to test the API with PII anonymization and deanonymization policies applied.
 
@@ -327,7 +327,7 @@ Below is a sample Azure OpenAI request body that can be used to test the API wit
   "messages": [
     {
       "role": "system",
-      "content": "You are a helpful assistant that responds in Markdown. Context is anonymized with <PII_CATEGORY_0> placeholders that you need to retain exactly as they are if they are part of the response. Always welcome the user with their name if avaiable."
+      "content": "You are a helpful assistant that responds in Markdown. Context is anonymized with <PII_CATEGORY_0> placeholders that you need to retain exactly as they are if they are part of the response. Always welcome the user with their name if available."
     },
     {
       "role": "user",
@@ -380,7 +380,7 @@ Modified request body sent to the Azure OpenAI API:
   "messages": [
     {
       "role": "system",
-      "content": "You are a helpful assistant that responds in Markdown. Context is anonymized with <PII_CATEGORY_0> placeholders that you need to retain exactly as they are if they are part of the response. Always welcome the user with their name if avaiable."
+      "content": "You are a helpful assistant that responds in Markdown. Context is anonymized with <PII_CATEGORY_0> placeholders that you need to retain exactly as they are if they are part of the response. Always welcome the user with their name if available."
     },
     {
       "role": "user",
@@ -390,7 +390,7 @@ Modified request body sent to the Azure OpenAI API:
 }
 ```
 
-This is the reponse from the Azure OpenAI API:
+This is the response from the Azure OpenAI API:
 
 
 ```json
