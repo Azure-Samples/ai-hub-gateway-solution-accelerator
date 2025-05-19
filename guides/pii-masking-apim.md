@@ -2,15 +2,71 @@
 
 Using APIM to handle PII anonymization and deanonymization requests transparently for API requests that may contain PII data.
 
-Process is as follows:
+## Process Flow
 
-1. Request comes in to APIM with PII data in the body.
-2. APIM forwards the request to the PII anonymization API, which anonymizes the PII data and returns the redacted data in addition to entities that were detected.
-3. Using the PII detected entities returned from the PII anonymization API, APIM will replace the PII entities in the original request with the anonymized entities in a standard format <ENTITY_CATEGORY_0> like <Person_0> and <PhoneNumber_0> where the number indicates unique value of the PII entity (APIM will save the entity mapping in a variable so be used in deanonymization).
-4. APIM forwards the modified request to the backend API.
-5. Backend API processes the request and returns a response to APIM.
-6. APIM forwards the response to the PII deanonymization policy, which replaces the anonymized data in the response with the original PII data using the mapping provided by the PII anonymization API.
-7. APIM forwards the deanonymized response to the client.
+```mermaid
+sequenceDiagram
+    participant Client
+    participant APIM
+    participant PII Service
+    participant Backend API
+
+    Client->>APIM: Request with PII data
+    
+    rect rgba(0, 255, 0, 0.1)
+        Note over APIM: Inbound Processing
+        APIM->>PII Service: Send to Azure Language Service
+        PII Service-->>APIM: Return PII entities
+        Note over APIM: Apply regex patterns
+        Note over APIM: Create PII mappings
+        Note over APIM: Replace PII with placeholders
+    end
+    
+    APIM->>Backend API: Forward anonymized request
+    Backend API-->>APIM: Response
+    
+    rect rgba(0, 0, 255, 0.1)
+        Note over APIM: Outbound Processing
+        Note over APIM: Store response body
+        Note over APIM: Apply deanonymization
+        Note over APIM: Log to Event Hub (if enabled)
+    end
+    
+    APIM-->>Client: Deanonymized response
+```
+
+## Implementation Components
+
+1. **PII Detection Methods**:
+   - Azure Language Service PII detection
+   - Custom regex pattern matching
+   - Configurable confidence thresholds
+   - Category exclusions
+
+2. **Regex Pattern Support**:
+   Built-in patterns for common PII types:
+   ```json
+   {
+       "patterns": [
+           {
+               "pattern": "\\b\\d{4}[- ]?\\d{4}[- ]?\\d{4}[- ]?\\d{4}\\b",
+               "category": "CreditCard"
+           },
+           {
+               "pattern": "\\b[A-Z]{2}\\d{6}[A-Z]\\b",
+               "category": "PassportNumber"
+           },
+           {
+               "pattern": "\\b\\d{3}[-]?\\d{4}[-]?\\d{7}[-]?\\d{1}\\b",
+               "category": "EMIRATESID"
+           },
+           {
+               "pattern": "\\b\\d{5,}\\b",
+               "category": "CUSTOMERID"
+           }
+       ]
+   }
+   ```
 
 ## Example of PII Anonymization API
 
@@ -111,21 +167,18 @@ Sample output for the above request:
 
 ## APIM implementation
 
-Handling PII anonymization and deanonymization in APIM are done using policy fragments. The following policies can be used to implement the above process:
+Handling PII anonymization and deanonymization in APIM are done using policy framgments. The following policies can be used to implement the above process:
 
 ### Setting up policy fragments
 
-1. **pii-anonymization** policy fragment:
+1. **pii-anonymization** policy fragement:
 
 Anonymization service connection information used by this fragment are stored in APIM named values. The following named values are used in the policy fragment:
 
 - `piiServiceUrl`: The URL of the PII anonymization API.
 - `piiServiceKey`: The subscription key for the PII anonymization API.
 
->**NOTE:**Before adding the policy fragment to the API, make sure to create the above named values in APIM and set their values accordingly.
->You need to have also an Azure Language Service resource created in your Azure subscription and the endpoint URL and subscription key for the resource should be set in the above named values.
-
-This policy fragment is expecting the following variables to be set in the target API inbound policy:
+This policy framgment is expecting the following variables to be set in the target API inbound policy:
 
 - `piiConfidenceThreshold`: The confidence score threshold for PII entity detection (default is 0.8).
 - `piiEntityCategoryExclusions`: A comma-separated list of PII entity categories to exclude from the anonymization process (default is PersonType only). [Full list of categories](https://learn.microsoft.com/en-us/azure/ai-services/language-service/personally-identifiable-information/concepts/entity-categories)
@@ -248,7 +301,7 @@ This policy expects variables named `piiDeanonymizeContentInput` and `piiMapping
 
 ### Determining the scope of PII anonymization and deanonymization
 
-To implement the above policy fragments, they need to be referenced in the target API in APIM.
+To implement the above policiy framtements, they need to be referenced in the target API in APIM.
 
 It is important to decide the scope of PII anonymization and deanonymization.
 
@@ -320,7 +373,7 @@ Below APIM policy can be used with `Product`, `API` or `Operation` scope. The ex
 
 You can use the above approach to apply PII anonymization and deanonymization to Azure OpenAI API requests managed through APIM as AI Gateway.
 
-Applying the policy at the level of the chat completion API will ensure that all requests to the chat completion API are processed by the PII anonymization and deanonymization policies.
+Applyting the policy at the level of the chat completion API will ensure that all requests to the chat completion API are processed by the PII anonymization and deanonymization policies.
 
 Below is a sample Azure OpenAI request body that can be used to test the API with PII anonymization and deanonymization policies applied.
 
@@ -330,11 +383,11 @@ Below is a sample Azure OpenAI request body that can be used to test the API wit
   "messages": [
     {
       "role": "system",
-      "content": "You are a helpful assistant that responds in Markdown. Context is anonymized with <PII_CATEGORY_0> placeholders that you need to retain exactly as they are if they are part of the response. Always welcome the user with their name if available."
+      "content": "You are a helpful assistant that responds in Markdown. Context is anonymized with <PII_CATEGORY_0> placeholders that you need to retain exactly as they are if they are part of the response. Always welcome the user with their name if avaiable."
     },
     {
       "role": "user",
-      "content": "Hello, my name is Sarah Jones and I need help with my accounts. My first IBAN is AE070331234567890123 and my second IBAN is AE070339876543210123. You can contact Sarah Jones at sarah.jones@email.com or call at +971501234567. I want to know how to calculate the distance between earth and moon?"
+      "content": "Hello, my name is Sarah Jones and I need help with my accounts. My first IBAN is AE070331234567890999 and my second IBAN is AE070339876543210123 for my emirates id 784-1987-1234567-1 and customer id 123456. You can contact Sarah Jones at sarah.jones@email.com or call at +971501234567. I want to know how to calculate the distance between earth and moon?"
     }
   ]
 }
@@ -383,7 +436,7 @@ Modified request body sent to the Azure OpenAI API:
   "messages": [
     {
       "role": "system",
-      "content": "You are a helpful assistant that responds in Markdown. Context is anonymized with <PII_CATEGORY_0> placeholders that you need to retain exactly as they are if they are part of the response. Always welcome the user with their name if available."
+      "content": "You are a helpful assistant that responds in Markdown. Context is anonymized with <PII_CATEGORY_0> placeholders that you need to retain exactly as they are if they are part of the response. Always welcome the user with their name if avaiable."
     },
     {
       "role": "user",
@@ -393,7 +446,7 @@ Modified request body sent to the Azure OpenAI API:
 }
 ```
 
-This is the response from the Azure OpenAI API:
+This is the reponse from the Azure OpenAI API:
 
 
 ```json

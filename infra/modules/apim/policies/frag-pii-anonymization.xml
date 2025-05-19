@@ -1,90 +1,171 @@
 <fragment>
-    <!-- Get confidence score threshold and category exclusions from configuration -->
-    <set-variable name="piiConfidenceThreshold" value="@(double.Parse(context.Variables.GetValueOrDefault<string>("piiConfidenceThreshold", "0.8")))" />
-    <set-variable name="piiEntityCategoryExclusions" value="@(context.Variables.GetValueOrDefault<string>("piiEntityCategoryExclusions", ""))" />
-    
-    <!-- Call PII Anonymization API -->
-    <send-request mode="new" response-variable-name="piiAnalysisResponse" timeout="20" ignore-error="true">
-        <set-url>{{piiServiceUrl}}/language/:analyze-text?api-version=2022-05-01</set-url>
-        <set-method>POST</set-method>
-        <set-header name="Content-Type" exists-action="override">
-            <value>application/json</value>
-        </set-header>
-        <set-header name="Ocp-Apim-Subscription-Key" exists-action="override">
-            <value>{{piiServiceKey}}</value>
-        </set-header>
-        <set-body>@{
-            var request = new JObject();
-            request["kind"] = "PiiEntityRecognition";
-            request["parameters"] = new JObject{
-                {"modelVersion", "latest"},
-                {"redactionPolicy", new JObject{
-                    {"policyKind", "CharacterMask"},
-                    {"redactionCharacter", "#"}
-                }}
-            };
-            request["analysisInput"] = new JObject{
-                {"documents", new JArray{
-                    new JObject{
-                        {"text", context.Variables.GetValueOrDefault<string>("piiInputContent")},
-                        {"id", "1"},
-                        {"language", "en"}
+    <choose>
+        <when condition="@(context.Variables.GetValueOrDefault<string>("piiAnonymizationEnabled") == "true")">
+            <!-- Get configuration values -->
+            <set-variable name="piiConfidenceThreshold" value="@(double.Parse(context.Variables.GetValueOrDefault<string>("piiConfidenceThreshold", "0.8")))" />
+            <set-variable name="piiEntityCategoryExclusions" value="@(context.Variables.GetValueOrDefault<string>("piiEntityCategoryExclusions", ""))" />
+            
+            <!-- Process regex patterns if provided -->
+            <set-variable name="piiRegexMappings" value="@{
+                var content = context.Variables.GetValueOrDefault<string>("piiInputContent");
+                var regexPatterns = context.Variables.GetValueOrDefault<string>("piiRegexPatterns");
+                var mappings = new JArray();
+                
+                if (!string.IsNullOrEmpty(regexPatterns))
+                {
+                    var patterns = JArray.Parse(regexPatterns);
+                    var categoryCounts = new Dictionary<string, int>();
+                    
+                    foreach (var pattern in patterns)
+                    {
+                        var regex = new Regex(pattern["pattern"].ToString());
+                        var category = pattern["category"].ToString();
+                        
+                        if (!categoryCounts.ContainsKey(category))
+                        {
+                            categoryCounts[category] = 0;
+                        }
+                        
+                        var matches = regex.Matches(content);
+                        foreach (Match match in matches)
+                        {
+                            if (!string.IsNullOrEmpty(match.Value))
+                            {
+                                var placeholder = $"<{category}_{categoryCounts[category]}>";
+                                mappings.Add(new JObject {
+                                    ["original"] = match.Value,
+                                    ["placeholder"] = placeholder,
+                                    ["source"] = "regex"
+                                });
+                                categoryCounts[category]++;
+                            }
+                        }
                     }
-                }}
-            };
-            return request.ToString();
-        }</set-body>
-    </send-request>
-    <!-- Process PII Analysis Response and store mappings -->
-    <set-variable name="piiMappings" value="@{
-        var response = context.Variables.GetValueOrDefault<IResponse>("piiAnalysisResponse");
-        var confidenceThreshold = context.Variables.GetValueOrDefault<double>("piiConfidenceThreshold");
-        var exclusions = context.Variables.GetValueOrDefault<string>("piiEntityCategoryExclusions")
-            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-            .Select(c => c.Trim())
-            .ToList();
-        
-        var entities = JObject.Parse(response.Body.As<string>())
-            .SelectToken("$.results.documents[0].entities")
-            .ToObject<JArray>()
-            .Where(e => e["confidenceScore"].Value<double>() >= confidenceThreshold)
-            .Where(e => !exclusions.Contains(e["category"].ToString()))
-            .OrderByDescending(e => e["text"].ToString().Length);
-        
-        var mappings = new JArray();
-        var categoryCounts = new Dictionary<string, int>();
-        
-        foreach (var entity in entities) {
-            var text = entity["text"].ToString().TrimEnd('.', ',', ' ');
-            var category = entity["category"].ToString();
+                }
+                return mappings.ToString();
+            }" />
+
+            <!-- Apply regex-based masking -->
+            <set-variable name="piiRegexProcessedContent" value="@{
+                var content = context.Variables.GetValueOrDefault<string>("piiInputContent");
+                var mappings = JArray.Parse(
+                    context.Variables.GetValueOrDefault<string>("piiRegexMappings"));
+                
+                foreach (var mapping in mappings)
+                {
+                    content = content.Replace(
+                        mapping["original"].ToString(),
+                        mapping["placeholder"].ToString()
+                    );
+                }
+                return content;
+            }" />
+
+            <!-- Update input content for API processing -->
+            <set-variable name="piiInputContent" value="@(context.Variables.GetValueOrDefault<string>("piiRegexProcessedContent"))" />
             
-            if (!categoryCounts.ContainsKey(category)) {
-                categoryCounts[category] = 0;
-            }
-            
-            var placeholder = $"<{category}_{categoryCounts[category]}>";
-            mappings.Add(new JObject {
-                ["original"] = text,
-                ["placeholder"] = placeholder
-            });
-            
-            categoryCounts[category]++;
-        }
-        
-        return mappings.ToString();
-    }" />
-    <!-- Replace PII with placeholders and set output variable -->
-    <set-variable name="piiAnonymizedContent" value="@{
-        var content = context.Variables.GetValueOrDefault<string>("piiInputContent");
-        var mappings = JArray.Parse(
-            context.Variables.GetValueOrDefault<string>("piiMappings"));
-            
-        foreach (var mapping in mappings) {
-            var original = mapping["original"].ToString();
-            var placeholder = mapping["placeholder"].ToString();
-            content = content.Replace(original, placeholder);
-        }
-        
-        return content;
-    }" />
+            <!-- Call PII Anonymization API -->
+            <send-request mode="new" response-variable-name="piiAnalysisResponse" timeout="20" ignore-error="true">
+                <set-url>{{piiServiceUrl}}/language/:analyze-text?api-version=2022-05-01</set-url>
+                <set-method>POST</set-method>
+                <set-header name="Content-Type" exists-action="override">
+                    <value>application/json</value>
+                </set-header>
+                <set-header name="Ocp-Apim-Subscription-Key" exists-action="override">
+                    <value>{{piiServiceKey}}</value>
+                </set-header>
+                <set-body>@{
+                    var request = new JObject();
+                    request["kind"] = "PiiEntityRecognition";
+                    request["parameters"] = new JObject{
+                        {"modelVersion", "latest"},
+                        {"redactionPolicy", new JObject{
+                            {"policyKind", "CharacterMask"},
+                            {"redactionCharacter", "#"}
+                        }}
+                    };
+                    request["analysisInput"] = new JObject{
+                        {"documents", new JArray{
+                            new JObject{
+                                {"text", context.Variables.GetValueOrDefault<string>("piiInputContent")},
+                                {"id", "1"},
+                                {"language", "en"}
+                            }
+                        }}
+                    };
+                    return request.ToString();
+                }</set-body>
+            </send-request>
+            <!-- Process PII Analysis Response and store mappings -->
+            <set-variable name="piiMappings" value="@{
+                var response = context.Variables.GetValueOrDefault<IResponse>("piiAnalysisResponse");
+                var confidenceThreshold = context.Variables.GetValueOrDefault<double>("piiConfidenceThreshold");
+                var exclusions = context.Variables.GetValueOrDefault<string>("piiEntityCategoryExclusions")
+                    .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(c => c.Trim())
+                    .ToList();
+                
+                var entities = JObject.Parse(response.Body.As<string>())
+                    .SelectToken("$.results.documents[0].entities")
+                    .ToObject<JArray>()
+                    .Where(e => e["confidenceScore"].Value<double>() >= confidenceThreshold)
+                    .Where(e => !exclusions.Contains(e["category"].ToString()))
+                    .OrderByDescending(e => e["text"].ToString().Length);
+                
+                var mappings = new JArray();
+                var categoryCounts = new Dictionary<string, int>();
+                
+                foreach (var entity in entities) {
+                    var text = entity["text"].ToString().TrimEnd('.', ',', ' ');
+                    var category = entity["category"].ToString();
+                    
+                    if (!categoryCounts.ContainsKey(category)) {
+                        categoryCounts[category] = 0;
+                    }
+                    
+                    var placeholder = $"<{category}_{categoryCounts[category]}>";
+                    mappings.Add(new JObject {
+                        ["original"] = text,
+                        ["placeholder"] = placeholder
+                    });
+                    
+                    categoryCounts[category]++;
+                }
+                
+                return mappings.ToString();
+            }" />
+
+            <!-- Merge API and regex mappings -->
+            <set-variable name="piiMappings" value="@{
+                var apiMappings = JArray.Parse(context.Variables.GetValueOrDefault<string>("piiMappings") ?? "[]");
+                var regexMappings = JArray.Parse(context.Variables.GetValueOrDefault<string>("piiRegexMappings") ?? "[]");
+                
+                foreach (var mapping in regexMappings)
+                {
+                    apiMappings.Add(mapping);
+                }
+                
+                return apiMappings.ToString();
+            }" />
+
+            <!-- Replace PII with placeholders and set output variable -->
+            <set-variable name="piiAnonymizedContent" value="@{
+                var content = context.Variables.GetValueOrDefault<string>("piiInputContent");
+                var mappings = JArray.Parse(
+                    context.Variables.GetValueOrDefault<string>("piiMappings"));
+                    
+                foreach (var mapping in mappings) {
+                    var original = mapping["original"].ToString();
+                    var placeholder = mapping["placeholder"].ToString();
+                    content = content.Replace(original, placeholder);
+                }
+                
+                return content;
+            }" />
+        </when>
+        <otherwise>
+            <!-- When PII anonymization is disabled, just pass through the original content -->
+            <set-variable name="piiAnonymizedContent" value="@(context.Variables.GetValueOrDefault<string>("piiInputContent"))" />
+        </otherwise>
+    </choose>
 </fragment>

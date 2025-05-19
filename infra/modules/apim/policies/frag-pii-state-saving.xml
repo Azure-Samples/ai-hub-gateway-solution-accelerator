@@ -1,0 +1,143 @@
+<fragment>
+    <!-- Save PII anonymization/deanonymization state to Event Hub using native log-to-eventhub policy -->
+    <choose>
+        <when condition="@(context.Variables.GetValueOrDefault<string>("piiStateSavingEnabled") == "true")">
+            <!-- Capture context information -->
+            <set-variable name="piiOperationId" value="@(Guid.NewGuid().ToString())" />
+            <set-variable name="piiOperationTimestamp" value="@(DateTime.UtcNow.ToString("o"))" />
+            <set-variable name="piiApiName" value="@(context.Api.Name ?? "unknown")" />
+            <set-variable name="piiApiId" value="@(context.Api.Id ?? "unknown")" />
+            <set-variable name="piiProductName" value="@(context.Product?.Name ?? "unknown")" />
+            <set-variable name="piiProductId" value="@(context.Product?.Id ?? "unknown")" />
+            <set-variable name="piiSubscriptionName" value="@(context.Subscription?.Name ?? "unknown")" />
+            <set-variable name="piiSubscriptionId" value="@(context.Subscription?.Id ?? "unknown")" />
+            <set-variable name="piiOperationName" value="@(context.Operation.Name ?? "unknown")" />
+            <set-variable name="targetDeployment" value="@(context.Variables.GetValueOrDefault<string>("targetDeployment") ?? "unknown")" />
+            
+            <!-- Log to Event Hub using native policy -->
+            <log-to-eventhub logger-id="pii-eventhub-logger">@{
+                var eventData = new JObject();
+                
+                // Operation metadata
+                eventData["id"] = context.Variables.GetValueOrDefault<string>("piiOperationId");
+                eventData["timestamp"] = context.Variables.GetValueOrDefault<string>("piiOperationTimestamp");
+                eventData["type"] = "PII_Processing";
+                eventData["targetDeployment"] = context.Variables.GetValueOrDefault<string>("targetDeployment");
+                // Enhanced API and subscription context with content
+                eventData["context"] = new JObject {
+                    ["api"] = new JObject {
+                        ["id"] = context.Variables.GetValueOrDefault<string>("piiApiId"),
+                        ["name"] = context.Variables.GetValueOrDefault<string>("piiApiName"),
+                        ["operation"] = new JObject {
+                            ["id"] = context.Operation.Id ?? "unknown",
+                            ["name"] = context.Variables.GetValueOrDefault<string>("piiOperationName"),
+                            ["method"] = context.Operation.Method ?? "unknown",
+                            ["urlTemplate"] = context.Operation.UrlTemplate ?? "unknown"
+                        },
+                        ["content"] = new JObject {
+                            ["originalRequest"] = context.Variables.GetValueOrDefault<string>("piiInputContent"),
+                            ["anonymizedRequest"] = context.Variables.GetValueOrDefault<string>("piiAnonymizedContent"),
+                            ["originalResponse"] = context.Variables.GetValueOrDefault<string>("originalResponse"),
+                            ["deanonymizedResponse"] = context.Variables.GetValueOrDefault<string>("piiDeanonymizedContentOutput")
+                        }
+                    },
+                    ["product"] = new JObject {
+                        ["id"] = context.Variables.GetValueOrDefault<string>("piiProductId"),
+                        ["name"] = context.Variables.GetValueOrDefault<string>("piiProductName")
+                    },
+                    ["subscription"] = new JObject {
+                        ["id"] = context.Variables.GetValueOrDefault<string>("piiSubscriptionId"),
+                        ["name"] = context.Variables.GetValueOrDefault<string>("piiSubscriptionName")
+                    }
+                };
+                
+                // Process information
+                eventData["process"] = new JObject {
+                    ["anonymizationEnabled"] = context.Variables.GetValueOrDefault<string>("piiAnonymizationEnabled") == "true",
+                    ["confidenceThreshold"] = context.Variables.GetValueOrDefault<double>("piiConfidenceThreshold", 0.8),
+                    ["entityCategoryExclusions"] = context.Variables.GetValueOrDefault<string>("piiEntityCategoryExclusions", ""),
+                    ["deanonymizationPerformed"] = context.Variables.ContainsKey("piiDeanonymizedContentOutput")
+                };
+                
+                // Results summary
+                var mappings = new JArray();
+                if (context.Variables.ContainsKey("piiMappings")) {
+                    try {
+                        mappings = JArray.Parse(context.Variables.GetValueOrDefault<string>("piiMappings"));
+                        eventData["entityCount"] = mappings.Count;
+                        
+                        // Group entities by category for reporting
+                        var categories = new Dictionary<string, int>();
+                        foreach (var mapping in mappings) {
+                            var placeholder = mapping["placeholder"].ToString();
+                            var category = placeholder.TrimStart('<').Split('_')[0];
+                            
+                            if (!categories.ContainsKey(category)) {
+                                categories[category] = 0;
+                            }
+                            categories[category]++;
+                        }
+                        
+                        var categoryDetails = new JObject();
+                        foreach (var category in categories) {
+                            categoryDetails[category.Key] = category.Value;
+                        }
+                        eventData["entityCategories"] = categoryDetails;
+                        
+                        // Include mappings for detailed audit (can be removed if too verbose)
+                        eventData["mappings"] = mappings;
+                    }
+                    catch (Exception ex) {
+                        eventData["error"] = "Failed to process mappings: " + ex.Message;
+                    }
+                }
+                
+                // Content length metrics (not the actual content)
+                if (context.Variables.ContainsKey("piiInputContent")) {
+                    eventData["metrics"] = new JObject {
+                        ["inputContentLength"] = context.Variables.GetValueOrDefault<string>("piiInputContent", "").Length
+                    };
+                    
+                    if (context.Variables.ContainsKey("piiAnonymizedContent")) {
+                        eventData["metrics"]["anonymizedContentLength"] = 
+                            context.Variables.GetValueOrDefault<string>("piiAnonymizedContent", "").Length;
+                    }
+                    
+                    // Add deanonymization metrics
+                    if (context.Variables.ContainsKey("piiDeanonymizeContentInput")) {
+                        eventData["metrics"]["deanonymizeInputLength"] = 
+                            context.Variables.GetValueOrDefault<string>("piiDeanonymizeContentInput", "").Length;
+                    }
+                    
+                    if (context.Variables.ContainsKey("piiDeanonymizedContentOutput")) {
+                        eventData["metrics"]["deanonymizedOutputLength"] = 
+                            context.Variables.GetValueOrDefault<string>("piiDeanonymizedContentOutput", "").Length;
+                    }
+                }
+                
+                // Add deanonymization flow details
+                eventData["deanonymization"] = new JObject {
+                    ["performed"] = context.Variables.ContainsKey("piiDeanonymizedContentOutput"),
+                    ["inputSource"] = context.Variables.ContainsKey("piiDeanonymizeContentInput") ? "present" : "missing",
+                    ["status"] = context.Variables.ContainsKey("piiDeanonymizedContentOutput") ? "completed" : "not_performed",
+                    ["timestamp"] = DateTime.UtcNow.ToString("o")
+                };
+                
+                // Track end-to-end flow
+                eventData["processingFlow"] = new JObject {
+                    ["anonymization"] = new JObject {
+                        ["performed"] = context.Variables.ContainsKey("piiAnonymizedContent"),
+                        ["entityCount"] = context.Variables.ContainsKey("piiMappings") ? 
+                            JArray.Parse(context.Variables.GetValueOrDefault<string>("piiMappings")).Count : 0
+                    },
+                    ["deanonymization"] = new JObject {
+                        ["performed"] = context.Variables.ContainsKey("piiDeanonymizedContentOutput"),
+                        ["success"] = context.Variables.ContainsKey("piiDeanonymizedContentOutput")
+                    }
+                };
+                
+                return eventData.ToString();
+            }</log-to-eventhub>
+        </when>
+    </choose>
+</fragment>
