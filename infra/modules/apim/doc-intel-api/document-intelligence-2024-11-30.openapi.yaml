@@ -1,6 +1,6 @@
 openapi: 3.0.1
 info:
-  title: Document Intelligence
+  title: Azure Document Intelligence
   description: 'Extracts content, layout, and structured data from documents.'
   version: '1.0'
 servers:
@@ -181,6 +181,7 @@ paths:
           required: true
           schema:
             minLength: 1
+            default: '2024-11-30'
             type: string
         - name: stringIndexType
           in: query
@@ -539,6 +540,7 @@ paths:
           schema:
             maxLength: 64
             pattern: '^[a-zA-Z0-9][a-zA-Z0-9._~-]{1,63}$'
+            default: 'prebuilt-read'
             type: string
         - name: api-version
           in: query
