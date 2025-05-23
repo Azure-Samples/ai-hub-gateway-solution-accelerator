@@ -331,40 +331,78 @@ Below APIM policy can be used with `Product`, `API` or `Operation` scope. The ex
 
 ```xml
 <policies>
+    <!-- Throttle, authorize, validate, cache, or transform the requests -->
     <inbound>
         <base />
-        <!-- Configure confidence threshold and category exclusions -->
-        <set-variable name="piiConfidenceThreshold" value="0.7" />
-        <!-- Exclude PersonType from anonymization so it will not interfer with OpenAI use of user and assistant words in the request -->
-        <set-variable name="piiEntityCategoryExclusions" value="PersonType," />
-        <!-- Set the input content from request full body -->
-        <set-variable name="piiInputContent" value="@(context.Request.Body.As<string>())" />
-        <include-fragment fragment-id="pii-anonymization-Policy" />
+        <!-- Common variables -->
+        <set-variable name="piiAnonymizationEnabled" value="true" />
+        <!-- Variables required by pii-anonymization fragment -->
+        <choose>
+            <when condition="@(context.Variables.GetValueOrDefault<string>("piiAnonymizationEnabled") == "true")">
+                <!-- Configure PII detection settings -->
+                <set-variable name="piiConfidenceThreshold" value="0.75" />
+                <set-variable name="piiEntityCategoryExclusions" value="PersonType,CADriversLicenseNumber" />
+                <!-- Configure regex patterns for custom PII detection -->
+                <set-variable name="piiRegexPatterns" value="@{
+                    var patterns = new JArray {
+                        new JObject {
+                            ["pattern"] = @"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b",
+                            ["category"] = "CREDIT_CARD"
+                        },
+                        new JObject {
+                            ["pattern"] = @"\b[A-Z]{2}\d{6}[A-Z]\b",
+                            ["category"] = "PASSPORT_NUMBER"
+                        },
+                        new JObject {
+                            ["pattern"] = @"\b\d{3}[-]?\d{4}[-]?\d{7}[-]?\d{1}\b",
+                            ["category"] = "EMIRATES_ID"
+                        }
+                    };
+                    return patterns.ToString();
+                }" />
+                <set-variable name="piiInputContent" value="@(context.Request.Body.As<string>(preserveContent: true))" />
+                <!-- Include the PII anonymization fragment -->
+                <include-fragment fragment-id="pii-anonymization" />
+                <!-- Replace the request body with anonymized content -->
+                <set-body>@(context.Variables.GetValueOrDefault<string>("piiAnonymizedContent"))</set-body>
+            </when>
+        </choose>
     </inbound>
+    <!-- Control if and how the requests are forwarded to services  -->
     <backend>
         <base />
     </backend>
+    <!-- Customize the responses -->
     <outbound>
         <base />
-		<!-- Set the content to be deanonymized from the response -->
-        <set-variable name="piiDeanonymizeContentInput" value="@(context.Response.Body.As<string>())" />
-        <include-fragment fragment-id="pii-deanonymization" />
-        <!-- Use the deanonymized content -->
-        <set-body>@(context.Variables.GetValueOrDefault<string>("piiDeanonymizedContentOutput"))</set-body>
+        <!-- Store response body once -->
+        <set-variable name="responseBodyContent" value="@(context.Response.Body.As<string>(preserveContent: true))" />
+        <choose>
+            <when condition="@(context.Variables.GetValueOrDefault<string>("piiAnonymizationEnabled") == "true" && 
+                            context.Variables.ContainsKey("piiMappings"))">
+                <!-- Use stored response body for deanonymization -->
+                <set-variable name="piiDeanonymizeContentInput" value="@(context.Variables.GetValueOrDefault<string>("responseBodyContent"))" />
+                <include-fragment fragment-id="pii-deanonymization" />
+                <!-- Variables required by pii-state-saving fragment -->
+                <set-variable name="piiStateSavingEnabled" value="true" />
+                <set-variable name="originalRequest" value="@(context.Variables.GetValueOrDefault<string>("piiInputContent"))" />
+                <set-variable name="originalResponse" value="@(context.Variables.GetValueOrDefault<string>("responseBodyContent"))" />
+                
+                <!-- Include the PII state saving fragment to push pii detection results to event hub -->
+                <!-- <include-fragment fragment-id="pii-state-saving" /> -->
+                
+                <!-- Replace response with deanonymized content -->
+                <set-body>@(context.Variables.GetValueOrDefault<string>("piiDeanonymizedContentOutput"))</set-body>
+            </when>
+            <otherwise>
+                <!-- Pass through original response using stored content -->
+                <set-body>@(context.Variables.GetValueOrDefault<string>("responseBodyContent"))</set-body>
+            </otherwise>
+        </choose>
     </outbound>
+    <!-- Handle exceptions and customize error responses  -->
     <on-error>
         <base />
-        <!-- Log any errors -->
-        <set-variable name="errorMessage" value="@(context.LastError.Message)" />
-        <return-response>
-            <set-status code="500" reason="Internal Server Error" />
-            <set-body>@{
-                return new JObject(
-                    new JProperty("error", "Error processing PII data"),
-                    new JProperty("details", context.Variables.GetValueOrDefault<string>("errorMessage"))
-                ).ToString();
-            }</set-body>
-        </return-response>
     </on-error>
 </policies>
 ```
