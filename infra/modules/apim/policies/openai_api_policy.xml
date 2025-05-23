@@ -39,6 +39,9 @@
         <set-variable name="routesCacheKey" value="@((string)context.Variables["deployment-id"] + "Routes" + context.Deployment.Region + context.Api.Revision)" />
         <set-variable name="oaClustersCacheKey" value="@("oaClusters" + context.Deployment.Region + context.Api.Revision)" />
 
+        <!-- RBAC: Set allowed backends (comma-separated backend-ids, empty means all are allowed) -->
+        <set-variable name="allowedBackend" value="" />
+
         <!-- Getting OpenAI clusters configuration -->
         <cache-lookup-value key="@((string)context.Variables.GetValueOrDefault<string>("oaClustersCacheKey", "ALL-CLUSTERS"))" variable-name="oaClusters" />
         <!-- If we can't find the configuration cached, it will be loaded -->
