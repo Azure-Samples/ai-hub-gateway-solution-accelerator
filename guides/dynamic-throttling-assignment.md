@@ -20,7 +20,7 @@ An OpenAI deployment of gpt4-o has 50 PTU, which let's assume it can handle a 10
 
 You can set a target of 80K TPM for that service, where APIM will use a rolling tokens-count against the deployment and automatically switch to the next priority OpenAI deployment once the target 80K TPM is reached.
 
-In oder to leverage the dynamic throtlling, you have to configure multiple points:
+In oder to leverage the dynamic throttling, you have to configure multiple points:
 
 1. Add ```targetTPMLimit``` to the OpenAI backend routes (inbound policy section):
 

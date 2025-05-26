@@ -7,13 +7,28 @@
         
         <!-- Detecting streaming request to adjust token calculations -->
         <choose>
-            <when condition="@(context.Request.Body.As<JObject>(true)["stream"] != null && context.Request.Body.As<JObject>(true)["stream"].Type != JTokenType.Null)">
+            <when condition="@{
+                try 
+                {
+                    var body = context.Request.Body.As<JObject>(true);
+                    return body != null && 
+                        body["stream"] != null && 
+                        body["stream"].Type != JTokenType.Null;
+                }
+                catch
+                {
+                    return false;
+                }
+            }">
                 <set-variable name="isStream" value="@{
                 var content = (context.Request.Body?.As<JObject>(true));
                 string streamValue = content["stream"].ToString().ToLower();
                 return streamValue;
             }" />
             </when>
+            <otherwise>
+                <set-variable name="isStream" value="false" />
+            </otherwise>
         </choose>
         
         <!-- Deleting api-key header to it is not passed to OpenAI endpoint-->
@@ -23,6 +38,9 @@
         <set-variable name="deployment-id" value="@((string)context.Request.MatchedParameters["deployment-id"])" />
         <set-variable name="routesCacheKey" value="@((string)context.Variables["deployment-id"] + "Routes" + context.Deployment.Region + context.Api.Revision)" />
         <set-variable name="oaClustersCacheKey" value="@("oaClusters" + context.Deployment.Region + context.Api.Revision)" />
+
+        <!-- RBAC: Set allowed backends (comma-separated backend-ids, empty means all are allowed) -->
+        <set-variable name="allowedBackend" value="" />
 
         <!-- Getting OpenAI clusters configuration -->
         <cache-lookup-value key="@((string)context.Variables.GetValueOrDefault<string>("oaClustersCacheKey", "ALL-CLUSTERS"))" variable-name="oaClusters" />

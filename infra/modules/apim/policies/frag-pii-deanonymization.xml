@@ -1,0 +1,15 @@
+<fragment>
+    <!-- Replace placeholders with original PII -->
+    <set-variable name="piiDeanonymizedContentOutput" value="@{
+        var content = context.Variables.GetValueOrDefault<string>("piiDeanonymizeContentInput");
+        var mappings = JArray.Parse(
+            context.Variables.GetValueOrDefault<string>("piiMappings"));
+        
+        foreach (var mapping in mappings) {
+            var original = mapping["original"].ToString();
+            var placeholder = mapping["placeholder"].ToString();
+            content = content.Replace(placeholder, original);
+        }
+        return content;
+    }" />
+</fragment>

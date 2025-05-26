@@ -18,17 +18,24 @@
                 return routes; 
             }" />
         <cache-store-value key="@((string)context.Variables.GetValueOrDefault<string>("routesCacheKey", "ALL-ROUTES"))" value="@((JArray)context.Variables["routes"])" duration="86400" />
-        <!-- This is the main logic to pick the route to be used -->
+        <!-- This is the main logic to pick the route to be used with RBAC validation -->
         <set-variable name="routeIndex" value="@{
                 JArray routes = (JArray)context.Variables["routes"];
+                string allowedBackend = (string)context.Variables.GetValueOrDefault("allowedBackend", "");
+                string[] allowedBackends = string.IsNullOrEmpty(allowedBackend) ? new string[0] : allowedBackend.Split(',');
                 int selectedPriority = Int32.MaxValue;
                 List<int> availableRoutesIndexes = new List<int>();
 
                 for (int i = 0; i < routes.Count; i++)
                 {
                     JObject route = (JObject)routes[i];
+                    string backendId = route.Value<string>("backend-id");
 
-                    if (!route.Value<bool>("isThrottling"))
+                    // Check if backend is allowed (empty allowedBackend means all are allowed)
+                    bool isBackendAllowed = string.IsNullOrEmpty(allowedBackend) || 
+                                          allowedBackends.Contains(backendId.Trim());
+
+                    if (!route.Value<bool>("isThrottling") && isBackendAllowed)
                     {
                         int routePriority = route.Value<int>("priority");
 
@@ -57,10 +64,59 @@
                 }
                 else
                 {
-                    //If there are no available routes, the request will be sent to the first one
-                    return 0;    
+                    //If there are no available allowed routes, return -1 to indicate failure
+                    return -1;    
                 }
                 }" />
+
+        <!-- Check if no allowed backend is available and return appropriate error -->
+        <choose>
+            <when condition="@((Int32)context.Variables["routeIndex"] == -1)">
+                <!-- Find the last error from allowed backends to return meaningful error -->
+                <set-variable name="lastAllowedBackendError" value="@{
+                        JArray routes = (JArray)context.Variables["routes"];
+                        string allowedBackend = (string)context.Variables.GetValueOrDefault("allowedBackend", "");
+                        
+                        // If no specific backends are allowed, return generic error
+                        if (string.IsNullOrEmpty(allowedBackend))
+                        {
+                            return "503|Service Unavailable|No backends are currently available";
+                        }
+                        
+                        string[] allowedBackends = allowedBackend.Split(',');
+                        
+                        // Find the most recent error from allowed backends
+                        DateTime latestRetryAfter = DateTime.MinValue;
+                        string errorDetails = "503|Service Unavailable|No allowed backends are currently available";
+                        
+                        for (int i = 0; i < routes.Count; i++)
+                        {
+                            JObject route = (JObject)routes[i];
+                            string backendId = route.Value<string>("backend-id");
+                            
+                            if (allowedBackends.Contains(backendId.Trim()) && route.Value<bool>("isThrottling"))
+                            {
+                                DateTime retryAfter = route.Value<DateTime>("retryAfter");
+                                if (retryAfter > latestRetryAfter)
+                                {
+                                    latestRetryAfter = retryAfter;
+                                    errorDetails = "429|Too Many Requests|Rate limit exceeded for allowed backends";
+                                }
+                            }
+                        }
+                        
+                        return errorDetails;
+                    }" />
+                <set-variable name="errorCode" value="@(((string)context.Variables["lastAllowedBackendError"]).Split('|')[0])" />
+                <set-variable name="errorReason" value="@(((string)context.Variables["lastAllowedBackendError"]).Split('|')[1])" />
+                <set-variable name="errorMessage" value="@(((string)context.Variables["lastAllowedBackendError"]).Split('|')[2])" />
+                <return-response>
+                    <set-status code="@(Convert.ToInt32((string)context.Variables["errorCode"]))" reason="@((string)context.Variables["errorReason"])" />
+                    <set-body>@((string)context.Variables["errorMessage"])</set-body>
+                </return-response>
+            </when>
+        </choose>
+
         <set-variable name="backendId" value="@(((JObject)((JArray)context.Variables["routes"])[(Int32)context.Variables["routeIndex"]]).Value<string>("backend-id"))" />
         <set-variable name="routeLocation" value="@(((JObject)((JArray)context.Variables["routes"])[(Int32)context.Variables["routeIndex"]]).Value<string>("location"))" />
         <set-variable name="routeName" value="@(((JObject)((JArray)context.Variables["routes"])[(Int32)context.Variables["routeIndex"]]).Value<string>("name"))" />
@@ -102,14 +158,19 @@
                 <cache-store-value key="@((string)context.Variables.GetValueOrDefault<string>("routesCacheKey", "ALL-ROUTES"))" value="@((JArray)context.Variables["routes"])" duration="86400" />
                 <set-variable name="remainingRoutes" value="@{
                         JArray routes = (JArray)context.Variables["routes"];
-
+                        string allowedBackend = (string)context.Variables.GetValueOrDefault("allowedBackend", "");
                         int remainingRoutes = 0;
 
                         for (int i = 0; i < routes.Count; i++)
                         {
                             JObject route = (JObject)routes[i];
+                            string backendId = route.Value<string>("backend-id");
+                            
+                            // Check if backend is allowed (empty allowedBackend means all are allowed)
+                            bool isBackendAllowed = string.IsNullOrEmpty(allowedBackend) || 
+                                                  allowedBackend.Split(',').Contains(backendId.Trim());
 
-                            if (!route.Value<bool>("isThrottling"))
+                            if (!route.Value<bool>("isThrottling") && isBackendAllowed)
                             {
                                 remainingRoutes++;
                             }
