@@ -327,6 +327,51 @@ resource hrSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-0
   }
 }
 
+// HR PII Product
+resource hrPIIProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
+  name: 'oai-hr-pii-assistant'
+  parent: apimService
+  properties: {
+    displayName: 'OAI-HR-PII-Assistant'
+    description: 'Offering OpenAI services for the internal HR platforms with PII anonymization processing.'
+    subscriptionRequired: true
+    approvalRequired: true
+    subscriptionsLimit: 200
+    state: 'published'
+    terms: 'By subscribing to this product, you agree to the terms and conditions.'
+  }
+}
+
+resource hrPIIProductOpenAIApi 'Microsoft.ApiManagement/service/products/apiLinks@2023-05-01-preview' = {
+  name: 'hr-pii-product-openai-api'
+  parent: hrPIIProduct
+  properties: {
+    apiId: apimOpenaiApi.outputs.id
+  }
+}
+
+resource hrPIIProductPolicy 'Microsoft.ApiManagement/service/products/policies@2022-08-01' =  {
+  name: 'policy'
+  parent: hrPIIProduct
+  properties: {
+    value: loadTextContent('./policies/hr_pii_product_policy.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [
+    apimOpenaiApi
+  ]
+}
+
+resource hrPIISubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-01' = {
+  name: 'oai-hr-pii-assistant-sub-01'
+  parent: apimService
+  properties: {
+    displayName: 'OAI-HR-PII-Assistant-Sub-01'
+    state: 'active'
+    scope: hrPIIProduct.id
+  }
+}
+
 // Create Search-HR product
 resource searchHRProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = if(enableAzureAISearch) {
   name: 'src-hr-assistant'
@@ -434,11 +479,31 @@ resource apiopenAiApiTenantNamedValue 'Microsoft.ApiManagement/service/namedValu
     value: tenantId
   }
 }
-resource apimOpenaiApiAudienceiNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' =  {
+resource apimOpenaiApiAudienceNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' =  {
   name: openAiApiAudienceNamedValue
   parent: apimService
   properties: {
     displayName: openAiApiAudienceNamedValue
+    secret: true
+    value: audience
+  }
+}
+
+resource piiServiceUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' =  {
+  name: 'piiServiceUrl'
+  parent: apimService
+  properties: {
+    displayName: 'piiServiceUrl'
+    secret: false
+    value: audience
+  }
+}
+
+resource piiServiceKeyNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' =  {
+  name: 'piiServiceKey'
+  parent: apimService
+  properties: {
+    displayName: 'piiServiceKey'
     secret: true
     value: audience
   }
@@ -455,7 +520,7 @@ resource aadAuthPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@
   dependsOn: [
     apiopenAiApiClientNamedValue
     apiopenAiApiEntraNamedValue
-    apimOpenaiApiAudienceiNamedValue
+    apimOpenaiApiAudienceNamedValue
     apiopenAiApiTenantNamedValue
   ]
 }
@@ -538,6 +603,10 @@ resource piiAnonymizationPolicyFragment 'Microsoft.ApiManagement/service/policyF
     value: loadTextContent('./policies/frag-pii-anonymization.xml')
     format: 'rawxml'
   }
+  dependsOn: [
+    piiServiceUrlNamedValue
+    piiServiceKeyNamedValue
+  ]
 }
 
 resource piiDenonymizationPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {

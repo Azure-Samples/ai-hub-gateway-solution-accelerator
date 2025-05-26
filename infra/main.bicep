@@ -683,6 +683,8 @@ module logicApp './modules/logicapp/logicapp.bicep' = {
     cosmosDBDatabaseName: cosmosDb.outputs.cosmosDbDatabaseName
     cosmosDBContainerConfigName: cosmosDb.outputs.cosmosDbStreamingExportConfigContainerName
     cosmosDBContainerUsageName: cosmosDb.outputs.cosmosDbContainerName
+    cosmosDBContainerPIIName: cosmosDb.outputs.cosmosDbPiiUsageContainerName
+    eventHubPIIName: eventHub.outputs.eventHubPIIName
     apimAppInsightsName: monitoring.outputs.applicationInsightsName
     functionAppSubnetId: useExistingVnet ? vnetExisting.outputs.functionAppSubnetId : vnet.outputs.functionAppSubnetId
     fileShareName: logicContentShareName

@@ -46,6 +46,9 @@ param containerName string = 'ai-usage-container'
 param pricingContainerName string = 'model-pricing'
 
 @description('The name for the container')
+param piiUsageContainerName string = 'pii-usage-container'
+
+@description('The name for the container')
 param streamingExportConfigContainerName string = 'streaming-export-config'
 
 @minValue(400)
@@ -197,6 +200,29 @@ resource streamingExportConfigContainer 'Microsoft.DocumentDB/databaseAccounts/s
   }
 }
 
+resource piiUsageContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-02-15-preview' = {
+  parent: database
+  name: piiUsageContainerName
+  properties: {
+    resource: {
+      id: piiUsageContainerName
+      partitionKey: {
+        paths: [
+          '/type'
+        ]
+        kind: 'Hash'
+      }
+      indexingPolicy: {
+        indexingMode: 'consistent'
+        automatic: true
+      }
+    }
+    options: {
+      throughput: throughput
+    }
+  }
+}
+
 module privateEndpoint '../networking/private-endpoint.bicep' = {
   name: '${accountName}-privateEndpoint'
   params: {
@@ -217,6 +243,7 @@ output location string = location
 output cosmosDbAccountName string = account.name
 output cosmosDbDatabaseName string = database.name
 output cosmosDbContainerName string = container.name
+output cosmosDbPiiUsageContainerName string = piiUsageContainer.name
 output cosmosDbPricingContainerName string = modelPricingContainer.name
 output cosmosDbStreamingExportConfigContainerName string = streamingExportConfigContainer.name
 output resourceId string = database.id

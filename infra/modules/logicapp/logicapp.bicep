@@ -29,10 +29,12 @@ var azureMonitorLogsRoleDefinitionId = resourceId('Microsoft.Authorization/roleD
 
 param eventHubNamespaceName string
 param eventHubName string
+param eventHubPIIName string
 
 param cosmosDBDatabaseName string
 param cosmosDBContainerConfigName string
 param cosmosDBContainerUsageName string
+param cosmosDBContainerPIIName string
 
 param apimAppInsightsName string
 
@@ -133,12 +135,14 @@ resource functionAppSettings 'Microsoft.Web/sites/config@2024-04-01' = {
       WEBSITE_CONTENTOVERVNET: '1'
       eventHub_fullyQualifiedNamespace: '${eventHubNamespaceName}.servicebus.windows.net'
       eventHub_name: eventHubName
+      eventHub_pii_name: eventHubPIIName
       APP_KIND: 'workflowapp'
       AzureFunctionsJobHost_extensionBundle: 'Microsoft.Azure.Functions.ExtensionBundle.Workflows'
       CosmosDBAccount: cosmosDbAccount.name
       CosmosDBDatabase: cosmosDBDatabaseName
       CosmosDBContainerConfig: cosmosDBContainerConfigName
       CosmosDBContainerUsage: cosmosDBContainerUsageName
+      CosmosDBContainerPII: cosmosDBContainerPIIName
       AzureCosmosDB_connectionString: cosmosDbAccount.listConnectionStrings().connectionStrings[0].connectionString
       AppInsights_SubscriptionId: subscription().subscriptionId
       AppInsights_ResourceGroup: resourceGroup().name
