@@ -355,7 +355,7 @@ Below APIM policy can be used with `Product`, `API` or `Operation` scope. The ex
                         },
                         new JObject {
                             ["pattern"] = @"\b\d{3}[-]?\d{4}[-]?\d{7}[-]?\d{1}\b",
-                            ["category"] = "EMIRATES_ID"
+                            ["category"] = "NATIONAL_ID"
                         }
                     };
                     return patterns.ToString();
