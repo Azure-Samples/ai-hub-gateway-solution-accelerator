@@ -3,7 +3,7 @@
         <base />
         <!-- Restrict access for this product to specific models -->
         <choose>
-            <when condition="@(!new [] { "gpt-4", "chat", "embedding" }.Contains(context.Request.MatchedParameters["deployment-id"] ?? String.Empty))">
+            <when condition="@(!new [] { "gpt-4o", "chat", "embedding" }.Contains(context.Request.MatchedParameters["deployment-id"] ?? String.Empty))">
                 <return-response>
                     <set-status code="401" reason="Unauthorized model access" />
                 </return-response>

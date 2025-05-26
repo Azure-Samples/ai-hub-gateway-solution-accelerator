@@ -5,6 +5,9 @@ param capacity int = 1
 param tags object = {}
 param eventHubName string = 'ai-usage'
 
+param isPIIEnabled bool = true
+param eventHubNamePII string = 'pii-usage'
+
 param eventHubPrivateEndpointName string
 param vNetName string
 param privateEndpointSubnetName string
@@ -45,7 +48,17 @@ resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-05-01-preview' = 
 }
 
 resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-05-01-preview' = {
-  name: 'ai-usage'
+  name: eventHubName
+  parent: eventHubNamespace
+  properties: {
+    messageRetentionInDays: 7
+    partitionCount: 4
+    status: 'Active'
+  }
+}
+
+resource eventHubPII 'Microsoft.EventHub/namespaces/eventhubs@2024-05-01-preview' = if (isPIIEnabled) {
+  name: eventHubNamePII
   parent: eventHubNamespace
   properties: {
     messageRetentionInDays: 7
@@ -73,3 +86,5 @@ module privateEndpoint '../networking/private-endpoint.bicep' = {
 output eventHubNamespaceName string = eventHubNamespace.name
 output eventHubName string = eventHub.name
 output eventHubEndpoint string = eventHubNamespace.properties.serviceBusEndpoint
+
+output eventHubPIIName string = eventHubPII.name ?? ''

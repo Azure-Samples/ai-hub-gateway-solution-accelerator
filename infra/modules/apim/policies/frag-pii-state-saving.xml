@@ -15,7 +15,7 @@
             <set-variable name="targetDeployment" value="@(context.Variables.GetValueOrDefault<string>("targetDeployment") ?? "unknown")" />
             
             <!-- Log to Event Hub using native policy -->
-            <log-to-eventhub logger-id="pii-eventhub-logger">@{
+            <log-to-eventhub logger-id="pii-usage-eventhub-logger">@{
                 var eventData = new JObject();
                 
                 // Operation metadata

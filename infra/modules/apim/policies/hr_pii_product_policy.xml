@@ -1,0 +1,137 @@
+<policies>
+    <inbound>
+        <base />
+
+        <!-- Defining allowed backends to be used by this product (used to restrict traffic to certain regions) -->
+        <!-- Backend RBAC: Set allowed backends (comma-separated backend-ids, empty means all are allowed) -->
+        <set-variable name="allowedBackend" value="openai-backend-0" />
+
+        <!-- Restrict access for this product to specific models -->
+        <choose>
+            <when condition="@(!new [] { "gpt-4o", "embedding" }.Contains(context.Request.MatchedParameters["deployment-id"] ?? String.Empty))">
+                <return-response>
+                    <set-status code="401" reason="Unauthorized model access" />
+                </return-response>
+            </when>
+        </choose>
+
+        <!-- Capacity management - Subscription Level: allow only assigned tpm for each HR use case subscription -->
+        <set-variable name="target-deployment" value="@((string)context.Request.MatchedParameters["deployment-id"])" />
+        <choose>
+            <when condition="@((string)context.Variables["target-deployment"] == "gpt-4o")">
+                <azure-openai-token-limit 
+                    counter-key="@(context.Subscription.Id + "-" + context.Variables["target-deployment"])" 
+                    tokens-per-minute="10000" 
+                    estimate-prompt-tokens="false" 
+                    tokens-consumed-header-name="consumed-tokens" 
+                    remaining-tokens-header-name="remaining-tokens" 
+                    token-quota="100000"
+                    token-quota-period="Monthly"
+                    retry-after-header-name="retry-after" />
+            </when>
+            <when condition="@((string)context.Variables["target-deployment"] == "chat")">
+                <azure-openai-token-limit 
+                    counter-key="@(context.Subscription.Id + "-" + context.Variables["target-deployment"])" 
+                    tokens-per-minute="2000" 
+                    estimate-prompt-tokens="false" 
+                    tokens-consumed-header-name="consumed-tokens" 
+                    remaining-tokens-header-name="remaining-tokens" 
+                    token-quota="10000"
+                    token-quota-period="Weekly"
+                    retry-after-header-name="retry-after" />
+            </when>
+            <otherwise>
+                <azure-openai-token-limit 
+                    counter-key="@(context.Subscription.Id + "-default")" 
+                    tokens-per-minute="1000" 
+                    estimate-prompt-tokens="false" 
+                    tokens-consumed-header-name="consumed-tokens" 
+                    remaining-tokens-header-name="remaining-tokens" 
+                    token-quota="5000"
+                    token-quota-period="Monthly"
+                    retry-after-header-name="retry-after" />
+            </otherwise>
+        </choose>
+        
+        <!-- Capacity management: Product Level (across all OpenAI models -->
+        <azure-openai-token-limit 
+                    counter-key="@(context.Product?.Name?.ToString() ?? "Portal-Admin")" 
+                    tokens-per-minute="15000" 
+                    estimate-prompt-tokens="false" 
+                    tokens-consumed-header-name="consumed-tokens" 
+                    remaining-tokens-header-name="remaining-tokens" 
+                    token-quota="150000"
+                    token-quota-period="Monthly"
+                    retry-after-header-name="retry-after" />
+
+        <!-- PII Detection and Anonymization -->
+        <set-variable name="piiAnonymizationEnabled" value="true" />
+        <!-- Variables required by pii-anonymization fragment -->
+        <choose>
+            <when condition="@(context.Variables.GetValueOrDefault<string>("piiAnonymizationEnabled") == "true")">
+                <!-- Configure PII detection settings -->
+                <set-variable name="piiConfidenceThreshold" value="0.75" />
+                <set-variable name="piiEntityCategoryExclusions" value="PersonType,CADriversLicenseNumber" />
+                <set-variable name="piiDetectionLanguage" value="en" /> <!-- Use 'auto' if context have multiple languages -->
+
+                <!-- Configure regex patterns for custom PII detection -->
+                <set-variable name="piiRegexPatterns" value="@{
+                    var patterns = new JArray {
+                        new JObject {
+                            ["pattern"] = @"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b",
+                            ["category"] = "CREDIT_CARD"
+                        },
+                        new JObject {
+                            ["pattern"] = @"\b[A-Z]{2}\d{6}[A-Z]\b",
+                            ["category"] = "PASSPORT_NUMBER"
+                        },
+                        new JObject {
+                            ["pattern"] = @"\b\d{3}[-]?\d{4}[-]?\d{7}[-]?\d{1}\b",
+                            ["category"] = "NATIONAL_ID"
+                        }
+                    };
+                    return patterns.ToString();
+                }" />
+                <set-variable name="piiInputContent" value="@(context.Request.Body.As<string>(preserveContent: true))" />
+                <!-- Include the PII anonymization fragment -->
+                <include-fragment fragment-id="pii-anonymization" />
+                <!-- Replace the request body with anonymized content -->
+                <set-body>@(context.Variables.GetValueOrDefault<string>("piiAnonymizedContent"))</set-body>
+            </when>
+        </choose>
+
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+        <!-- PII Deanonymization -->
+        <set-variable name="responseBodyContent" value="@(context.Response.Body.As<string>(preserveContent: true))" />
+        <choose>
+            <when condition="@(context.Variables.GetValueOrDefault<string>("piiAnonymizationEnabled") == "true" && 
+                            context.Variables.ContainsKey("piiMappings"))">
+                <!-- Use stored response body for deanonymization -->
+                <set-variable name="piiDeanonymizeContentInput" value="@(context.Variables.GetValueOrDefault<string>("responseBodyContent"))" />
+                <include-fragment fragment-id="pii-deanonymization" />
+                <!-- Variables required by pii-state-saving fragment -->
+                <set-variable name="piiStateSavingEnabled" value="true" />
+                <set-variable name="originalRequest" value="@(context.Variables.GetValueOrDefault<string>("piiInputContent"))" />
+                <set-variable name="originalResponse" value="@(context.Variables.GetValueOrDefault<string>("responseBodyContent"))" />
+                
+                <!-- Include the PII state saving fragment to push pii detection results to event hub -->
+                <include-fragment fragment-id="pii-state-saving" />
+                
+                <!-- Replace response with deanonymized content -->
+                <set-body>@(context.Variables.GetValueOrDefault<string>("piiDeanonymizedContentOutput"))</set-body>
+            </when>
+            <otherwise>
+                <!-- Pass through original response using stored content -->
+                <set-body>@(context.Variables.GetValueOrDefault<string>("responseBodyContent"))</set-body>
+            </otherwise>
+        </choose>
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

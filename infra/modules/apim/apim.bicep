@@ -19,6 +19,9 @@ param audience string = 'https://cognitiveservices.azure.com/.default'
 param eventHubName string
 param eventHubEndpoint string
 
+param eventHubPIIName string
+param eventHubPIIEndpoint string
+
 param enableAzureAISearch bool = false
 param aiSearchInstances array
 
@@ -27,6 +30,8 @@ param enableAIModelInference bool = true
 param enableOpenAIRealtime bool = true
 
 param enableDocumentIntelligence bool = true
+
+param enablePIIAnonymization bool = true
 
 // Networking
 param apimNetworkType string = 'External'
@@ -55,6 +60,10 @@ resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-
 }
 
 resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2023-01-01-preview' existing = {
+  name: eventHubName
+}
+
+resource eventHubPII 'Microsoft.EventHub/namespaces/eventhubs@2023-01-01-preview' existing = {
   name: eventHubName
 }
 
@@ -522,6 +531,33 @@ resource dynamicThrottlingAssignmentFragment 'Microsoft.ApiManagement/service/po
   }
 }
 
+resource piiAnonymizationPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
+  parent: apimService
+  name: 'pii-anonymization'
+  properties: {
+    value: loadTextContent('./policies/frag-pii-anonymization.xml')
+    format: 'rawxml'
+  }
+}
+
+resource piiDenonymizationPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
+  parent: apimService
+  name: 'pii-deanonymization'
+  properties: {
+    value: loadTextContent('./policies/frag-pii-deanonymization.xml')
+    format: 'rawxml'
+  }
+}
+
+resource piiStateSavingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = if (enablePIIAnonymization) {
+  parent: apimService
+  name: 'pii-state-saving'
+  properties: {
+    value: loadTextContent('./policies/frag-pii-deanonymization.xml')
+    format: 'rawxml'
+  }
+}
+
 resource apimLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
   name: 'appinsights-logger'
   parent: apimService
@@ -586,6 +622,20 @@ resource ehUsageLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
     credentials: {
       name: eventHub.name
       endpointAddress: replace(eventHubEndpoint, 'https://', '')
+      identityClientId: managedIdentity.properties.clientId
+    }
+  }
+}
+
+resource ehPIIUsageLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = if (enablePIIAnonymization) {
+  name: 'pii-usage-eventhub-logger'
+  parent: apimService
+  properties: {
+    loggerType: 'azureEventHub'
+    description: 'Event Hub logger for PII usage metrics and logs'
+    credentials: {
+      name: eventHubPII.name
+      endpointAddress: replace(eventHubPIIEndpoint, 'https://', '')
       identityClientId: managedIdentity.properties.clientId
     }
   }

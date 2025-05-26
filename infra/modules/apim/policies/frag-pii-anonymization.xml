@@ -4,6 +4,7 @@
             <!-- Get configuration values -->
             <set-variable name="piiConfidenceThreshold" value="@(double.Parse(context.Variables.GetValueOrDefault<string>("piiConfidenceThreshold", "0.8")))" />
             <set-variable name="piiEntityCategoryExclusions" value="@(context.Variables.GetValueOrDefault<string>("piiEntityCategoryExclusions", ""))" />
+            <set-variable name="piiDetectionLanguage" value="@(context.Variables.GetValueOrDefault<string>("piiDetectionLanguage", "en"))" />
             
             <!-- Process regex patterns if provided -->
             <set-variable name="piiRegexMappings" value="@{
@@ -89,7 +90,7 @@
                             new JObject{
                                 {"text", context.Variables.GetValueOrDefault<string>("piiInputContent")},
                                 {"id", "1"},
-                                {"language", "en"}
+                                {"language", context.Variables.GetValueOrDefault<string>("piiDetectionLanguage")}
                             }
                         }}
                     };
