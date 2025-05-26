@@ -417,6 +417,7 @@ module eventHub './modules/event-hub/event-hub.bicep' = {
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
     dnsZoneRG: !useExistingVnet ? resourceGroup.name : dnsZoneRG
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
+    capacity: 4
   }
   dependsOn: [
     vnet
@@ -469,6 +470,7 @@ module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
     dnsZoneRG: !useExistingVnet ? resourceGroup.name : dnsZoneRG
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
+    throughput: 1000
   }
   dependsOn: [
     vnet
