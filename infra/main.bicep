@@ -14,7 +14,7 @@ param environmentName string
 param location string
 
 @description('Tags to be applied to resources.')
-param tags object = { 'azd-env-name': environmentName }
+param tags object = { 'azd-env-name': environmentName, 'SecurityControl': 'Ignore' }
 
 //
 // RESOURCE NAMES - Assign custom names to different provisioned services
@@ -148,11 +148,11 @@ param openAIExternalNetworkAccess string = 'Disabled'
 
 @description('Cosmos DB public network access.')
 @allowed([ 'Enabled', 'Disabled' ])
-param cosmosDbPublicAccess string = 'Disabled'
+param cosmosDbPublicAccess string = 'Enabled'
 
 @description('Event Hub public network access.')
 @allowed([ 'Enabled', 'Disabled' ]) 
-param eventHubNetworkAccess string = 'Disabled'
+param eventHubNetworkAccess string = 'Enabled'
 
 @description('Use Azure Monitor Private Link Scope for Log Analytics and Application Insights.')
 param useAzureMonitorPrivateLinkScope bool = !useExistingVnet
@@ -355,9 +355,11 @@ var storageBlobPrivateDnsZoneName = 'privatelink.blob.core.windows.net'
 var storageFilePrivateDnsZoneName = 'privatelink.file.core.windows.net'
 var storageTablePrivateDnsZoneName = 'privatelink.table.core.windows.net'
 var storageQueuePrivateDnsZoneName = 'privatelink.queue.core.windows.net'
+var aiCogntiveServicesDnsZoneName = 'privatelink.cognitiveservices.azure.com'
 
 var privateDnsZoneNames = [
   openAiPrivateDnsZoneName
+  aiCogntiveServicesDnsZoneName
   keyVaultPrivateDnsZoneName
   monitorPrivateDnsZoneName
   eventHubPrivateDnsZoneName 
@@ -482,7 +484,7 @@ module openAis 'modules/ai/cognitiveservices.bicep' = [for (config, i) in items(
     vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
     vNetLocation: useExistingVnet ? vnetExisting.outputs.location : vnet.outputs.location
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
-    openAiPrivateEndpointName: !empty(openAiPrivateEndpointName) ? '${openAiPrivateEndpointName}-${i}' : '${abbrs.cognitiveServicesAccounts}openai-pe-${i}-${resourceToken}'
+    aiPrivateEndpointName: !empty(openAiPrivateEndpointName) ? '${openAiPrivateEndpointName}-${i}' : '${abbrs.cognitiveServicesAccounts}openai-pe-${i}-${resourceToken}'
     publicNetworkAccess: openAIExternalNetworkAccess
     openAiDnsZoneName: openAiPrivateDnsZoneName
     sku: {
@@ -500,6 +502,84 @@ module openAis 'modules/ai/cognitiveservices.bicep' = [for (config, i) in items(
     apimManagedIdentity
   ]
 }]
+
+@description('Name of the Azure Content Safety service. Leave blank to use default naming conventions.')
+param aiContentSafetyName string = ''
+@description('Name of the Azure Content Safety service. Leave blank to use default naming conventions.')
+param aiContentSafetyPrivateEndpointName string = ''
+@description('Azure Content Safety service SKU name.')
+param aiContentSafetySkuName string = 'S0'
+@description('Azure Content Safety external network access.')
+@allowed([ 'Enabled', 'Disabled' ])
+param aiContentSafetyExternalNetworkAccess string = 'Disabled'
+
+module contentSafety 'modules/ai/cognitiveservices.bicep' = {
+  name: 'ai-content-safety'
+  scope: resourceGroup
+  params: {
+    name: !empty(aiContentSafetyName) ? aiContentSafetyName : '${abbrs.cognitiveServicesAccounts}consafety-${resourceToken}'
+    location: location
+    tags: tags
+    kind: 'ContentSafety'
+    managedIdentityName: apimManagedIdentity.outputs.managedIdentityName
+    vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
+    vNetLocation: useExistingVnet ? vnetExisting.outputs.location : vnet.outputs.location
+    privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
+    aiPrivateEndpointName: !empty(aiContentSafetyPrivateEndpointName) ? aiContentSafetyPrivateEndpointName : '${abbrs.cognitiveServicesAccounts}consafety-pe-${resourceToken}'
+    publicNetworkAccess: aiContentSafetyExternalNetworkAccess
+    openAiDnsZoneName: aiCogntiveServicesDnsZoneName
+    sku: {
+      name: aiContentSafetySkuName
+    }
+    vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
+    dnsZoneRG: !useExistingVnet ? resourceGroup.name : dnsZoneRG
+    dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
+  }
+  dependsOn: [
+    vnet
+    vnetExisting
+    apimManagedIdentity
+  ]
+}
+
+@description('Name of the Azure Language service. Leave blank to use default naming conventions.')
+param languageServiceName string = ''
+@description('Name of the Azure Language service private endpoint. Leave blank to use default naming conventions.')
+param languageServicePrivateEndpointName string = ''
+@description('Azure Language service SKU name.')
+param languageServiceSkuName string = 'S'
+@description('Azure Language service external network access.')
+@allowed([ 'Enabled', 'Disabled' ])
+param languageServiceExternalNetworkAccess string = 'Disabled'
+
+module languageService 'modules/ai/cognitiveservices.bicep' = {
+  name: 'ai-language-service'
+  scope: resourceGroup
+  params: {
+    name: !empty(languageServiceName) ? languageServiceName : '${abbrs.cognitiveServicesAccounts}language-${resourceToken}'
+    location: location
+    tags: tags
+    kind: 'TextAnalytics'
+    managedIdentityName: apimManagedIdentity.outputs.managedIdentityName
+    vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
+    vNetLocation: useExistingVnet ? vnetExisting.outputs.location : vnet.outputs.location
+    privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
+    aiPrivateEndpointName: !empty(languageServicePrivateEndpointName) ? languageServicePrivateEndpointName : '${abbrs.cognitiveServicesAccounts}language-pe-${resourceToken}'
+    publicNetworkAccess: languageServiceExternalNetworkAccess
+    openAiDnsZoneName: aiCogntiveServicesDnsZoneName
+    sku: {
+      name: languageServiceSkuName
+    }
+    vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
+    dnsZoneRG: !useExistingVnet ? resourceGroup.name : dnsZoneRG
+    dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
+  }
+  dependsOn: [
+    vnet
+    vnetExisting
+    apimManagedIdentity
+  ]
+}
 
 module eventHub './modules/event-hub/event-hub.bicep' = {
   name: 'event-hub'
@@ -543,6 +623,8 @@ module apim './modules/apim/apim.bicep' = {
     eventHubPIIName: eventHub.outputs.eventHubPIIName
     eventHubPIIEndpoint: eventHub.outputs.eventHubEndpoint
     apimSubnetId: useExistingVnet ? vnetExisting.outputs.apimSubnetId : vnet.outputs.apimSubnetId
+    aiLanguageServiceName: languageServiceName
+    contentSafetyServiceName: aiContentSafetyName
     apimNetworkType: apimNetworkType
     enablePIIAnonymization: enableAIGatewayPiiRedaction
     enableAIModelInference: enableAIModelInference

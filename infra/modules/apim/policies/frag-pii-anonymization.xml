@@ -5,6 +5,7 @@
             <set-variable name="piiConfidenceThreshold" value="@(double.Parse(context.Variables.GetValueOrDefault<string>("piiConfidenceThreshold", "0.8")))" />
             <set-variable name="piiEntityCategoryExclusions" value="@(context.Variables.GetValueOrDefault<string>("piiEntityCategoryExclusions", ""))" />
             <set-variable name="piiDetectionLanguage" value="@(context.Variables.GetValueOrDefault<string>("piiDetectionLanguage", "en"))" />
+            <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="msi-access-token" client-id="{{uami-client-id}}" ignore-error="false" />
             
             <!-- Process regex patterns if provided -->
             <set-variable name="piiRegexMappings" value="@{
@@ -72,9 +73,13 @@
                 <set-header name="Content-Type" exists-action="override">
                     <value>application/json</value>
                 </set-header>
-                <set-header name="Ocp-Apim-Subscription-Key" exists-action="override">
-                    <value>{{piiServiceKey}}</value>
+                <set-header name="Authorization" exists-action="override">
+                    <value>@("Bearer " + (string)context.Variables["msi-access-token"])</value>
                 </set-header>
+                <!-- <set-header name="Ocp-Apim-Subscription-Key" exists-action="override">
+                    <value>{{piiServiceKey}}</value>
+                </set-header> -->
+
                 <set-body>@{
                     var request = new JObject();
                     request["kind"] = "PiiEntityRecognition";

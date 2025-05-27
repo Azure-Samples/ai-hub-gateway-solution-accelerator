@@ -33,6 +33,10 @@ param enableDocumentIntelligence bool = true
 
 param enablePIIAnonymization bool = true
 
+param contentSafetyServiceName string
+param aiLanguageServiceName string
+
+
 // Networking
 param apimNetworkType string = 'External'
 param apimSubnetId string
@@ -64,7 +68,15 @@ resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2023-01-01-preview' e
 }
 
 resource eventHubPII 'Microsoft.EventHub/namespaces/eventhubs@2023-01-01-preview' existing = {
-  name: eventHubName
+  name: eventHubPIIName
+}
+
+resource contentSafetyService 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
+  name: contentSafetyServiceName
+}
+
+resource aiLanguageService 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
+  name: aiLanguageServiceName
 }
 
 resource apimService 'Microsoft.ApiManagement/service@2021-08-01' = {
@@ -495,7 +507,7 @@ resource piiServiceUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@20
   properties: {
     displayName: 'piiServiceUrl'
     secret: false
-    value: audience
+    value: aiLanguageService.properties.endpoint
   }
 }
 
@@ -505,7 +517,17 @@ resource piiServiceKeyNamedValue 'Microsoft.ApiManagement/service/namedValues@20
   properties: {
     displayName: 'piiServiceKey'
     secret: true
-    value: audience
+    value: 'replace-with-language-service-key-if-needed'
+  }
+}
+
+resource contentSafetyServiceUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' =  {
+  name: 'contentSafetyServiceUrl'
+  parent: apimService
+  properties: {
+    displayName: 'contentSafetyServiceUrl'
+    secret: false
+    value: contentSafetyService.properties.endpoint
   }
 }
 
@@ -622,7 +644,7 @@ resource piiStateSavingPolicyFragment 'Microsoft.ApiManagement/service/policyFra
   parent: apimService
   name: 'pii-state-saving'
   properties: {
-    value: loadTextContent('./policies/frag-pii-deanonymization.xml')
+    value: loadTextContent('./policies/frag-pii-state-saving.xml')
     format: 'rawxml'
   }
 }

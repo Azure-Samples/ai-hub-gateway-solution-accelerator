@@ -26,7 +26,8 @@
             "New_Usage_Record_Received": {
                 "inputs": {
                     "parameters": {
-                        "eventHubName": "@appsetting('eventHub_name')"
+                        "eventHubName": "@appsetting('eventHub_name')",
+                        "consumerGroupName": "aiUsageIngestion"
                     },
                     "serviceProviderConfiguration": {
                         "connectionName": "eventHub",

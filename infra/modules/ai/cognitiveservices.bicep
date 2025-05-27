@@ -11,7 +11,7 @@ param deploymentCapacity int = 1
 
 // Networking
 param publicNetworkAccess string = 'Disabled'
-param openAiPrivateEndpointName string
+param aiPrivateEndpointName string
 param vNetName string
 param vNetLocation string
 param privateEndpointSubnetName string
@@ -42,10 +42,7 @@ resource account 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   tags: union(tags, { 'azd-service-name': name })
   kind: kind
   identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${managedIdentity.id}': {}
-    }
+    type: 'SystemAssigned'
   }
   properties: {
     customSubDomainName: toLower(name)
@@ -80,7 +77,7 @@ module privateEndpoint '../networking/private-endpoint.bicep' = {
       'account'
     ]
     dnsZoneName: openAiDnsZoneName
-    name: openAiPrivateEndpointName
+    name: aiPrivateEndpointName
     privateLinkServiceId: account.id
     location: vNetLocation
     privateEndpointSubnetId: subnet.id
