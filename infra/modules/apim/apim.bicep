@@ -33,8 +33,8 @@ param enableDocumentIntelligence bool = true
 
 param enablePIIAnonymization bool = true
 
-param contentSafetyServiceName string
-param aiLanguageServiceName string
+param contentSafetyServiceUrl string
+param aiLanguageServiceUrl string
 
 
 // Networking
@@ -71,13 +71,13 @@ resource eventHubPII 'Microsoft.EventHub/namespaces/eventhubs@2023-01-01-preview
   name: eventHubPIIName
 }
 
-resource contentSafetyService 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
-  name: contentSafetyServiceName
-}
+// resource contentSafetyService 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
+//   name: contentSafetyServiceName
+// }
 
-resource aiLanguageService 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
-  name: aiLanguageServiceName
-}
+// resource aiLanguageService 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
+//   name: aiLanguageServiceName
+// }
 
 resource apimService 'Microsoft.ApiManagement/service@2021-08-01' = {
   name: name
@@ -454,6 +454,20 @@ resource aiSearchBackends 'Microsoft.ApiManagement/service/backends@2022-08-01' 
   }
 }]
 
+resource contentSafetyBackend 'Microsoft.ApiManagement/service/backends@2022-08-01' = {
+  name: 'content-safety-backend'
+  parent: apimService
+  properties: {
+    description: 'Content Safety Service Backend'
+    url: contentSafetyServiceUrl
+    protocol: 'http'
+    tls: {
+      validateCertificateChain: true
+      validateCertificateName: true
+    }
+  }
+}
+
 resource apimOpenaiApiUamiNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' = {
   name: openAiApiUamiNamedValue
   parent: apimService
@@ -507,7 +521,7 @@ resource piiServiceUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@20
   properties: {
     displayName: 'piiServiceUrl'
     secret: false
-    value: aiLanguageService.properties.endpoint
+    value: aiLanguageServiceUrl
   }
 }
 
@@ -527,7 +541,7 @@ resource contentSafetyServiceUrlNamedValue 'Microsoft.ApiManagement/service/name
   properties: {
     displayName: 'contentSafetyServiceUrl'
     secret: false
-    value: contentSafetyService.properties.endpoint
+    value: contentSafetyServiceUrl
   }
 }
 

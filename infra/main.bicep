@@ -61,6 +61,12 @@ param usageProcessingLogicAppName string = ''
 @description('Name of the Storage Account. Leave blank to use default naming conventions.')
 param storageAccountName string = ''
 
+@description('Name of the Azure Language service. Leave blank to use default naming conventions.')
+param languageServiceName string = ''
+
+@description('Name of the Azure Content Safety service. Leave blank to use default naming conventions.')
+param aiContentSafetyName string = ''
+
 //
 // NETWORKING PARAMETERS - Network configuration and access controls
 //
@@ -74,6 +80,7 @@ param useExistingVnet bool = false
 @description('Resource group containing the existing VNet (only used when useExistingVnet is true).')
 param existingVnetRG string = ''
 
+// Subnet names
 @description('Subnet name for API Management in the VNet. Leave blank to use default naming conventions.')
 param apimSubnetName string = ''
 
@@ -83,6 +90,8 @@ param privateEndpointSubnetName string = ''
 @description('Subnet name for Function App in the VNet. Leave blank to use default naming conventions.')
 param functionAppSubnetName string = ''
 
+
+// NSG & route table names
 @description('NSG name for API Management subnet. Leave blank to use default naming conventions.')
 param apimNsgName string = ''
 
@@ -95,6 +104,7 @@ param functionAppNsgName string = ''
 @description('Route Table name for API Management subnet. Leave blank to use default naming conventions.')
 param apimRouteTableName string = ''
 
+// VNet address space and subnet prefixes
 @description('Virtual Network address space.')
 param vnetAddressPrefix string = '10.170.0.0/24'
 
@@ -136,6 +146,12 @@ param eventHubPrivateEndpointName string = ''
 @description('Azure OpenAI private endpoint name. Leave blank to use default naming conventions.')
 param openAiPrivateEndpointName string = ''
 
+@description('Name of the Azure Language service private endpoint. Leave blank to use default naming conventions.')
+param languageServicePrivateEndpointName string = ''
+
+@description('Name of the Azure Content Safety service private endpoint. Leave blank to use default naming conventions.')
+param aiContentSafetyPrivateEndpointName string = ''
+
 // Services network access configuration
 
 @description('Network type for API Management service.')
@@ -153,6 +169,14 @@ param cosmosDbPublicAccess string = 'Enabled'
 @description('Event Hub public network access.')
 @allowed([ 'Enabled', 'Disabled' ]) 
 param eventHubNetworkAccess string = 'Enabled'
+
+@description('Azure Language service external network access.')
+@allowed([ 'Enabled', 'Disabled' ])
+param languageServiceExternalNetworkAccess string = 'Disabled'
+
+@description('Azure Content Safety external network access.')
+@allowed([ 'Enabled', 'Disabled' ])
+param aiContentSafetyExternalNetworkAccess string = 'Disabled'
 
 @description('Use Azure Monitor Private Link Scope for Log Analytics and Application Insights.')
 param useAzureMonitorPrivateLinkScope bool = !useExistingVnet
@@ -211,6 +235,12 @@ param cosmosDbRUs int = 400
 
 @description('Logic Apps SKU capacity units.')
 param logicAppsSkuCapacityUnits int = 1
+
+@description('Azure Language service SKU name.')
+param languageServiceSkuName string = 'S'
+
+@description('Azure Content Safety service SKU name.')
+param aiContentSafetySkuName string = 'S0'
 
 //
 // ACCELERATOR SPECIFIC PARAMETERS - Additional parameters for the solution (should not be modified without careful consideration)
@@ -503,16 +533,6 @@ module openAis 'modules/ai/cognitiveservices.bicep' = [for (config, i) in items(
   ]
 }]
 
-@description('Name of the Azure Content Safety service. Leave blank to use default naming conventions.')
-param aiContentSafetyName string = ''
-@description('Name of the Azure Content Safety service. Leave blank to use default naming conventions.')
-param aiContentSafetyPrivateEndpointName string = ''
-@description('Azure Content Safety service SKU name.')
-param aiContentSafetySkuName string = 'S0'
-@description('Azure Content Safety external network access.')
-@allowed([ 'Enabled', 'Disabled' ])
-param aiContentSafetyExternalNetworkAccess string = 'Disabled'
-
 module contentSafety 'modules/ai/cognitiveservices.bicep' = {
   name: 'ai-content-safety'
   scope: resourceGroup
@@ -541,16 +561,6 @@ module contentSafety 'modules/ai/cognitiveservices.bicep' = {
     apimManagedIdentity
   ]
 }
-
-@description('Name of the Azure Language service. Leave blank to use default naming conventions.')
-param languageServiceName string = ''
-@description('Name of the Azure Language service private endpoint. Leave blank to use default naming conventions.')
-param languageServicePrivateEndpointName string = ''
-@description('Azure Language service SKU name.')
-param languageServiceSkuName string = 'S'
-@description('Azure Language service external network access.')
-@allowed([ 'Enabled', 'Disabled' ])
-param languageServiceExternalNetworkAccess string = 'Disabled'
 
 module languageService 'modules/ai/cognitiveservices.bicep' = {
   name: 'ai-language-service'
@@ -623,8 +633,8 @@ module apim './modules/apim/apim.bicep' = {
     eventHubPIIName: eventHub.outputs.eventHubPIIName
     eventHubPIIEndpoint: eventHub.outputs.eventHubEndpoint
     apimSubnetId: useExistingVnet ? vnetExisting.outputs.apimSubnetId : vnet.outputs.apimSubnetId
-    aiLanguageServiceName: languageServiceName
-    contentSafetyServiceName: aiContentSafetyName
+    aiLanguageServiceUrl: languageService.outputs.aiServiceEndpoint
+    contentSafetyServiceUrl: contentSafety.outputs.aiServiceEndpoint
     apimNetworkType: apimNetworkType
     enablePIIAnonymization: enableAIGatewayPiiRedaction
     enableAIModelInference: enableAIModelInference

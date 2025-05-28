@@ -17,6 +17,7 @@
                 {
                     var patterns = JArray.Parse(regexPatterns);
                     var categoryCounts = new Dictionary<string, int>();
+                    var processedTexts = new HashSet<string>(); // Track already processed texts
                     
                     foreach (var pattern in patterns)
                     {
@@ -33,6 +34,12 @@
                         {
                             if (!string.IsNullOrEmpty(match.Value))
                             {
+                                // Skip if we already have a mapping for this text
+                                if (processedTexts.Contains(match.Value))
+                                {
+                                    continue;
+                                }
+                                
                                 var placeholder = $"<{category}_{categoryCounts[category]}>";
                                 mappings.Add(new JObject {
                                     ["original"] = match.Value,
@@ -40,6 +47,7 @@
                                     ["source"] = "regex"
                                 });
                                 categoryCounts[category]++;
+                                processedTexts.Add(match.Value); // Mark this text as processed
                             }
                         }
                     }
@@ -120,9 +128,16 @@
                 
                 var mappings = new JArray();
                 var categoryCounts = new Dictionary<string, int>();
+                var processedTexts = new HashSet<string>(); // Track already processed texts
                 
                 foreach (var entity in entities) {
                     var text = entity["text"].ToString().TrimEnd('.', ',', ' ');
+                    
+                    // Skip if this text has already been processed
+                    if (processedTexts.Contains(text)) {
+                        continue;
+                    }
+                    
                     var category = entity["category"].ToString();
                     
                     if (!categoryCounts.ContainsKey(category)) {
@@ -136,6 +151,7 @@
                     });
                     
                     categoryCounts[category]++;
+                    processedTexts.Add(text); // Mark this text as processed
                 }
                 
                 return mappings.ToString();

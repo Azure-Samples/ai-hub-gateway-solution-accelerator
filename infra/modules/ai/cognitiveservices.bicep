@@ -91,3 +91,6 @@ module privateEndpoint '../networking/private-endpoint.bicep' = {
 
 output openAiName string = account.name
 output openAiEndpointUri string = '${account.properties.endpoint}openai/'
+
+output aiServiceName string = account.name
+output aiServiceEndpoint string = account.properties.endpoint
