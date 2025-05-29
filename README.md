@@ -110,6 +110,7 @@ Comprehensive guides to master AI Hub Gateway implementation and operations.
 |-------|-------------|
 | [Architecture Overview](./guides/architecture.md) | Complete system design and component relationships |
 | [Deployment Guide](./guides/deployment.md) | Step-by-step deployment instructions |
+| [Enterprise Provisioning](./guides/enterprise-provisioning.md) | **NEW**: Branch-based deployment strategy, parameter management, and CI/CD automation |
 | [APIM Configuration](./guides/apim-configuration.md) | Advanced API Management policies and routing |
 | [Bring Your Own Network](./guides/bring-your-own-network.md) | Deploy into existing VNets |
 | [Deployment Troubleshooting](./guides/deployment-troubleshooting.md) | Common issues and solutions |
