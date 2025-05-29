@@ -377,7 +377,7 @@ This use case requires comprehensive features including PII anonymization, conte
                 <set-variable name="originalRequest" value="@(context.Variables.GetValueOrDefault<string>("piiInputContent"))" />
                 <set-variable name="originalResponse" value="@(context.Variables.GetValueOrDefault<string>("responseBodyContent"))" />
                 
-                <!-- Include the PII state saving fragment to push pii detection results to event hub -->
+                <!-- RECOMMENDED FOR TESTING ONLY: Include the PII state saving fragment to push pii detection results to event hub -->
                 <include-fragment fragment-id="pii-state-saving" />
                 
                 <!-- Replace response with deanonymized content -->
@@ -807,15 +807,6 @@ For more detailed guidance on specific aspects of AI Hub Gateway configuration a
 - [AI Studio Integration](./ai-studio-integration.md) - Connecting AI Hub Gateway with Azure AI Studio
 - [AI Search Integration](./ai-search-integration.md) - Integrating Azure AI Search with AI Hub Gateway
 
-### Advanced Scenarios
-- [End-to-End Scenarios](./end-to-end-scenario.md) - Complete workflows implementing AI Hub Gateway
-- [AI Hub Gateway Hybrid Deployment](./ai-hub-gateway-hybrid-deployment.md) - Deploying across hybrid environments
-- [Bring Your Own Network](./bring-your-own-network.md) - Network integration options
-
-### Multi-Service AI Guides
-- [RAG Implementation Guide](./ai-hub-gateway-rag-implementation.md) - Building RAG solutions with multiple services
-- [Multi-Service Orchestration](./multi-service-orchestration.md) - Patterns for orchestrating multiple AI services
-- [Service Composition Best Practices](./service-composition-best-practices.md) - Best practices for combining AI services
 
 ### Troubleshooting
 - [Deployment Troubleshooting](./deployment-troubleshooting.md) - Solutions for common deployment issues
