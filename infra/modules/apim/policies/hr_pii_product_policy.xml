@@ -15,6 +15,15 @@
             </when>
         </choose>
 
+        <!-- Adding content safety with customized option for the product -->
+        <!-- Failure to pass content safety will result in 403 error -->
+        <llm-content-safety backend-id="content-safety-backend" shield-prompt="true">
+            <categories output-type="EightSeverityLevels">
+                <category name="Hate" threshold="4" />
+                <category name="Violence" threshold="4" />
+            </categories>
+        </llm-content-safety>
+
         <!-- Capacity management - Subscription Level: allow only assigned tpm for each HR use case subscription -->
         <set-variable name="target-deployment" value="@((string)context.Request.MatchedParameters["deployment-id"])" />
         <choose>
@@ -99,7 +108,7 @@
                 <set-body>@(context.Variables.GetValueOrDefault<string>("piiAnonymizedContent"))</set-body>
             </when>
         </choose>
-
+    
     </inbound>
     <backend>
         <base />
