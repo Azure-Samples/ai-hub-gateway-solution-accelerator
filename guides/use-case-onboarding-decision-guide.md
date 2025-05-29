@@ -22,10 +22,31 @@ When bringing a new business use case to the AI Hub Gateway, several critical de
 
 ### 1. Authentication and Security
 
-- **Authentication Method**: Should the use case rely only on APIM subscription keys, or require additional JWT token validation?
-- **Entra ID Integration**: For sensitive use cases, should Microsoft Entra ID (formerly Azure AD) token validation be required?
-- **Application Registration**: Which specific client applications should be allowed to access this product?
-- **Scoping**: Should access be limited to specific tenants, audiences, or client IDs?
+The AI Hub Gateway supports multiple authentication approaches to meet different security requirements:
+
+- **Basic Authentication**: APIM subscription keys only - suitable for internal or less sensitive use cases
+- **Enhanced Authentication**: APIM subscription keys + JWT token validation with Microsoft Entra ID - required for sensitive use cases
+
+For JWT token validation, the gateway offers two implementation approaches:
+
+#### Standard Entra ID Authentication
+Uses APIM named values for configuration and is suitable when all APIs in a product use the same authentication requirements:
+- **Entra ID Integration**: Uses global named values (`entra-auth`, `tenant-id`, `audience`, `client-id`)
+- **Product-Level Configuration**: Consistent authentication across all APIs in the product
+- **Simpler Management**: Centralized configuration through APIM named values
+
+#### Custom Entra ID Authentication  
+Uses policy variables for flexible, use-case-specific configuration within the same product:
+- **API-Specific Configuration**: Different authentication parameters per API or operation
+- **Dynamic Authentication**: Conditional authentication based on request characteristics
+- **Multi-Tenant Support**: Different tenant configurations within the same product
+
+**Key Decision Points:**
+- **Authentication Method**: Subscription keys only, or subscription keys + JWT validation?
+- **JWT Approach**: Standard (named values) or Custom (policy variables)?
+- **Application Registration**: Which specific client applications should be allowed?
+- **Tenant Scoping**: Single tenant or multi-tenant support required?
+- **Conditional Authentication**: Do different APIs within the product need different auth requirements?
 
 ### 2. Backend Access Control
 
@@ -168,12 +189,15 @@ When onboarding a new use case to the AI Hub Gateway, complete the following tem
 - Proposed Product Name: [Following the convention, e.g., MULTI-HR-RAG-PII-PROD]
 
 ## Authentication and Security Requirements
-- JWT Token Validation Required: [Yes/No]
+- Authentication Method: [Subscription keys only / Subscription keys + JWT validation]
+- JWT Authentication Approach: [Standard (named values) / Custom (policy variables) / N/A]
 - Entra ID Integration: [Yes/No]
-- Tenant ID: [ID of the Microsoft Entra tenant to authorize]
-- Client Application ID: [ID of the registered application that should be allowed]
-- Audience Value: [Expected audience claim value in tokens]
-- Additional Required Claims: [Any other claims that should be validated]
+- Tenant ID: [ID of the Microsoft Entra tenant to authorize, or "Multiple" for multi-tenant]
+- Client Application ID: [ID of the registered application, or "Multiple" for different apps per API]
+- Audience Value: [Expected audience claim value in tokens, or "Dynamic" for variable audiences]
+- Additional Required Claims: [Any other claims that should be validated, e.g., groups, roles]
+- Multi-Tenant Requirements: [Yes/No - if Yes, specify tenant selection strategy]
+- Conditional Authentication: [Yes/No - if Yes, specify conditions for different auth requirements]
 
 ## Backend Access Requirements
 - Allowed Backends: [List of allowed backend IDs, or "All"]
@@ -226,9 +250,9 @@ When onboarding a new use case to the AI Hub Gateway, complete the following tem
 
 Below we demonstrate example use cases with different requirements and their corresponding APIM product policies:
 
-### Example 1: HR Assistant with PII Processing
+### Example 1: HR Assistant with PII Processing (Standard JWT Authentication)
 
-This use case requires comprehensive features including PII anonymization, content safety, and detailed capacity management.
+This use case requires comprehensive features including PII anonymization, content safety, and detailed capacity management using the standard JWT authentication approach.
 
 #### Use Case Information
 - Name: HR PII Assistant
@@ -245,11 +269,12 @@ This use case requires comprehensive features including PII anonymization, conte
 - Product Name: OAI-HR-ASSISTANT-PII-PROD
 
 #### Authentication and Security
-- JWT Token Validation: Yes (required for sensitive HR data)
+- Authentication Method: Subscription keys + JWT validation
+- JWT Authentication Approach: Standard (named values)
 - Entra ID Integration: Yes
-- Tenant ID: contoso.onmicrosoft.com (primary corporate tenant)
-- Client Application ID: hr-employee-portal-app
-- Audience Value: api://hr-assistant.contoso.com
+- Tenant ID: contoso.onmicrosoft.com (configured in named values)
+- Client Application ID: hr-employee-portal-app (configured in named values)
+- Audience Value: api://hr-assistant.contoso.com (configured in named values)
 - Additional Claims Required: groups (must contain 'HR-Employee-Portal-Users')
 
 #### APIM Product Policy Configuration
@@ -259,7 +284,7 @@ This use case requires comprehensive features including PII anonymization, conte
     <inbound>
         <base />
 
-        <!-- Enable JWT token validation with Entra ID for secure access -->
+        <!-- Enable standard JWT token validation with Entra ID using named values -->
         <include-fragment fragment-id="aad-auth" />
 
         <!-- Defining allowed backends to be used by this product (used to restrict traffic to certain regions) -->
@@ -395,9 +420,9 @@ This use case requires comprehensive features including PII anonymization, conte
 </policies>
 ```
 
-### Example 2: Retail Assistant with Basic Controls
+### Example 2: Retail Assistant with Basic Controls (No JWT Authentication)
 
-This use case requires only basic model restrictions and capacity management, without the need for PII processing or advanced content safety.
+This use case requires only basic model restrictions and capacity management, without the need for JWT authentication, PII processing or advanced content safety.
 
 #### Use Case Information
 - Name: Retail Assistant
@@ -414,7 +439,8 @@ This use case requires only basic model restrictions and capacity management, wi
 - Product Name: OAI-RETAIL-ASSISTANT-PROD
 
 #### Authentication and Security
-- JWT Token Validation: No (standard subscription key only)
+- Authentication Method: Subscription keys only
+- JWT Authentication Approach: N/A
 - Entra ID Integration: No
 - Tenant ID: N/A
 - Client Application ID: N/A
@@ -427,6 +453,8 @@ This use case requires only basic model restrictions and capacity management, wi
 <policies>
     <inbound>
         <base />
+        <!-- No JWT authentication required for this use case -->
+        
         <!-- Restrict access for this product to specific models -->
         <choose>
             <when condition="@(!new [] { "gpt-4o", "chat", "embedding" }.Contains(context.Request.MatchedParameters["deployment-id"] ?? String.Empty))">
@@ -457,9 +485,9 @@ This use case requires only basic model restrictions and capacity management, wi
 </policies>
 ```
 
-### Example 3: Legal RAG with Multi-Service Integration
+### Example 3: Legal RAG with Multi-Service Integration (Custom JWT Authentication)
 
-This example demonstrates a complex multi-service use case that combines OpenAI, Azure AI Search, and Document Intelligence.
+This example demonstrates a complex multi-service use case with custom JWT authentication that supports different client applications for different services.
 
 #### Use Case Information
 - Name: Legal Document RAG System
@@ -479,16 +507,17 @@ This example demonstrates a complex multi-service use case that combines OpenAI,
 - Service Composition: OpenAI GPT-4o, Azure AI Search, Document Intelligence
 - Primary Service: OpenAI
 - Service Orchestration: Gateway-managed orchestration
-- Cross-Service Authentication: Consistent JWT across all services
-- Usage Pattern: Sequential RAG (Document Intelligence → AI Search → GPT-4o)
+- Cross-Service Authentication: Consistent JWT across all services with service-specific client applications
 
 #### Authentication and Security
-- JWT Token Validation: Yes (required for sensitive legal data)
+- Authentication Method: Subscription keys + JWT validation
+- JWT Authentication Approach: Custom (policy variables)
 - Entra ID Integration: Yes
 - Tenant ID: contoso.onmicrosoft.com
-- Client Application ID: legal-document-system
-- Audience Value: api://legal-rag.contoso.com
-- Additional Claims Required: groups (must contain 'Legal-Document-Users')
+- Client Application ID: Multiple (legal-rag-openai-client, legal-rag-search-client, legal-rag-docint-client)
+- Audience Value: Dynamic (service-specific audiences)
+- Additional Claims Required: groups (must contain 'Legal-Document-Users'), scp (service-specific scopes)
+- Conditional Authentication: Yes (different client apps and audiences per service)
 
 #### APIM Product Policy Configuration
 
@@ -496,9 +525,7 @@ This example demonstrates a complex multi-service use case that combines OpenAI,
 <policies>
     <inbound>
         <base />
-        <!-- Enable JWT token validation with Entra ID for secure access across all services -->
-        <include-fragment fragment-id="aad-auth" />
-
+        
         <!-- Store the original URL for service routing -->
         <set-variable name="originalUrl" value="@(context.Request.Url.ToString())" />
         <set-variable name="serviceType" value="@{
@@ -508,6 +535,44 @@ This example demonstrates a complex multi-service use case that combines OpenAI,
             if (url.Contains("/documentintelligence/")) return "docint";
             return "unknown";
         }" />
+
+        <!-- Service-specific JWT authentication configuration -->
+        <choose>
+            <!-- OpenAI Service Authentication -->
+            <when condition="@(context.Variables["serviceType"] == "openai")">
+                <set-variable name="entra-auth" value="true" />
+                <set-variable name="tenant-id" value="contoso.onmicrosoft.com" />
+                <set-variable name="client-id" value="legal-rag-openai-client" />
+                <set-variable name="audience" value="api://legal-rag-openai.contoso.com" />
+                <!-- Enable custom JWT token validation -->
+                <include-fragment fragment-id="aad-auth-custom" />
+            </when>
+            
+            <!-- AI Search Service Authentication -->
+            <when condition="@(context.Variables["serviceType"] == "aisearch")">
+                <set-variable name="entra-auth" value="true" />
+                <set-variable name="tenant-id" value="contoso.onmicrosoft.com" />
+                <set-variable name="client-id" value="legal-rag-search-client" />
+                <set-variable name="audience" value="api://legal-rag-search.contoso.com" />
+                <include-fragment fragment-id="aad-auth-custom" />
+            </when>
+            
+            <!-- Document Intelligence Service Authentication -->
+            <when condition="@(context.Variables["serviceType"] == "docint")">
+                <set-variable name="entra-auth" value="true" />
+                <set-variable name="tenant-id" value="contoso.onmicrosoft.com" />
+                <set-variable name="client-id" value="legal-rag-docint-client" />
+                <set-variable name="audience" value="api://legal-rag-docint.contoso.com" />
+                <include-fragment fragment-id="aad-auth-custom" />
+            </when>
+            
+            <otherwise>
+                <return-response>
+                    <set-status code="400" reason="Unsupported service type" />
+                    <set-body>{"error": "The requested service is not supported by this product"}</set-body>
+                </return-response>
+            </otherwise>
+        </choose>
 
         <!-- Service-specific configuration based on the detected service type -->
         <choose>
@@ -666,52 +731,108 @@ This example demonstrates a complex multi-service use case that combines OpenAI,
 </policies>
 ```
 
+### Example 4: Finance Multi-Tenant Solution (Advanced Custom JWT Authentication)
+
+This example shows a multi-tenant scenario where different tenants access the same product but with tenant-specific authentication.
+
+#### Use Case Information
+- Name: Finance Multi-Tenant Assistant
+- Description: OpenAI assistant serving multiple subsidiary companies with tenant isolation
+- Business Unit/Team: Finance IT
+- Contact: Enterprise Architecture Team
+
+#### Authentication and Security
+- Authentication Method: Subscription keys + JWT validation
+- JWT Authentication Approach: Custom (policy variables)
+- Entra ID Integration: Yes
+- Tenant ID: Multiple (tenant1.onmicrosoft.com, tenant2.onmicrosoft.com)
+- Client Application ID: Dynamic based on tenant
+- Audience Value: Dynamic based on tenant
+- Multi-Tenant Requirements: Yes (tenant selection via custom header)
+- Conditional Authentication: Yes (tenant-specific configuration)
+
+#### APIM Product Policy Configuration
+
+```xml
+<policies>
+    <inbound>
+        <base />
+        
+        <!-- Multi-tenant JWT authentication configuration -->
+        <set-variable name="tenantHeader" value="@(context.Request.Headers.GetValueOrDefault("X-Tenant-Id", "default"))" />
+        
+        <choose>
+            <when condition="@(context.Variables["tenantHeader"] == "subsidiary1")">
+                <set-variable name="entra-auth" value="true" />
+                <set-variable name="tenant-id" value="subsidiary1.onmicrosoft.com" />
+                <set-variable name="client-id" value="finance-assistant-sub1-client" />
+                <set-variable name="audience" value="api://finance-assistant-sub1.contoso.com" />
+            </when>
+            <when condition="@(context.Variables["tenantHeader"] == "subsidiary2")">
+                <set-variable name="entra-auth" value="true" />
+                <set-variable name="tenant-id" value="subsidiary2.onmicrosoft.com" />
+                <set-variable name="client-id" value="finance-assistant-sub2-client" />
+                <set-variable name="audience" value="api://finance-assistant-sub2.contoso.com" />
+            </when>
+            <otherwise>
+                <return-response>
+                    <set-status code="400" reason="Invalid or missing tenant" />
+                    <set-body>{"error": "X-Tenant-Id header is required and must be valid"}</set-body>
+                </return-response>
+            </otherwise>
+        </choose>
+        
+        <!-- Enable custom JWT token validation with tenant-specific configuration -->
+        <include-fragment fragment-id="aad-auth-custom" />
+        
+        <!-- ...existing code for other policies... -->
+    
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>
+```
+
 ## Decision Impact Analysis
 
 The examples above demonstrate how different business requirements influence policy configuration:
 
-### Features Comparison
+### Authentication Features Comparison
 
-| Feature | HR Assistant | Retail Assistant | Legal RAG System |
-|---------|-------------|-----------------|------------------|
-| Product Name | OAI-HR-ASSISTANT-PII-PROD | OAI-RETAIL-ASSISTANT-PROD | MULTI-LEGAL-RAG-PII-PROD |
-| Service Composition | Single service (OpenAI) | Single service (OpenAI) | Multiple services (OpenAI, AI Search, Doc Intelligence) |
-| Authentication | Subscription Key + JWT Token | Subscription Key only | Subscription Key + JWT Token |
-| Entra ID Integration | Yes (tenant-specific) | No | Yes (tenant-specific) |
-| Backend Restriction | Yes (specific region) | No (all regions) | Service-specific backends |
-| Model Access Control | Limited to gpt-4o, embedding | More permissive | Service-specific controls |
-| Content Safety | Advanced configuration | None | Applied to OpenAI services only |
-| Token Rate Limits | Model-specific TPM | Single overall TPM | Service-specific rate limits |
-| Token Quotas | Monthly quotas defined | None | Monthly quota for OpenAI only |
-| PII Processing | Full anonymization & deanonymization | None | Cross-service PII handling |
-| Service Orchestration | N/A | N/A | Gateway-managed with service routing |
-| Error Handling | Basic | Basic | Advanced with service-specific fallbacks |
+| Feature | HR Assistant | Retail Assistant | Legal RAG System | Finance Multi-Tenant |
+|---------|-------------|-----------------|------------------|---------------------|
+| Product Name | OAI-HR-ASSISTANT-PII-PROD | OAI-RETAIL-ASSISTANT-PROD | MULTI-LEGAL-RAG-PII-PROD | OAI-FINANCE-ASSISTANT-MULTITENANT-PROD |
+| Authentication Method | Subscription Key + JWT | Subscription Key only | Subscription Key + JWT | Subscription Key + JWT |
+| JWT Approach | Standard (named values) | N/A | Custom (policy variables) | Custom (policy variables) |
+| Entra ID Integration | Yes (single tenant) | No | Yes (service-specific clients) | Yes (multi-tenant) |
+| Client Application | Single app | N/A | Multiple apps per service | Dynamic per tenant |
+| Audience Configuration | Static (named value) | N/A | Dynamic per service | Dynamic per tenant |
+| Conditional Logic | No | No | Service-based | Tenant-based |
+| Configuration Complexity | Low | Minimal | High | High |
 
-### Impact on System Architecture
+### Authentication Architecture Impact
 
-1. **Authentication Complexity**: 
-   - Single-service solutions can use simpler authentication schemes
-   - Multi-service solutions require consistent authentication across all services
+1. **Standard JWT Authentication**:
+   - **Pros**: Simple configuration, consistent across product, centralized management
+   - **Cons**: Less flexible, single configuration for all APIs
+   - **Best For**: Uniform authentication requirements across all APIs in product
 
-2. **Backend Load Distribution**: 
-   - Multi-service scenarios need careful backend routing and load balancing
-   - Service-specific backends may have different scaling characteristics
+2. **Custom JWT Authentication**:
+   - **Pros**: Flexible per-API configuration, supports complex scenarios, dynamic authentication
+   - **Cons**: More complex policy logic, distributed configuration
+   - **Best For**: Multi-service products, multi-tenant scenarios, varying authentication needs
 
-3. **Resource Consumption**: 
-   - Multi-service scenarios have more complex policy processing
-   - Cross-service orchestration adds gateway overhead
-
-4. **Observability Requirements**: 
-   - Multi-service solutions need end-to-end tracing
-   - Service-specific performance metrics must be collected and correlated
-
-5. **Compliance Impact**: 
-   - PII handling across service boundaries requires special attention
-   - Content safety may need to be applied differently for different service types
-
-6. **Client Application Requirements**: 
-   - Multi-service orchestration may simplify client implementation
-   - Service-specific error handling may need to be exposed to clients
+3. **No JWT Authentication**:
+   - **Pros**: Simplest configuration, lowest overhead
+   - **Cons**: Less secure, relies only on subscription keys
+   - **Best For**: Internal use cases, non-sensitive data, development environments
 
 ## Multi-Service AI Architecture Considerations
 
