@@ -1,190 +1,143 @@
+# 🚀 AI Hub Gateway Landing Zone
 
-# AI Hub Gateway Landing Zone accelerator
-The AI Hub Gateway Landing Zone is a solution accelerator that provides a set of guidelines and best practices for implementing a central AI API gateway to empower various line-of-business units in an organization to leverage Azure AI services.
-
-## ![user-story](./assets/user-story.png) User Story
-The AI Hub Gateway Landing Zone architecture designed to be a central hub for AI services, providing a single point of entry for AI services, and enabling the organization to manage and govern AI services in a consistent manner. 
+**Enterprise-ready solution accelerator** for implementing a centralized AI API gateway that empowers organizations to securely leverage multiple Azure AI services with unified governance, monitoring, and cost management.
 
 ![AI Hub Gateway Landing Zone](./assets/architecture-1-0-6.png)
 
-### Key features
+## ⭐ What's New (Latest Updates)
+
+🔒 **Enterprise Security & Compliance**
+- **[PII Detection & Masking](./guides/pii-masking-apim.md)** - Automatic detection and redaction of sensitive data
+- **[Entra ID Integration](./guides/entraid-auth-validation.md)** - JWT token validation with Zero Trust principles
+- **[Bring Your Own Network](./guides/bring-your-own-network.md)** - Deploy into existing VNets with private connectivity
+
+🧠 **Expanded AI Service Portfolio**
+- **[Azure OpenAI Realtime API](./guides/openai-onboarding.md)** - WebSocket-based real-time voice & text conversations
+- **[Azure Document Intelligence](./guides/ai-search-integration.md)** - Advanced document processing and data extraction
+- **[AI Model Inference](./guides/ai-studio-integration.md)** - Custom models from Azure AI Foundry integration
+- **[Azure AI Search](./guides/ai-search-integration.md)** - Vector, hybrid, and semantic search capabilities
+
+📊 **Advanced Monitoring & Operations**
+- **[Throttling Events Monitoring](./guides/throttling-events-handling.md)** - Real-time 429 error tracking with alerts
+- **[Dynamic Throttling Assignment](./guides/dynamic-throttling-assignment.md)** - Intelligent load balancing for PTU models
+- **Enhanced Power BI Dashboards** - Advanced usage analytics with cost allocation
+
+## 🎯 Core Capabilities
 
 ![ai-hub-gateway-benefits.png](./assets/ai-hub-gateway-benefits.png)
 
-#### Recent release updates:
->**About**: here you can see the recent updates to the gateway implementation
+**🏢 Enterprise Governance**
+- Centralized access control and API key management
+- Managed identity integration (no master keys required)
+- Multi-tenant isolation with product-based access control
 
-Now this solution accelerator is updated to be **enterprise ready** with the following features:
+**⚡ Intelligent Routing**
+- Priority-based backend selection with automatic failover
+- Regional load balancing across multiple AI backend instances
+- Capacity-aware routing with dynamic throttling for PTU models
 
-- **PII detection and masking** is now supported with the ability to detect and redact PII entities in the user input before sending it to the AI backend service. [Check the guide here](./guides/pii-masking-apim.md)
-- **Bring in more AI services to AI Hub Gateway**: the following services are now part of the standard deployment of this solution accelerator:
-  - **Azure OpenAI Realtime API** that leverage websockets to established a persistent connection to the Azure OpenAI service and enable real-time chat experience (both text and audio).
-  - **Azure Document Intelligence** that provide suprior document processing capabilities to extract and analyze data from documents.
-  - **AI Model Inference** which unlocks the ability to manage custom AI models provisioned in AI Foundry in the AI Hub Gateway.
-- **Bring your own VNet** is now supported with the ability to deploy the AI Hub Gateway Landing Zone in your own VNet. [Check the guide here](./guides/bring-your-own-network.md)
-- **Throttling events monitoring** is now supported with the ability to capture and raise ```429``` too many requests status code as a custom metric in Application Insights. [Check the guide here](./guides/throttling-events-handling.md)
-- **AI usage reports enhancements** with Cosmos Db now include a container for ```model-pricing``` which include the $ pricing for AI models tokens ([sample data can be found here](./src/usage-reports/model-pricing.json)), along with updated PowerBI dashboard design.
-- **Private connectivity** now can be enabled by setting APIM deployment to External or Internal (require SKU to be either Developer or Premium) and it will provision all included Azure resources like (Azure OpenAI, Cosmos, Event Hub,...) with private endpoints.
+**💰 Cost Management**
+- Real-time usage tracking and charge-back allocation
+- Token/Requests-level monitoring across all AI services
+- Flexible json based usage data model that supports extension
+- Power BI integration for self-service advanced analytics and reporting
 
-The AI Hub Gateway Landing Zone provides the following features:
+**🔐 Security & Compliance**
+- Private endpoint connectivity for all managed services services
+- Network isolation with VNet integration
+- Enterprise authentication with Entra ID
+- PII detection and processing
+- LLM content safety for prompt and content filtering
 
-- **Centralized AI API Gateway**: A central hub for AI services, providing a single point of entry for AI services that can be shared among multiple use-cases in a secure and governed approach.
-- **Seamless integration with Azure AI services**: Ability to just update endpoints and keys in existing apps to switch to use AI Hub Gateway.
-- **AI routing and orchestration**: The AI Hub Gateway Landing Zone provides a mechanism to route and orchestrate AI services, based on priority and target model enabling the organization to manage and govern AI services in a consistent manner.
-- **Granular access control**: The AI Hub Gateway Landing Zone does not use master keys to access AI services, instead, it uses managed identities to access AI services while consumers can use gateway keys.
-- **Private connectivity**: The AI Hub Gateway Landing Zone is designed to be deployed in a private network, and it uses private endpoints to access AI services.
-- **Capacity management**: The AI Hub Gateway Landing Zone provides a mechanism to manage capacity based on requests and tokens.
-- **Usage & charge-back**: The AI Hub Gateway Landing Zone provides a mechanism to track usage and charge-back to the respective business units with flexible integration with existing charge-back & data platforms.
-- **Resilient and scalable**: The AI Hub Gateway Landing Zone is designed to be resilient and scalable, and it uses Azure API Management with its zonal redundancy and regional gateways which provides a scalable and resilient solution.
-- **Full observability**: The AI Hub Gateway Landing Zone provides full observability with Azure Monitor, Application Insights, and Log Analytics with detailed insights into performance, usage, and errors.
-- **Hybrid support**: The AI Hub Gateway Landing Zone approach the deployment of backends and gateway on Azure, on-premises or other clouds.
+## ![one-click-deploy](./assets/one-click-deploy.png) One-click Deploy
 
-## ![one-click-deploy](./assets/one-click-deploy.png) One-click deploy
+Deploy enterprise-ready AI governance in minutes with Azure Developer CLI (azd) or Bicep templates.
 
-This solution accelerator provides a one-click deploy option to deploy the AI Hub Gateway Landing Zone in your Azure subscription through Azure Developer CLI (azd) or Bicep (IaC).
-
-### What is being deployed?
+### 🏗️ What Gets Deployed
 
 ![Azure components](./assets/azure-resources-diagram.svg)
 
-The one-click deploy option will deploy the following components in your Azure subscription:
-1. **Azure API Management**: Azure API Management is a fully managed service that powers most of the GenAI gateway capabilities.
-2. **Application Insights**: Application Insights is an extensible Application Performance Management (APM) service that will provides critical insights on the gateway operational performance. It will also include a dashboard for the key metrics.
-3. **Event Hub**: Event Hub is a fully managed, real-time data ingestion service that’s simple, trusted, and scalable and it is used to stream usage and charge-back data to target data and charge back platforms.
-4. **Azure OpenAI**: 3 instances of Azure OpenAI across 3 regions. Azure OpenAI is a cloud deployment of cutting edge generative models from OpenAI (like ChatGPT, DALL.E and more).
-5. **Cosmos DB**: Azure Cosmos DB is a fully managed NoSQL database for storing usage and charge-back data.
-6. **Azure Function App**: to support real-time event processing service that will be used to process the usage and charge-back data from Event Hub and push it to Cosmos DB.
-7. **User Managed Identity**: A user managed identity to be used by the Azure API Management to access the Azure OpenAI services/Event Hub and another for Azure Stream Analytics to access Event Hub and Cosmos DB.
-8. **Virtual Network**: A virtual network to host the Azure API Management and the other Azure resources.
-9. **Private Endpoints & Private DNS Zones**: Private endpoints for Azure OpenAI, Cosmos DB, Azure Function, Azure Monitor and Event Hub to enable private connectivity.
+| Component | Purpose | Enterprise Features |
+|-----------|---------|-------------------|
+| **🚪 API Management** | Central AI gateway with intelligent routing | Load balancing, throttling, JWT validation |
+| **📊 Application Insights** | Real-time monitoring & analytics | Custom dashboards, throttling alerts |
+| **📨 Event Hub** | Usage data streaming & processing | Real-time cost tracking, compliance logging |
+| **🤖 Azure OpenAI** | Multi-region AI deployments (3 regions) | PTU support, Realtime API, content filtering |
+| **🛡️ Azure Content Safety** | Centralized LLM protection | Prompt Shield and Content Safety protections |
+| **💳 Azure Language Service** | PII entity detection | Natural language based PII entity detection, anonymization |
+| **🗄️ Cosmos DB** | Usage analytics & cost allocation | Global distribution, automatic scaling |
+| **⚡ Logic App** | Event processing & data transformation | Serverless, workflow-based processing |
+| **🔐 Managed Identity** | Zero-credential authentication | Secure service-to-service communication |
+| **🔗 Virtual Network** | Private connectivity & isolation | BYOVNET support, private endpoints |
 
-### Prerequisites
+### 📋 Prerequisites
 
-In order to deploy and run this solution accelerator, you'll need
+**Azure Requirements:**
+- Azure Account with [OpenAI access approved](https://aka.ms/oaiapply) 
+- Subscription with `Microsoft.Authorization/roleAssignments/write` permissions
+- Sufficient OpenAI capacity in target regions (East US, North Central US, East US 2)
 
-- **Azure Account** - If you're new to Azure, get an [Azure account for free](https://aka.ms/free) and you'll get some free Azure credits to get started.
-- **Azure subscription with access enabled for the Azure OpenAI service** - [You can request access](https://aka.ms/oaiapply). You can also visit [the Cognitive Search docs](https://azure.microsoft.com/free/cognitive-search/) to get some free Azure credits to get you started.
-- **Azure account permissions** - Your Azure Account must have `Microsoft.Authorization/roleAssignments/write` permissions, such as [User Access Administrator](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#user-access-administrator) or [Owner](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#owner).
+**Development Tools:**
+- [Azure Developer CLI (azd)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd)
+- [Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli)
+- [VS Code](https://code.visualstudio.com/Download) (optional)
 
-For local development, you'll need:
+### 🚀 Quick Deploy
 
-- **Azure CLI** - The Azure CLI is a command-line tool that provides a great experience for managing Azure resources. You can install the Azure CLI on your local machine by following the instructions [here](https://docs.microsoft.com/cli/azure/install-azure-cli).
-- **Azure Developer CLI (azd)** - The Azure Developer CLI is a command-line tool that provides a great experience for deploying Azure resources. You can install the Azure Developer CLI on your local machine by following the instructions [here](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd)
-- VS Code - Visual Studio Code is a lightweight but powerful source code editor which runs on your desktop and is available for Windows, macOS, and Linux. You can install Visual Studio Code on your local machine by following the instructions [here](https://code.visualstudio.com/Download)
-
-### How to deploy?
-
-It is recommended to check first the [main.bicep](./infra/main.bicep) file that includes the deployment configuration and parameters.
-
-Make sure you have enough OpenAI capacity for gpt-35-turbo and embedding in the selected regions.
-
-Currently these are the default values:
-
-```bicep
-// You can add more OpenAI instances by adding more objects to the openAiInstances object
-// Then update the apim policy xml to include the new instances
-@description('Object containing OpenAI instances. You can add more instances by adding more objects to this parameter.')
-param openAiInstances object = {
-  openAi1: {
-    name: 'openai1'
-    location: 'eastus'
-    deployments: [
-      {
-        name: chatGptDeploymentName
-        model: {
-          format: 'OpenAI'
-          name: chatGptModelName
-          version: chatGptModelVersion
-        }
-        scaleSettings: {
-          scaleType: 'Standard'
-        }
-      }
-      {
-        name: embeddingGptDeploymentName
-        model: {
-          format: 'OpenAI'
-          name: embeddingGptModelName
-          version: embeddingGptModelVersion
-        }
-        sku: {
-          name: 'Standard'
-          capacity: deploymentCapacity
-        }
-      }
-      ...
-    ]
-  }
-  openAi2: {
-    name: 'openai2'
-    location: 'northcentralus'
-    deployments: [
-      ...
-    ]
-  }
-  openAi3: {
-    name: 'openai3'
-    location: 'eastus2'
-    deployments: [
-      ...
-    ]
-  }
-}
-```
-
-When you are happy with the configuration, you can deploy the solution using the following command:
+Review the [main.bicep](./infra/main.bicep) configuration, then deploy:
 
 ```bash
-# Use --tenant-id if you have multiple tenants with login
+# Authenticate and setup environment
 azd auth login
-
-# Setup new environment
 azd env new ai-hub-gateway-dev
 
-# Deploy the solution accelerator
+# Deploy everything
 azd up
-
-# You can also use to provision only the infrastructure
-# azd provision
-
-# You can also use this to deploy the associated Logic App workflows code (given that infrastructure is already deployed)
-# azd deploy
-
 ```
 
->**NOTE**: If you faced any deployment errors, try to rerun the ```azd up``` command as you might be facing a [transient error](./guides/deployment-troubleshooting.md).
+> 💡 **Tip**: Use Azure Cloud Shell to avoid local setup. If deployment fails, retry `azd up` - it may be a [transient error](./guides/deployment-troubleshooting.md).
 
-After that, you can start using the AI Hub Gateway Landing Zone through the Azure API Management on Azure Portal:
+Once deployed, access your AI Gateway through the Azure API Management portal:
 
 ![apim-test](./assets/apim-test.png)
 
->**NOTE**: You can use Azure Cloud Shell to run the above command, just clone this repository and run the command from the repo root folder.
+## ![docs](./assets/supporting-documents.png) Supporting Documents
 
-## ![docs](./assets/supporting-documents.png) Supporting documents
+Comprehensive guides to master AI Hub Gateway implementation and operations.
 
-To dive deeper into the AI Hub Gateway technical mechanics, you can check out the following guides:
+### 🏗️ **Architecture & Deployment**
+| Guide | Description |
+|-------|-------------|
+| [Architecture Overview](./guides/architecture.md) | Complete system design and component relationships |
+| [Deployment Guide](./guides/deployment.md) | Step-by-step deployment instructions |
+| [APIM Configuration](./guides/apim-configuration.md) | Advanced API Management policies and routing |
+| [Bring Your Own Network](./guides/bring-your-own-network.md) | Deploy into existing VNets |
+| [Deployment Troubleshooting](./guides/deployment-troubleshooting.md) | Common issues and solutions |
 
-### Architecture guides
-- [Architecture deep dive](./guides/architecture.md)
-- [Deployment components](./guides/deployment.md)
-- [API Management configuration](./guides/apim-configuration.md)
-- [OpenAI Usage Ingestion](./guides/openai-usage-ingestion.md)
-- [Bring your own Network](./guides/bring-your-own-network.md)
-- [Entra ID Integration](./guides/entraid-auth-validation.md)
+### 🔧 **Service Integration**
+| Guide | Description |
+|-------|-------------|
+| [OpenAI Onboarding](./guides/openai-onboarding.md) | Add new OpenAI instances and models |
+| [AI Search Integration](./guides/ai-search-integration.md) | Vector search and RAG capabilities |
+| [AI Foundry Integration](./guides/ai-studio-integration.md) | Custom model deployment |
+| [End-to-end Scenario](./guides/end-to-end-scenario.md) | Complete chat-with-data implementation |
 
-### Onboarding guides
-- [OpenAI Onboarding](./guides/openai-onboarding.md)
-- [AI Search Onboarding](./guides/ai-search-integration.md)
-- [Power BI Dashboard](./guides/power-bi-dashboard.md)
-- [Throttling Events Alerts](./guides/throttling-events-handling.md)
-- [Use-case Onboarding Decision Guide](./guides/use-case-onboarding-decision-guide.md)]
-- [AI Foundry Integration](./guides/ai-studio-integration.md)
+### 🛡️ **Security & Compliance**
+| Guide | Description |
+|-------|-------------|
+| [PII Detection & Masking](./guides/pii-masking-apim.md) | Automated data protection |
+| [Entra ID Authentication](./guides/entraid-auth-validation.md) | JWT validation and Zero Trust |
+| [Use Case Onboarding](./guides/use-case-onboarding-decision-guide.md) | Multi-service AI solution patterns |
 
-### Pluggable components
-- [PII Masking](./guides/pii-masking-apim.md)
-- [Dynamic Throttling Assignment](./guides/dynamic-throttling-assignment.md)
+### 📊 **Monitoring & Analytics**
+| Guide | Description |
+|-------|-------------|
+| [Power BI Dashboard](./guides/power-bi-dashboard.md) | Usage analytics and cost allocation |
+| [Throttling Events](./guides/throttling-events-handling.md) | Real-time 429 error monitoring |
+| [Dynamic Throttling](./guides/dynamic-throttling-assignment.md) | Intelligent load balancing |
+| [Usage Ingestion](./guides/openai-usage-ingestion.md) | Token tracking and billing |
 
-### Additional guides
-- [End-to-end scenario (Chat with data)](./guides/end-to-end-scenario.md)
-- [Hybrid deployment of AI Hub Gateway](./guides/ai-hub-gateway-hybrid-deployment.md)
-- [Deployment troubleshooting](./guides/deployment-troubleshooting.md)
+### ⚙️ **Advanced Features**
+| Guide | Description |
+|-------|-------------|
+| [Hybrid Deployment](./guides/ai-hub-gateway-hybrid-deployment.md) | Multi-cloud and edge scenarios |
