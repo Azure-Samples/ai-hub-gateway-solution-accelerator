@@ -16,13 +16,18 @@
         </choose>
 
         <!-- Adding content safety with customized option for the product -->
-        <!-- Failure to pass content safety will result in 403 error -->
-        <llm-content-safety backend-id="content-safety-backend" shield-prompt="true">
-            <categories output-type="EightSeverityLevels">
-                <category name="Hate" threshold="4" />
-                <category name="Violence" threshold="4" />
-            </categories>
-        </llm-content-safety>
+        <!-- Only enforce content safety for specific deployments that handle user-generated content -->
+        <choose>
+            <when condition="@(new [] { "gpt-4o" }.Contains(context.Request.MatchedParameters["deployment-id"] ?? String.Empty))">
+                <!-- Failure to pass content safety will result in 403 error -->
+                <llm-content-safety backend-id="content-safety-backend" shield-prompt="true">
+                    <categories output-type="EightSeverityLevels">
+                        <category name="Hate" threshold="4" />
+                        <category name="Violence" threshold="4" />
+                    </categories>
+                </llm-content-safety>
+            </when>
+        </choose>
 
         <!-- Capacity management - Subscription Level: allow only assigned tpm for each HR use case subscription -->
         <set-variable name="target-deployment" value="@((string)context.Request.MatchedParameters["deployment-id"])" />
