@@ -29,10 +29,13 @@ When bringing a new business use case to the AI Hub Gateway, several critical de
 
 ### 2. Backend Access Control
 
-- **Regional Access**: Should the use case have access to all backend AI services or be restricted to specific regions?
-- **Backend Selection**: Which backends should be allowed for this product (used to restrict traffic to specific regions)?
+- **Regional Access**: Should the use case have access to all available backend AI services or be restricted to specific backends (used to restrict traffic to specific regions)?
 
 ### 3. Multi-Service AI Requirements
+
+Standard recommendation is to create single APIM product for each AI service that a use case requires, but in some cases it may be necessary to combine multiple AI services into a single product. This is especially true for complex use cases that require orchestration of multiple AI services to deliver end-to-end functionality.
+
+>**NOTE:** Consider only this section if your use case requires multiple AI services to work together. If the use case only requires a single AI service or if you will be creating separate APIM products for the different AI services required, you can skip this section and focus on the other decision areas. 
 
 - **Service Composition**: What combination of AI services does this use case require?
   - OpenAI models (GPT-4o, GPT-4, GPT-3.5 Turbo)
@@ -40,7 +43,6 @@ When bringing a new business use case to the AI Hub Gateway, several critical de
   - Document Intelligence
   - Open-source models (Llama 3, etc.)
   - Vector databases
-  - Retrieval Augmented Generation (RAG) components
 - **Service Orchestration**: How will these services communicate with each other?
   - Direct service-to-service communication
   - Client-side orchestration
@@ -48,53 +50,85 @@ When bringing a new business use case to the AI Hub Gateway, several critical de
 
 ### 4. Model Access Control
 
+For each AI service, it can offer multiple models, deployments, indexes, or other resources that need to be controlled. This section focuses on how to manage access to these sub-resources.
+
 - **Model Restrictions**: Which AI models should the use case have access to?
-- **Model Permission Categories**: Are there specific model categories (chat, embedding, image generation) required?
-- **Cross-Service Model Requirements**: Does the use case need consistent model access across multiple services?
 
 ### 5. Content Safety Controls
 
+This section is exclusive for LLM or Generative AI services to provide content safety controls. It is not applicable for traditional AI services like AI Search or Document Intelligence services. 
+
 - **Content Safety Requirements**: What level of content filtering is required?
+- **Shield Prompt**: Should the service use a shield prompt to mitigate prompt injection attacks?
 - **Content Categories**: Which content categories (hate, violence, sexual, self-harm, etc.) should be monitored and at what threshold levels?
-- **Cross-Service Content Safety**: How should content safety be managed across different AI services with varying native capabilities?
 - **Input/Output Filtering**: Which services require input filtering, output filtering, or both?
 
 ### 6. Capacity Management
+This is the control the capacity of the AI services used by the use case. It is important to ensure that the use case does not exceed the capacity limits of the AI services, especially when multiple AI services are used together.
 
+While assigning capacity limits, you need to consider the following:
+- Criticality of the use case: Is it mission-critical or can it tolerate some downtime?
+- Expected usage patterns: Will the use case have high or low traffic? 
+- Does it have predictable traffic patterns or is it bursty?
+- Is it for internal use only or will it be exposed to external users?
+
+Capacity also differs based on the AI service used, so you need to consider the following:
+
+#### Token based AI Services
 - **Token Limits**: What are the appropriate token rate limits for this use case?
    - At the subscription level
    - At the product level (across all subscriptions)
+   - Per-model limits or for all models allowed in the product
 - **Token Quotas**: Should there be monthly/weekly token quotas?
-- **Response Time Requirements**: Are there specific latency requirements?
+
+#### Non-Token based AI Services
+- **Rate Limits**: What are the appropriate rate limits for this use case?
+   - Per minute/hour/day
+   - Per subscription or product
 
 ### 7. PII Handling
 
+This section is relevant for use cases that involve processing personally identifiable information (PII). It focuses on how to handle PII detection, anonymization, and deanonymization across multiple AI services for specific use cases that requires it.
+
 - **PII Detection and Processing**: Does this use case involve sensitive personally identifiable information?
 - **Anonymization Requirements**: Is PII anonymization needed for regulatory or privacy reasons?
+- **PII entity Categories**: Which PII categories need to be detected and anonymized?
 - **Custom PII Patterns**: Are there industry-specific or organization-specific PII patterns that require detection?
+- **Language Support**: What languages should PII detection support (e.g., English, auto-detect)?
 
 ### 8. Usage Tracking and Monitoring
 
 - **Chargebacks**: Will this use case require internal chargebacks for AI usage?
 - **Usage Metrics**: What metrics are needed for this specific use case?
 - **Session/User Tracking**: Does this use case require tracking at the session or user level?
+- **Custom Dimensions**: Are there any additional dimensions that need to be tracked for this use case?
 
 ### 9. Error Handling
 
-- **Throttling Strategy**: How should the system respond when capacity limits are reached?
-- **Retry Policies**: What retry patterns make sense for this use case?
+- **Throttling Strategy**: How should the system respond when capacity limits are reached? (like raising Azure Alter if throttling occurs more than 10 time in the last 5 minutes)
+- **Retry Policies**: Do you support having a backup AI services in-case of throttling or service unavailability?
 
 ### 10. Product Naming Conventions
 
 Having a consistent naming convention for APIM products is crucial for governance, especially in environments with multiple use cases, departments, and staging environments. The following considerations should guide your product naming strategy:
 
-- **AI Service Type Prefix**: Prefix the product name with an abbreviation of the AI service type (e.g., "OAI-" for OpenAI, "AISRCH-" for AI Search)
+- **AI Service Type Prefix**: Prefix the product name with an abbreviation of the AI service type (e.g., "OAI-" for OpenAI, "AISRCH-" for AI Search, "MULTI-" for multi-AI-service solutions)
 - **Department/Team Identifier**: Include the business unit or team name in the product (e.g., "HR", "RETAIL", "FINANCE")
 - **Use Case Type**: Indicate the primary purpose or capability (e.g., "ASSISTANT", "SEARCH", "AGENT")
 - **Special Processing Indicator**: Add suffixes for special processing requirements (e.g., "PII" for products with PII handling)
 - **Environment Designation**: For shared gateways across environments, include environment identifiers (e.g., "-DEV", "-TEST", "-PROD")
 
-#### Example Product Naming Patterns:
+Below are a few examples of how to structure product names based on these conventions:
+
+| Prefix | Department/Team | Use Case Type | Special Processing | Environment | Example Product Name |
+|--------|------------------|----------------|--------------------|-------------|----------------------|
+| OAI    | HR               | ASSISTANT      | PII                | PROD        | OAI-HR-ASSISTANT-PII-PROD |
+| OAI    | RETAIL           | ASSISTANT      |                    | PROD        | OAI-RETAIL-ASSISTANT-PROD |
+| OAI    | RETAIL           | COPILOT        |                    | DEV         | OAI-RETAIL-COPILOT-DEV |
+| AISRCH | FINANCE          | DOCS           |                    | TEST        | AISRCH-FINANCE-DOCS-TEST |
+| MULTI  | LEGAL           | RAG            | PII                | PROD        | MULTI-LEGAL-RAG-PII-PROD |
+
+#### Example Product Naming Patterns as part of the onboarding template:
 
 | Product Name | Description |
 |-------------|-------------|
@@ -143,100 +177,50 @@ When onboarding a new use case to the AI Hub Gateway, complete the following tem
 
 ## Backend Access Requirements
 - Allowed Backends: [List of allowed backend IDs, or "All"]
-- Regional Restrictions: [Yes/No, if Yes - specify regions]
+- Highlight Regional Restrictions: [Yes/No, if Yes - specify regions]
 
-## Multi-Service AI Requirements
+## Multi-Service AI Requirements (if applicable)
 - Service Composition: [List all required services, e.g., "OpenAI GPT-4o, Azure AI Search, Document Intelligence"]
 - Primary Service: [Which service is considered the primary/dominant one]
 - Service Orchestration Method: [Client-side/Gateway-managed/Direct service-to-service]
-- Cross-Service Authentication: [How authentication is handled across services]
-- Usage Pattern: [e.g., "Sequential RAG (Search → LLM)", "Parallel processing", "Chain-of-thought"]
 
-## Model Access Requirements
+## Model Access Requirements (Per AI service sub-models or resources)
 - Allowed Models: [List specific model deployments required]
-- Model Families Required: [e.g., LLMs, Embedding models, image generation, etc.]
-- Cross-Service Model Consistency: [Requirements for using consistent models across services]
 
-## Content Safety Configuration
+## Content Safety Configuration (Per AI service sub-models or resources)
 - Content Safety Required: [Yes/No]
 - Categories to Monitor: [List categories and their thresholds, e.g., Hate: 4, Violence: 4]
 - Shield Prompt: [True/False]
-- Cross-Service Content Safety: [How to handle content safety across different services]
 - Input/Output Filtering Requirements: [Which services need input/output filtering]
 
-## Capacity Management
-- Subscription-level Token Rate Limit (TPM): [e.g., 10000 tokens per minute]
-- Product-level Total Token Rate Limit (TPM): [e.g., 15000 tokens per minute]
-- Token Quota: [e.g., 100000 monthly]
-- Token Quota Period: [Monthly/Weekly/Daily]
-- Service-Specific Capacity Limits: [Any service-specific limitations]
+## Capacity Management (Per AI service sub-models or resources)
+- Subscription-level Token/API-Calls Rate Limit (TPM): [e.g., 10000 tokens per minute]
+- Product-level Total Token/API-Calls Rate Limit (TPM): [e.g., 15000 tokens per minute]
+- Token/API-Calls Quota: [e.g., 100000 monthly]
+- Token/API-Calls Quota Period: [Monthly/Weekly/Daily]
+- Service-Specific Capacity Limits: [Any service-specific limitations beyond the above limits]
 
-## PII Processing Requirements
+## PII Processing Requirements (Per AI service sub-models or resources)
 - PII Anonymization Required: [Yes/No]
 - PII Detection Language: [en, auto, etc.]
 - PII Confidence Threshold: [e.g., 0.75]
 - PII Entity Category Exclusions: [List any PII categories to exclude]
 - Custom PII Regular-Expressions Patterns: [List any custom regex patterns needed]
-- Cross-Service PII Handling: [How PII is handled when data flows across services]
 
 ## Usage Tracking Requirements
 - Chargeback Required: [Yes/No]
 - Session/User Level Tracking: [Yes/No]
 - Custom Dimensions Required: [List any additional tracking dimensions]
-- Cross-Service Usage Attribution: [How to attribute usage across multiple services]
+- Any custom dashboards or reports needed: [Yes/No, if Yes - specify]
 
 ## Error Handling Strategy
 - Retry-after Behavior: [How to handle retry-after headers]
-- Throttling Response: [Custom message or standard]
-- Service Dependency Failures: [How to handle when one service in the chain fails]
+- Throttling alerts: [Custom message or standard and what are the thresholds to trigger them]
 - Fallback Options: [Alternative paths when primary service is unavailable]
 
 ## Additional Requirements
 - [Any other specific requirements for this use case]
 ```
-
-## Understanding JWT Token Authentication with Microsoft Entra ID
-
-For use cases requiring additional security beyond subscription keys, JWT token validation with Microsoft Entra ID (formerly Azure AD) provides a robust solution. This approach allows you to:
-
-1. **Restrict access to specific client applications**: Only registered applications with the correct client ID can access the API
-2. **Ensure tokens are properly issued**: Validates that tokens come from your trusted Entra ID tenant
-3. **Verify appropriate permissions**: Checks that necessary scopes/roles are included in the token
-4. **Implement Zero Trust principles**: Requires authentication at each access point, regardless of network location
-
-### Implementation Requirements
-
-To implement JWT token validation for your AI Hub Gateway use case, you need:
-
-1. **Application Registration in Microsoft Entra ID**:
-   - Register your client application in Entra ID to obtain a client ID
-   - Define appropriate scopes or app roles for access control
-   - Configure redirect URIs for authentication flows
-
-2. **APIM Configuration**:
-   - Set named values in APIM:
-     - `entra-auth`: Set to "true" to enable validation
-     - `tenant-id`: Your Microsoft Entra tenant ID
-     - `audience`: The resource identifier that tokens should be issued for
-     - `client-id`: The client ID of applications allowed to access the API
-
-3. **Product Policy Implementation**:
-   - Include the fragment that validates JWT tokens:
-   ```xml
-   <include-fragment fragment-id="aad-auth" />
-   ```
-   
-4. **Client Requirements**:
-   - Clients must acquire a valid token from Microsoft Entra ID
-   - Include the token in the `Authorization` header using the `Bearer` scheme
-   - Must still provide the subscription key for initial APIM authentication
-
-### Security Considerations
-
-- JWT tokens should be short-lived (1 hour or less)
-- Consider requiring additional claims for more granular control
-- Keep client secrets properly secured
-- Implement appropriate CORS policies if browser clients will be accessing the API
 
 ## Example Use Cases
 
