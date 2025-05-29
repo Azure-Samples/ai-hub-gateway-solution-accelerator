@@ -170,13 +170,15 @@ To dive deeper into the AI Hub Gateway technical mechanics, you can check out th
 - [API Management configuration](./guides/apim-configuration.md)
 - [OpenAI Usage Ingestion](./guides/openai-usage-ingestion.md)
 - [Bring your own Network](./guides/bring-your-own-network.md)
+- [Entra ID Integration](./guides/entraid-auth-validation.md)
 
 ### Onboarding guides
 - [OpenAI Onboarding](./guides/openai-onboarding.md)
 - [AI Search Onboarding](./guides/ai-search-integration.md)
 - [Power BI Dashboard](./guides/power-bi-dashboard.md)
 - [Throttling Events Alerts](./guides/throttling-events-handling.md)
-- [AI Studio Integration](./guides/ai-studio-integration.md)
+- [Use-case Onboarding Decision Guide](./guides/use-case-onboarding-decision-guide.md)]
+- [AI Foundry Integration](./guides/ai-studio-integration.md)
 
 ### Pluggable components
 - [PII Masking](./guides/pii-masking-apim.md)
