@@ -1,0 +1,46 @@
+<fragment>
+    <!-- Entra ID Custom Authorization Fragment -->
+    <!-- This fragment performs JWT token validation using variables that must be set by the calling policy -->
+    <!-- 
+    Variables used by this fragment (with default values):
+    - entra-auth: "false" to disable validation by default, set to "true" to enable (string)
+    - tenant-id: Entra ID tenant identifier (string, empty by default)
+    - audience: Expected audience claim in the JWT token (string, empty by default)
+    - client-id: Expected application/client ID claim in the JWT token (string, empty by default)
+    -->
+    
+    <!-- Initialize variables with default values (can be overridden by calling policy) -->
+    <set-variable name="entra-auth" value="@(context.Variables.GetValueOrDefault("entra-auth", "false"))" />
+    <set-variable name="tenant-id" value="@(context.Variables.GetValueOrDefault("tenant-id", ""))" />
+    <set-variable name="audience" value="@(context.Variables.GetValueOrDefault("audience", ""))" />
+    <set-variable name="client-id" value="@(context.Variables.GetValueOrDefault("client-id", ""))" />
+    
+    <!-- Check if EntraID authentication should be performed -->
+    <choose>
+        <when condition="@(context.Variables.GetValueOrDefault("entra-auth", "false") == "true")">
+            <!-- Validate JWT token with EntraID/Azure AD -->
+            <validate-jwt header-name="Authorization" failed-validation-httpcode="401"
+                failed-validation-error-message="Unauthorized" require-expiration-time="true"
+                require-scheme="Bearer" require-signed-tokens="true">
+                <!-- EntraID OpenID Connect configuration endpoint -->
+                <openid-config
+                    url="@($"https://login.microsoftonline.com/{context.Variables["tenant-id"]}/v2.0/.well-known/openid-configuration")" />
+                <!-- Expected audience in the JWT token -->
+                <audiences>
+                    <audience>@((string)context.Variables["audience"])</audience>
+                </audiences>
+                <!-- Trusted token issuers -->
+                <issuers>
+                    <issuer>@($"https://sts.windows.net/{context.Variables["tenant-id"]}/")</issuer>
+                </issuers>
+                <!-- Required claims validation -->
+                <required-claims>
+                    <!-- Validate application/client ID claim -->
+                    <claim name="appid">
+                        <value>@((string)context.Variables["client-id"])</value>
+                    </claim>
+                </required-claims>
+            </validate-jwt>
+        </when>
+    </choose>
+</fragment>
