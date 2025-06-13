@@ -1,3 +1,9 @@
+########
+# Script to create an Event Hub logger in Azure API Management for OpenAI usage metrics manually (Bicep code is already doing this).
+# This script assumes you have the Azure PowerShell module installed and are logged in to your Azure account, or you can run it in Azure Cloud Shell.
+# Make sure to replace the placeholders with your actual values.
+########
+
 # Selecting target subscription
 $subcriptionId = "<SubscriptionId>"
 Set-AzContext -Subscription $subcriptionId
