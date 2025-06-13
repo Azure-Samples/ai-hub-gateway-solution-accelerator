@@ -49,9 +49,6 @@ param eventHubNamespaceName string = ''
 @description('Name of the Cosmos DB account resource. Leave blank to use default naming conventions.')
 param cosmosDbAccountName string = ''
 
-@description('Name of the Stream Analytics resource. Leave blank to use default naming conventions.')
-param streamAnalyticsJobName string = ''
-
 @description('Name of the Function App resource for usage processing. Leave blank to use default naming conventions.')
 param usageProcessingFunctionAppName string = ''
 
@@ -189,9 +186,6 @@ param createAppInsightsDashboard bool = false
 
 @description('Deploy Azure Function App for processing usage data.')
 param provisionFunctionApp bool = false
-
-@description('Deploy Stream Analytics job for processing usage data.')
-param provisionStreamAnalytics bool = false
 
 @description('Enable AI Model Inference in API Management.')
 param enableAIModelInference bool = true
@@ -465,7 +459,7 @@ module apimManagedIdentity './modules/security/managed-identity-apim.bicep' = {
   }
 }
 
-module usageManagedIdentity './modules/security/managed-identity-stream-analytics.bicep' = {
+module usageManagedIdentity './modules/security/managed-identity-usage.bicep' = {
   name: 'usage-managed-identity'
   scope: resourceGroup
   params: {
@@ -675,22 +669,6 @@ module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
     vnet
     vnetExisting
   ]
-}
-
-module streamAnalyticsJob './modules/stream-analytics/stream-analytics.bicep' = if(provisionStreamAnalytics) {
-  name: 'stream-analytics-job'
-  scope: resourceGroup
-  params: {
-    jobName: !empty(streamAnalyticsJobName) ? streamAnalyticsJobName : '${abbrs.streamAnalyticsCluster}${resourceToken}'
-    location: location
-    tags: tags
-    eventHubNamespace: eventHub.outputs.eventHubNamespaceName
-    eventHubName: eventHub.outputs.eventHubName
-    cosmosDbAccountName: cosmosDb.outputs.cosmosDbAccountName
-    cosmosDbDatabaseName: cosmosDb.outputs.cosmosDbDatabaseName
-    cosmosDbContainerName: cosmosDb.outputs.cosmosDbContainerName
-    managedIdentityName: usageManagedIdentity.outputs.managedIdentityName
-  }
 }
 
 module storageAccount './modules/functionapp/storageaccount.bicep' = {

@@ -9,7 +9,7 @@ In either case, it might be very important to keep an eye on these events especi
 
 AI Hub Gateway provides a mechanism that allows you to monitor these events per use case (product), per AI deployment/service and among other dimensions so you can take measures to address these events.
 
-A policy fragement [throttling-events](../infra/modules/apim/policies/frag-throttling-events.xml) is used to raise Application Insights custom metrics for throttling events.
+A policy fragment [throttling-events](../infra/modules/apim/policies/frag-throttling-events.xml) is used to raise Application Insights custom metrics for throttling events.
 
 ```xml
 <fragment>
@@ -34,8 +34,8 @@ By referencing this policy in ```on-error``` section of an API, it will capture 
 ```xml
 <on-error>
     <base />
-    <!-- This is used to push custom metrics related to 429 throttleing errors -->
-    <!-- It is designed to premit setting up Azure Monitor Alerts notifying the team of potential service degredation -->
+    <!-- This is used to push custom metrics related to 429 throttling errors -->
+    <!-- It is designed to premit setting up Azure Monitor Alerts notifying the team of potential service degradation -->
     <set-variable name="service-name" value="Azure Open AI" />
     <set-variable name="target-deployment" value="@((string)context.Request.MatchedParameters["deployment-id"])" />
     <include-fragment fragment-id="throttling-events" />
