@@ -151,19 +151,19 @@ module apimOpenaiApi './api.bicep' = {
   ]
 }
 
-module apimAiSearchApi './api.bicep' = if (enableAzureAISearch) {
-  name: 'azure-ai-search-api'
+module apimAiSearchIndexApi './api.bicep' = if (enableAzureAISearch) {
+  name: 'azure-ai-search-index-api'
   params: {
     serviceName: apimService.name
-    apiName: 'azure-ai-search-api'
+    apiName: 'azure-ai-search-index-api'
     path: 'search'
     apiRevision: '1'
-    apiDispalyName: 'Azure AI Search API'
+    apiDispalyName: 'Azure AI Search Index API (index services)'
     subscriptionRequired: entraAuth ? false:true
     subscriptionKeyName: 'api-key'
-    openApiSpecification: loadTextContent('./ai-search-api/ai-search-api-spec.yaml')
-    apiDescription: 'Azure AI Search APIs'
-    policyDocument: loadTextContent('./policies/ai-search-api-policy.xml')
+    openApiSpecification: loadTextContent('./ai-search-api/ai-search-index-2024-07-01-api-spec.json')
+    apiDescription: 'Azure AI Search Index Client APIs'
+    policyDocument: loadTextContent('./policies/ai-search-index-api-policy.xml')
     enableAPIDeployment: true
   }
   dependsOn: [
@@ -174,6 +174,30 @@ module apimAiSearchApi './api.bicep' = if (enableAzureAISearch) {
     throttlingEventsPolicyFragment
   ]
 }
+
+// module apimAiSearchServiceApi './api.bicep' = if (enableAzureAISearch) {
+//   name: 'azure-ai-search-service-api'
+//   params: {
+//     serviceName: apimService.name
+//     apiName: 'azure-ai-search-service-api'
+//     path: 'search/service'
+//     apiRevision: '1'
+//     apiDispalyName: 'Azure AI Search Service API (service administration)'
+//     subscriptionRequired: entraAuth ? false:true
+//     subscriptionKeyName: 'api-key'
+//     openApiSpecification: loadTextContent('./ai-search-api/Azure AI Search Service API.openapi.yaml')
+//     apiDescription: 'Azure AI Search Index Client APIs'
+//     policyDocument: loadTextContent('./policies/ai-search-service-api-policy.xml')
+//     enableAPIDeployment: true
+//   }
+//   dependsOn: [
+//     aadAuthPolicyFragment
+//     validateRoutesPolicyFragment
+//     backendRoutingPolicyFragment
+//     aiUsagePolicyFragment
+//     throttlingEventsPolicyFragment
+//   ]
+// }
 
 module apimAiModelInferenceApi './api.bicep' = if (enableAIModelInference) {
   name: 'ai-model-inference-api'
@@ -230,7 +254,7 @@ module apimDocumentIntelligence './api.bicep' = if (enableDocumentIntelligence) 
   params: {
     serviceName: apimService.name
     apiName: 'document-intelligence-api'
-    path: 'documentintelligence'
+    path: 'formrecognizer'
     apiRevision: '1'
     apiDispalyName: 'Document Intelligence API'
     subscriptionRequired: entraAuth ? false:true
@@ -403,7 +427,7 @@ resource searchHRProductAISearchApi 'Microsoft.ApiManagement/service/products/ap
   name: 'src-hr-product-ai-search-api'
   parent: searchHRProduct
   properties: {
-    apiId: apimAiSearchApi.outputs.id
+    apiId: apimAiSearchIndexApi.outputs.id
   }
 }
 

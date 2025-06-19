@@ -16,6 +16,8 @@ Out of the box, AI Hub Gateway will provide the following:
 - Creating 1 Azure AI Search product and subscription to be used to access the services and track the usage.
 - Configuring Azure AI Search API to leverage routing logic to determine which search service to use with requested index.
 
+>NOTE: Original Azure AI Search API specs can be found [azure-ai-search-rest-api-spec](https://github.com/microsoft/azure-ai-search-rest-api-spec/tree/main) or in [Azure REST API Specs](https://github.com/Azure/azure-rest-api-specs/tree/main/specification/search/data-plane/Azure.Search).
+
 ## Prerequisites
 
 ### Service instance
@@ -33,9 +35,12 @@ Finally, if you are using AI Search with restricted network access, you need to 
 
 ## Backends configuration
 
-You can find the configuration for the Azure AI Search backends in the [main.bicep](../infra/main.bicep):
+If you have an existing APIM, you can just head to APIM backends, and add the new AI Search backend noting the ```backend-id``` name you are using so it can be added to the API routing logic.
+
+Also the accelerator bicep can be configured to create the backend as part of the provisioning. You can find the configuration for the Azure AI Search backends in the [main.bicep](../infra/main.bicep):
     
 ```bicep
+...
 @description('Object containing AI Search existing instances. You can add more instances by adding more objects to this parameter.')
 param aiSearchInstances array = [
   {
@@ -49,9 +54,10 @@ param aiSearchInstances array = [
     description: 'AI Search Instance 2'
   }
 ]
+....
 ```
 
-If you have an existing APIM, you can just head to APIM backends, and add the new AI Search backends noting the names you are using so it can be added to the API routing logic.
+
 
 ## Routing Configuration
 
