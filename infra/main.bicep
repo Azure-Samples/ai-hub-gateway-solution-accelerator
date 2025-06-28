@@ -256,7 +256,12 @@ param openAiSkuName string = 'S0'
 param deploymentCapacity int = 20
 
 @description('Tags to be applied to resources.')
-param tags object = { 'azd-env-name': environmentName }
+param tags object = {
+  'azd-env-name': environmentName
+  Product: 'AI Foundation'
+  Owner: 'edurado.aris@vertexinc.com' // <-- use your real email
+  Environment: ' POC '     // or 'POC' if needed
+}
 
 @description('Should Entra ID validation be enabled')
 param entraAuth bool = false
