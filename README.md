@@ -39,6 +39,8 @@ The AI Hub Gateway Landing Zone provides the following features:
 
 ## ![one-click-deploy](./assets/one-click-deploy.png) One-click deploy
 
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmohamedsaif%2Fai-hub-gateway-solution-accelerator%2Fmain-v4%2Finfra%2Fmain.bicep)
+
 This solution accelerator provides a one-click deploy option to deploy the AI Hub Gateway Landing Zone in your Azure subscription through Azure Developer CLI (azd) or Bicep (IaC).
 
 ### What is being deployed?
