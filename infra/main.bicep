@@ -259,7 +259,7 @@ param deploymentCapacity int = 20
 param tags object = {
   'azd-env-name': environmentName
   Product:'AI Foundation'
-  Owner:'edurado.arias@vertexinc.com' // <--
+  Owner:'eduardo.arias@vertexinc.com' // <--
   Environment:'POC'     // or
 }
 
