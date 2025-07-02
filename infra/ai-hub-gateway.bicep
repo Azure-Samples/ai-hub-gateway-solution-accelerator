@@ -1,14 +1,12 @@
 param location string
 param tags object
 param vnetId string
-param keyVaultId string
 param logAnalyticsId string
-param storageAccountId string
+
+// Naming convention variables
+var shortUniqueSuffix = substring(uniqueString(resourceGroup().id), 0, 6)
 
 // Get existing VNet reference
-
-
-
 resource vnet 'Microsoft.Network/virtualNetworks@2024-03-01' existing = {
   name: split(vnetId, '/')[8]
 }
@@ -18,7 +16,7 @@ resource apimSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-03-01' = {
   parent: vnet
   name: 'apim-subnet'
   properties: {
-    addressPrefix: '192.168.10.64/26'
+    addressPrefix: '10.0.3.0/24'
     serviceEndpoints: [
       {
         service: 'Microsoft.KeyVault'
@@ -29,28 +27,40 @@ resource apimSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-03-01' = {
 
 // API Management
 resource apiManagement 'Microsoft.ApiManagement/service@2023-05-01-preview' = {
-  name: 'aihub-apim-${uniqueString(resourceGroup().id)}'
+  name: 'pdddevapim${shortUniqueSuffix}'
   location: location
   tags: tags
   sku: {
-    name: 'Developer'
+    name: 'Standard'
     capacity: 1
   }
   properties: {
-    publisherEmail: 'admin@contoso.com'
-    publisherName: 'AI Hub Gateway'
+    publisherEmail: 'eduardo.arias@vertexinc.com'
+    publisherName: 'Vertex Inc.'
+  }
+  identity: {
+    type: 'SystemAssigned'
   }
 }
 
 // Event Hub Namespace
 resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' = {
-  name: 'aihub-eventhub-${uniqueString(resourceGroup().id)}'
+  name: 'pdddeveh${shortUniqueSuffix}'
   location: location
   tags: tags
   sku: {
     name: 'Standard'
     tier: 'Standard'
     capacity: 1
+  }
+  properties: {
+    minimumTlsVersion: '1.2'
+    publicNetworkAccess: 'Enabled'
+    disableLocalAuth: false
+    zoneRedundant: false
+    isAutoInflateEnabled: false
+    maximumThroughputUnits: 0
+    kafkaEnabled: false
   }
 }
 
@@ -66,7 +76,7 @@ resource aiUsageEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = 
 
 // Application Insights for Hub Performance Monitoring
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: 'aihub-appinsights'
+  name: 'pdddevai${shortUniqueSuffix}'
   location: location
   tags: tags
   kind: 'web'
@@ -80,7 +90,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
 
 // Data Factory for Usage Processing
 resource dataFactory 'Microsoft.DataFactory/factories@2018-06-01' = {
-  name: 'aihub-adf-${uniqueString(resourceGroup().id)}'
+  name: 'pdddevadf${shortUniqueSuffix}'
   location: location
   tags: tags
   properties: {
