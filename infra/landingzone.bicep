@@ -2,9 +2,9 @@ param location string
 param tags object
 
 param vnetName string = 'landingzone-vnet'
-param addressPrefix string = '192.168.10.0/24'
+param addressPrefix string = '10.0.0.0/16'
 param subnetName string = 'default'
-param subnetPrefix string = '192.168.10.0/24'
+param subnetPrefix string = '10.0.1.0/24'
 param nsgName string = '${subnetName}-nsg'
 param logAnalyticsName string = 'lz-loganalytics'
 param keyVaultName string = 'lz-keyvault${uniqueString(resourceGroup().id)}'
