@@ -18,7 +18,7 @@ resource customerServiceApp 'Microsoft.App/containerApps@2024-03-01' = {
     managedEnvironmentId: containerAppEnvironment.id
     configuration: {
       ingress: {
-        external: true
+        external: false
         targetPort: 3000
       }
     }
@@ -53,7 +53,7 @@ resource financeAnalysisApp 'Microsoft.App/containerApps@2024-03-01' = {
     managedEnvironmentId: containerAppEnvironment.id
     configuration: {
       ingress: {
-        external: true
+        external: false
         targetPort: 3000
       }
     }
