@@ -3,31 +3,12 @@ param tags object
 param vnetId string
 param keyVaultId string
 
-// Get existing VNet reference
-resource vnet 'Microsoft.Network/virtualNetworks@2024-03-01' existing = {
-  name: split(vnetId, '/')[8]
-}
+// Use a more unique naming pattern
+var uniqueSuffix = substring(uniqueString(resourceGroup().id, subscription().subscriptionId), 0, 10)
 
-// AI Services Subnet
-resource aiServicesSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-03-01' = {
-  parent: vnet
-  name: 'ai-services-subnet'
-  properties: {
-    addressPrefix: '192.168.10.128/26'
-    serviceEndpoints: [
-      {
-        service: 'Microsoft.CognitiveServices'
-      }
-      {
-        service: 'Microsoft.KeyVault'
-      }
-    ]
-  }
-}
-
-// Azure OpenAI Service
-resource openAI 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
-  name: 'aihub-openai-${uniqueString(resourceGroup().id)}'
+// OpenAI Service with unique name
+resource openAIService 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
+  name: 'oai-${uniqueSuffix}'
   location: location
   tags: tags
   kind: 'OpenAI'
@@ -35,121 +16,46 @@ resource openAI 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
     name: 'S0'
   }
   properties: {
-    customSubDomainName: 'aihub-openai-${uniqueString(resourceGroup().id)}'
+    customSubDomainName: 'oai-${uniqueSuffix}'
     publicNetworkAccess: 'Enabled'
     networkAcls: {
       defaultAction: 'Allow'
-      virtualNetworkRules: [
-        {
-          id: aiServicesSubnet.id
-          ignoreMissingVnetServiceEndpoint: false
-        }
-      ]
     }
   }
 }
 
-// GPT-4 Deployment
-resource gpt4Deployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-  parent: openAI
-  name: 'gpt-4'
-  sku: {
-    name: 'Standard'
-    capacity: 10
-  }
+// GPT-4o-mini Model Deployment with reduced capacity
+resource gpt4oMiniDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+  parent: openAIService
+  name: 'gpt-4o-mini'
   properties: {
     model: {
       format: 'OpenAI'
-      name: 'gpt-4'
-      version: '1106-Preview'
+      name: 'gpt-4o-mini'
+      version: '2024-07-18'
     }
-    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
     raiPolicyName: 'Microsoft.Default'
   }
-}
-
-// GPT-35-Turbo Deployment
-resource gpt35Deployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-  parent: openAI
-  name: 'gpt-35-turbo'
   sku: {
     name: 'Standard'
-    capacity: 10
-  }
-  properties: {
-    model: {
-      format: 'OpenAI'
-      name: 'gpt-35-turbo'
-      version: '1106'
-    }
-    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
-    raiPolicyName: 'Microsoft.Default'
-  }
-  dependsOn: [
-    gpt4Deployment
-  ]
-}
-
-// Azure AI Search
-resource searchService 'Microsoft.Search/searchServices@2024-06-01-preview' = {
-  name: 'aihub-search-${uniqueString(resourceGroup().id)}'
-  location: location
-  tags: tags
-  sku: {
-    name: 'basic'
-  }
-  properties: {
-    replicaCount: 1
-    partitionCount: 1
-    publicNetworkAccess: 'enabled'
+    capacity: 1  // Reduced from 10 to 1 to fit quota
   }
 }
 
-// Cognitive Services Multi-Service Account
-resource cognitiveServices 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
-  name: 'aihub-cognitive-${uniqueString(resourceGroup().id)}'
-  location: location
-  tags: tags
-  kind: 'CognitiveServices'
-  sku: {
-    name: 'S0'
-  }
-  properties: {
-    customSubDomainName: 'aihub-cognitive-${uniqueString(resourceGroup().id)}'
-    publicNetworkAccess: 'Enabled'
-    networkAcls: {
-      defaultAction: 'Allow'
-      virtualNetworkRules: [
-        {
-          id: aiServicesSubnet.id
-          ignoreMissingVnetServiceEndpoint: false
-        }
-      ]
-    }
-  }
+// Store OpenAI key in Key Vault
+resource keyVaultReference 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+  name: split(keyVaultId, '/')[8]
 }
 
-// Machine Learning Workspace
-resource mlWorkspace 'Microsoft.MachineLearningServices/workspaces@2024-04-01' = {
-  name: 'aihub-ml-${uniqueString(resourceGroup().id)}'
-  location: location
-  tags: tags
-  identity: {
-    type: 'SystemAssigned'
-  }
+resource openAIKeySecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVaultReference
+  name: 'openai-key'
   properties: {
-    friendlyName: 'AI Hub Machine Learning Workspace'
-    keyVault: keyVaultId
-    storageAccount: '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.Storage/storageAccounts/lzstorage${uniqueString(resourceGroup().id)}'
-    applicationInsights: '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.Insights/components/aihub-appinsights'
-    publicNetworkAccess: 'Enabled'
+    value: openAIService.listKeys().key1
   }
 }
 
 // Outputs
-output openAIId string = openAI.id
-output openAIEndpoint string = openAI.properties.endpoint
-output searchServiceId string = searchService.id
-output searchServiceUrl string = 'https://${searchService.name}.search.windows.net'
-output cognitiveServicesId string = cognitiveServices.id
-output mlWorkspaceId string = mlWorkspace.id
+output openAIServiceId string = openAIService.id
+output openAIEndpoint string = openAIService.properties.endpoint
+output openAIServiceName string = openAIService.name
