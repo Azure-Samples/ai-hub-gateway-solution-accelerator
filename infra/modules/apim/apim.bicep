@@ -74,9 +74,9 @@ resource apimService 'Microsoft.ApiManagement/service@2021-08-01' = {
     publisherEmail: publisherEmail
     publisherName: publisherName
     virtualNetworkType: apimNetworkType
-    virtualNetworkConfiguration: {
+    virtualNetworkConfiguration: apimNetworkType != 'None' ? {
       subnetResourceId: apimSubnetId
-    }
+    } : null
     apiVersionConstraint: {
       minApiVersion: apiManagementMinApiVersion
     }
@@ -378,7 +378,7 @@ resource apiopenAiApiEntraNamedValue 'Microsoft.ApiManagement/service/namedValue
   properties: {
     displayName: openAiApiEntraNamedValue
     secret: false
-    value: entraAuth
+    value: string(entraAuth)
   }
 }
 resource apiopenAiApiClientNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' = {
