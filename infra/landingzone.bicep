@@ -10,12 +10,49 @@ param logAnalyticsName string = 'lz-loganalytics'
 param keyVaultName string = 'lz-keyvault${uniqueString(resourceGroup().id)}'
 param storageAccountName string = toLower('lzstorage${uniqueString(resourceGroup().id)}')
 
-// Network Security Group
+// Network Security Group for default subnet
 resource nsg 'Microsoft.Network/networkSecurityGroups@2023-04-01' = {
   name: nsgName
   location: location
   tags: tags
   properties: {}
+}
+
+// Network Security Group for APIM subnet
+resource apimNsg 'Microsoft.Network/networkSecurityGroups@2023-04-01' = {
+  name: 'apim-nsg'
+  location: location
+  tags: tags
+  properties: {
+    securityRules: [
+      {
+        name: 'Allow-APIM-Management'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '3443'
+          sourceAddressPrefix: 'ApiManagement'
+          destinationAddressPrefix: 'VirtualNetwork'
+          access: 'Allow'
+          priority: 100
+          direction: 'Inbound'
+        }
+      }
+      {
+        name: 'Allow-APIM-Storage'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '443'
+          sourceAddressPrefix: 'VirtualNetwork'
+          destinationAddressPrefix: 'Storage'
+          access: 'Allow'
+          priority: 110
+          direction: 'Outbound'
+        }
+      }
+    ]
+  }
 }
 
 // Virtual Network with Subnet and NSG association
@@ -37,6 +74,23 @@ resource vnet 'Microsoft.Network/virtualNetworks@2024-03-01' = {
           networkSecurityGroup: {
             id: nsg.id
           }
+        }
+      }
+      {
+        name: 'apim-subnet'
+        properties: {
+          addressPrefix: '10.0.2.0/24'
+          networkSecurityGroup: {
+            id: apimNsg.id
+          }
+          serviceEndpoints: [
+            {
+              service: 'Microsoft.Storage'
+            }
+            {
+              service: 'Microsoft.KeyVault'
+            }
+          ]
         }
       }
     ]
