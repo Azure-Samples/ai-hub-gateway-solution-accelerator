@@ -235,17 +235,13 @@ module apimOpenAIRealTimetApi './api.bicep' = if (enableOpenAIRealtime) {
     subscriptionKeyName: 'api-key'
     openApiSpecification: 'NA'
     apiDescription: 'Access Azure OpenAI Realtime API for real-time voice and text conversion.'
-    policyDocument: 'NA'
+    policyDocument: loadTextContent('./policies/openai-realtime-policy.xml')
     enableAPIDeployment: true
     serviceUrl: 'wss://to-be-replaced-by-policy'
     apiType: 'websocket'
     apiProtocols: ['wss']
   }
   dependsOn: [
-    aadAuthPolicyFragment
-    validateRoutesPolicyFragment
-    backendRoutingPolicyFragment
-    throttlingEventsPolicyFragment
   ]
 }
 

@@ -17,7 +17,7 @@
         <!-- Set the backend service URL based on the product name -->
         <choose>
             <when condition="@(context.Product.Name == "REPLACE1")">
-                <set-backend-service base-url="wss://REPLACE.openai.azure.com/openai/realtime://backend-for-product-a.com" />
+                <set-backend-service base-url="wss://REPLACE.openai.azure.com/openai/realtime" />
             </when>
             <when condition="@(context.Product.Name == "REPLACE2")">
                 <set-backend-service base-url="wss://REPLACE.openai.azure.com/openai/realtime" />
@@ -26,6 +26,8 @@
                 <set-backend-service base-url="wss://REPLACE.openai.azure.com/openai/realtime" />
             </otherwise>
         </choose>
+
+        
     </inbound>
     <!-- Control if and how the requests are forwarded to services  -->
     <backend>
