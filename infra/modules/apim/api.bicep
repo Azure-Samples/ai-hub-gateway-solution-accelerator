@@ -89,6 +89,8 @@ resource apiDefinition 'Microsoft.ApiManagement/service/apis@2022-08-01' = if(en
   }
 }
 
+
+// If the API is a WebSocket API, we need to create it differently (both the api and policy)
 resource apiDefinitionWebSocket 'Microsoft.ApiManagement/service/apis@2022-08-01' = if(enableAPIDeployment && isWebSotcketAPI) {
   name: apiName
   parent: apimService
@@ -107,7 +109,23 @@ resource apiDefinitionWebSocket 'Microsoft.ApiManagement/service/apis@2022-08-01
   }
 }
 
-resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' = if(enableAPIDeployment && policyDocument != 'NA') {
+resource apiDefinitionWebSocketHandshake 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' existing = if(enableAPIDeployment && isWebSotcketAPI && policyDocument != 'NA') {
+  name: 'onHandshake'
+  parent: apiDefinitionWebSocket
+}
+
+// https://learn.microsoft.com/azure/templates/microsoft.apimanagement/service/apis/policies
+resource apiDefinitionWebSocketHandshakePolicy 'Microsoft.ApiManagement/service/apis/operations/policies@2024-06-01-preview' = if(enableAPIDeployment && isWebSotcketAPI && policyDocument != 'NA') {
+  name: 'policy'
+  parent: apiDefinitionWebSocketHandshake
+  properties: {
+    format: 'rawxml'
+    value: policyDocument
+  }
+}
+
+
+resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' = if(enableAPIDeployment && policyDocument != 'NA' && !isWebSotcketAPI) {
   name: 'policy'
   parent: apiDefinition
   properties: {

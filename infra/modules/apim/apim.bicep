@@ -19,6 +19,9 @@ param audience string = 'https://cognitiveservices.azure.com/.default'
 param eventHubName string
 param eventHubEndpoint string
 
+param eventHubPIIName string
+param eventHubPIIEndpoint string
+
 param enableAzureAISearch bool = false
 param aiSearchInstances array
 
@@ -27,6 +30,12 @@ param enableAIModelInference bool = true
 param enableOpenAIRealtime bool = true
 
 param enableDocumentIntelligence bool = true
+
+param enablePIIAnonymization bool = true
+
+param contentSafetyServiceUrl string
+param aiLanguageServiceUrl string
+
 
 // Networking
 param apimNetworkType string = 'External'
@@ -57,6 +66,18 @@ resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-
 resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2023-01-01-preview' existing = {
   name: eventHubName
 }
+
+resource eventHubPII 'Microsoft.EventHub/namespaces/eventhubs@2023-01-01-preview' existing = {
+  name: eventHubPIIName
+}
+
+// resource contentSafetyService 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
+//   name: contentSafetyServiceName
+// }
+
+// resource aiLanguageService 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
+//   name: aiLanguageServiceName
+// }
 
 resource apimService 'Microsoft.ApiManagement/service@2021-08-01' = {
   name: name
@@ -130,19 +151,19 @@ module apimOpenaiApi './api.bicep' = {
   ]
 }
 
-module apimAiSearchApi './api.bicep' = if (enableAzureAISearch) {
-  name: 'azure-ai-search-api'
+module apimAiSearchIndexApi './api.bicep' = if (enableAzureAISearch) {
+  name: 'azure-ai-search-index-api'
   params: {
     serviceName: apimService.name
-    apiName: 'azure-ai-search-api'
+    apiName: 'azure-ai-search-index-api'
     path: 'search'
     apiRevision: '1'
-    apiDispalyName: 'Azure AI Search API'
+    apiDispalyName: 'Azure AI Search Index API (index services)'
     subscriptionRequired: entraAuth ? false:true
     subscriptionKeyName: 'api-key'
-    openApiSpecification: loadTextContent('./ai-search-api/ai-search-api-spec.yaml')
-    apiDescription: 'Azure AI Search APIs'
-    policyDocument: loadTextContent('./policies/ai-search-api-policy.xml')
+    openApiSpecification: loadTextContent('./ai-search-api/ai-search-index-2024-07-01-api-spec.json')
+    apiDescription: 'Azure AI Search Index Client APIs'
+    policyDocument: loadTextContent('./policies/ai-search-index-api-policy.xml')
     enableAPIDeployment: true
   }
   dependsOn: [
@@ -153,6 +174,30 @@ module apimAiSearchApi './api.bicep' = if (enableAzureAISearch) {
     throttlingEventsPolicyFragment
   ]
 }
+
+// module apimAiSearchServiceApi './api.bicep' = if (enableAzureAISearch) {
+//   name: 'azure-ai-search-service-api'
+//   params: {
+//     serviceName: apimService.name
+//     apiName: 'azure-ai-search-service-api'
+//     path: 'search/service'
+//     apiRevision: '1'
+//     apiDispalyName: 'Azure AI Search Service API (service administration)'
+//     subscriptionRequired: entraAuth ? false:true
+//     subscriptionKeyName: 'api-key'
+//     openApiSpecification: loadTextContent('./ai-search-api/Azure AI Search Service API.openapi.yaml')
+//     apiDescription: 'Azure AI Search Index Client APIs'
+//     policyDocument: loadTextContent('./policies/ai-search-service-api-policy.xml')
+//     enableAPIDeployment: true
+//   }
+//   dependsOn: [
+//     aadAuthPolicyFragment
+//     validateRoutesPolicyFragment
+//     backendRoutingPolicyFragment
+//     aiUsagePolicyFragment
+//     throttlingEventsPolicyFragment
+//   ]
+// }
 
 module apimAiModelInferenceApi './api.bicep' = if (enableAIModelInference) {
   name: 'ai-model-inference-api'
@@ -190,17 +235,13 @@ module apimOpenAIRealTimetApi './api.bicep' = if (enableOpenAIRealtime) {
     subscriptionKeyName: 'api-key'
     openApiSpecification: 'NA'
     apiDescription: 'Access Azure OpenAI Realtime API for real-time voice and text conversion.'
-    policyDocument: 'NA'
+    policyDocument: loadTextContent('./policies/openai-realtime-policy.xml')
     enableAPIDeployment: true
     serviceUrl: 'wss://to-be-replaced-by-policy'
     apiType: 'websocket'
     apiProtocols: ['wss']
   }
   dependsOn: [
-    aadAuthPolicyFragment
-    validateRoutesPolicyFragment
-    backendRoutingPolicyFragment
-    throttlingEventsPolicyFragment
   ]
 }
 
@@ -209,7 +250,7 @@ module apimDocumentIntelligence './api.bicep' = if (enableDocumentIntelligence) 
   params: {
     serviceName: apimService.name
     apiName: 'document-intelligence-api'
-    path: 'documentintelligence'
+    path: 'formrecognizer'
     apiRevision: '1'
     apiDispalyName: 'Document Intelligence API'
     subscriptionRequired: entraAuth ? false:true
@@ -318,6 +359,51 @@ resource hrSubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-0
   }
 }
 
+// HR PII Product
+resource hrPIIProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
+  name: 'oai-hr-pii-assistant'
+  parent: apimService
+  properties: {
+    displayName: 'OAI-HR-PII-Assistant'
+    description: 'Offering OpenAI services for the internal HR platforms with PII anonymization processing.'
+    subscriptionRequired: true
+    approvalRequired: true
+    subscriptionsLimit: 200
+    state: 'published'
+    terms: 'By subscribing to this product, you agree to the terms and conditions.'
+  }
+}
+
+resource hrPIIProductOpenAIApi 'Microsoft.ApiManagement/service/products/apiLinks@2023-05-01-preview' = {
+  name: 'hr-pii-product-openai-api'
+  parent: hrPIIProduct
+  properties: {
+    apiId: apimOpenaiApi.outputs.id
+  }
+}
+
+resource hrPIIProductPolicy 'Microsoft.ApiManagement/service/products/policies@2022-08-01' =  {
+  name: 'policy'
+  parent: hrPIIProduct
+  properties: {
+    value: loadTextContent('./policies/hr_pii_product_policy.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [
+    apimOpenaiApi
+  ]
+}
+
+resource hrPIISubscription 'Microsoft.ApiManagement/service/subscriptions@2022-08-01' = {
+  name: 'oai-hr-pii-assistant-sub-01'
+  parent: apimService
+  properties: {
+    displayName: 'OAI-HR-PII-Assistant-Sub-01'
+    state: 'active'
+    scope: hrPIIProduct.id
+  }
+}
+
 // Create Search-HR product
 resource searchHRProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = if(enableAzureAISearch) {
   name: 'src-hr-assistant'
@@ -337,7 +423,7 @@ resource searchHRProductAISearchApi 'Microsoft.ApiManagement/service/products/ap
   name: 'src-hr-product-ai-search-api'
   parent: searchHRProduct
   properties: {
-    apiId: apimAiSearchApi.outputs.id
+    apiId: apimAiSearchIndexApi.outputs.id
   }
 }
 
@@ -388,6 +474,20 @@ resource aiSearchBackends 'Microsoft.ApiManagement/service/backends@2022-08-01' 
   }
 }]
 
+resource contentSafetyBackend 'Microsoft.ApiManagement/service/backends@2022-08-01' = {
+  name: 'content-safety-backend'
+  parent: apimService
+  properties: {
+    description: 'Content Safety Service Backend'
+    url: contentSafetyServiceUrl
+    protocol: 'http'
+    tls: {
+      validateCertificateChain: true
+      validateCertificateName: true
+    }
+  }
+}
+
 resource apimOpenaiApiUamiNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' = {
   name: openAiApiUamiNamedValue
   parent: apimService
@@ -425,13 +525,43 @@ resource apiopenAiApiTenantNamedValue 'Microsoft.ApiManagement/service/namedValu
     value: tenantId
   }
 }
-resource apimOpenaiApiAudienceiNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' =  {
+resource apimOpenaiApiAudienceNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' =  {
   name: openAiApiAudienceNamedValue
   parent: apimService
   properties: {
     displayName: openAiApiAudienceNamedValue
     secret: true
     value: audience
+  }
+}
+
+resource piiServiceUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' =  {
+  name: 'piiServiceUrl'
+  parent: apimService
+  properties: {
+    displayName: 'piiServiceUrl'
+    secret: false
+    value: aiLanguageServiceUrl
+  }
+}
+
+resource piiServiceKeyNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' =  {
+  name: 'piiServiceKey'
+  parent: apimService
+  properties: {
+    displayName: 'piiServiceKey'
+    secret: true
+    value: 'replace-with-language-service-key-if-needed'
+  }
+}
+
+resource contentSafetyServiceUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' =  {
+  name: 'contentSafetyServiceUrl'
+  parent: apimService
+  properties: {
+    displayName: 'contentSafetyServiceUrl'
+    secret: false
+    value: contentSafetyServiceUrl
   }
 }
 
@@ -446,7 +576,7 @@ resource aadAuthPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@
   dependsOn: [
     apiopenAiApiClientNamedValue
     apiopenAiApiEntraNamedValue
-    apimOpenaiApiAudienceiNamedValue
+    apimOpenaiApiAudienceNamedValue
     apiopenAiApiTenantNamedValue
   ]
 }
@@ -522,6 +652,37 @@ resource dynamicThrottlingAssignmentFragment 'Microsoft.ApiManagement/service/po
   }
 }
 
+resource piiAnonymizationPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
+  parent: apimService
+  name: 'pii-anonymization'
+  properties: {
+    value: loadTextContent('./policies/frag-pii-anonymization.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [
+    piiServiceUrlNamedValue
+    piiServiceKeyNamedValue
+  ]
+}
+
+resource piiDenonymizationPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
+  parent: apimService
+  name: 'pii-deanonymization'
+  properties: {
+    value: loadTextContent('./policies/frag-pii-deanonymization.xml')
+    format: 'rawxml'
+  }
+}
+
+resource piiStateSavingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = if (enablePIIAnonymization) {
+  parent: apimService
+  name: 'pii-state-saving'
+  properties: {
+    value: loadTextContent('./policies/frag-pii-state-saving.xml')
+    format: 'rawxml'
+  }
+}
+
 resource apimLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
   name: 'appinsights-logger'
   parent: apimService
@@ -586,6 +747,20 @@ resource ehUsageLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
     credentials: {
       name: eventHub.name
       endpointAddress: replace(eventHubEndpoint, 'https://', '')
+      identityClientId: managedIdentity.properties.clientId
+    }
+  }
+}
+
+resource ehPIIUsageLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = if (enablePIIAnonymization) {
+  name: 'pii-usage-eventhub-logger'
+  parent: apimService
+  properties: {
+    loggerType: 'azureEventHub'
+    description: 'Event Hub logger for PII usage metrics and logs'
+    credentials: {
+      name: eventHubPII.name
+      endpointAddress: replace(eventHubPIIEndpoint, 'https://', '')
       identityClientId: managedIdentity.properties.clientId
     }
   }

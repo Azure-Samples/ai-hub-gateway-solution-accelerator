@@ -2,7 +2,8 @@ param name string
 param location string = resourceGroup().location
 param tags object = {}
 
-var cognitiveServicesUserRoleDefinitionId = resourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+var cognitiveServicesOpenAIUserRoleDefinitionId = resourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+var cognitiveServicesUserRoleDefinitionId = resourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')
 var eventHubsDataSenderRoleDefinitionId = resourceId('Microsoft.Authorization/roleDefinitions', '2b629674-e913-4c01-ae53-ef4638d8f975')
 
 // Getting definitions for 'Search Index Data Reader' and 'Search Index Data Contributor' 
@@ -21,6 +22,17 @@ resource cognitiveServicesUserRoleAssignment 'Microsoft.Authorization/roleAssign
   scope: resourceGroup()
   properties: {
     roleDefinitionId: cognitiveServicesUserRoleDefinitionId
+    principalId: managedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Assign the Cognitive Services User role to the user-defined managed identity used by workloads
+resource cognitiveServicesOpenAIUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(managedIdentity.id, cognitiveServicesOpenAIUserRoleDefinitionId)
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: cognitiveServicesOpenAIUserRoleDefinitionId
     principalId: managedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }

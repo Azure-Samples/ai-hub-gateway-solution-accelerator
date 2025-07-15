@@ -2,6 +2,20 @@
 
 Using APIM to handle PII anonymization and deanonymization requests transparently for API requests that may contain PII data.
 
+## Key Updates to PII Handling Framework
+
+The PII handling framework has been enhanced with the following key features:
+
+1. **Managed Identity Authentication**: Authentication to Azure AI Language Services now uses managed identity instead of API keys, improving security.
+
+2. **Regex Pattern Processing**: Enhanced regex pattern processing for custom PII detection prior to calling the Language Service.
+
+3. **Additional Configuration Options**: New configuration options for language detection and more customizable PII identification.
+
+4. **Event Hub Logging**: Comprehensive logging to Event Hub for auditing, compliance, and analytics.
+
+5. **Encoding Handling**: Improved handling of encoded characters in JSON responses.
+
 ## Process Flow
 
 ```mermaid
@@ -176,35 +190,83 @@ Handling PII anonymization and deanonymization in APIM are done using policy fra
 Anonymization service connection information used by this fragment are stored in APIM named values. The following named values are used in the policy fragment:
 
 - `piiServiceUrl`: The URL of the PII anonymization API.
-- `piiServiceKey`: The subscription key for the PII anonymization API.
+- `uami-client-id`: The client ID of the user-assigned managed identity used for authentication.
 
-This policy framgment is expecting the following variables to be set in the target API inbound policy:
+The fragment now uses managed identity authentication instead of subscription key authentication to connect to the Azure AI Language Service. This is a more secure approach as it eliminates the need to manage and rotate API keys.
+
+This policy fragment is expecting the following variables to be set in the target API inbound policy:
 
 - `piiConfidenceThreshold`: The confidence score threshold for PII entity detection (default is 0.8).
 - `piiEntityCategoryExclusions`: A comma-separated list of PII entity categories to exclude from the anonymization process (default is PersonType only). [Full list of categories](https://learn.microsoft.com/en-us/azure/ai-services/language-service/personally-identifiable-information/concepts/entity-categories)
 - `piiInputContent`: The input content to be anonymized (this should be set in the inbound policy of the target API).
+- `piiDetectionLanguage`: The language used for PII detection (default is "en"). Use "auto" for multilingual content.
+- `piiRegexPatterns`: Optional JSON array of custom regex patterns for PII detection.
 
 ```xml
 <fragment>
-    <!-- Get confidence score threshold and category exclusions from configuration -->
-    <set-variable name="piiConfidenceThreshold" value="@(double.Parse(context.Variables.GetValueOrDefault<string>("piiConfidenceThreshold", "0.8")))" />
-    <set-variable name="piiEntityCategoryExclusions" value="@(context.Variables.GetValueOrDefault<string>("piiEntityCategoryExclusions", ""))" />
+    <choose>
+        <when condition="@(context.Variables.GetValueOrDefault<string>("piiAnonymizationEnabled") == "true")">
+            <!-- Get configuration values -->
+            <set-variable name="piiConfidenceThreshold" value="@(double.Parse(context.Variables.GetValueOrDefault<string>("piiConfidenceThreshold", "0.8")))" />
+            <set-variable name="piiEntityCategoryExclusions" value="@(context.Variables.GetValueOrDefault<string>("piiEntityCategoryExclusions", ""))" />
+            <set-variable name="piiDetectionLanguage" value="@(context.Variables.GetValueOrDefault<string>("piiDetectionLanguage", "en"))" />
+            <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="msi-access-token" client-id="{{uami-client-id}}" ignore-error="false" />
+            
+            <!-- Process regex patterns if provided -->
+            <set-variable name="piiRegexMappings" value="@{
+                var content = context.Variables.GetValueOrDefault<string>("piiInputContent");
+                var regexPatterns = context.Variables.GetValueOrDefault<string>("piiRegexPatterns");
+                var mappings = new JArray();
+                
+                if (!string.IsNullOrEmpty(regexPatterns))
+                {
+                    var patterns = JArray.Parse(regexPatterns);
+                    var categoryCounts = new Dictionary<string, int>();
+                    var processedTexts = new HashSet<string>(); // Track already processed texts
+                    
+                    foreach (var pattern in patterns)
+                    {
+                        // Processing logic for regex patterns
+                    }
+                }
+                return mappings.ToString();
+            }" />
 
-    <!-- Call PII Anonymization API -->
-    <send-request mode="new" response-variable-name="piiAnalysisResponse" timeout="20" ignore-error="true">
-        <set-url>{{piiServiceUrl}}/language/:analyze-text?api-version=2022-05-01</set-url>
-        <set-method>POST</set-method>
-        <set-header name="Content-Type" exists-action="override">
-            <value>application/json</value>
-        </set-header>
-        <set-header name="Ocp-Apim-Subscription-Key" exists-action="override">
-            <value>{{piiServiceKey}}</value>
-        </set-header>
-        <set-body>@{
-            var request = new JObject();
-            request["kind"] = "PiiEntityRecognition";
-            request["parameters"] = new JObject{
-                {"modelVersion", "latest"},
+            <!-- Apply regex-based masking -->
+            <set-variable name="piiRegexProcessedContent" value="@{
+                var content = context.Variables.GetValueOrDefault<string>("piiInputContent");
+                var mappings = JArray.Parse(
+                    context.Variables.GetValueOrDefault<string>("piiRegexMappings"));
+                
+                foreach (var mapping in mappings)
+                {
+                    // Apply regex replacements
+                }
+                return content;
+            }" />
+
+            <!-- Update input content for API processing -->
+            <set-variable name="piiInputContent" value="@(context.Variables.GetValueOrDefault<string>("piiRegexProcessedContent"))" />
+            
+            <!-- Call PII Anonymization API -->
+            <send-request mode="new" response-variable-name="piiAnalysisResponse" timeout="20" ignore-error="true">
+                <set-url>{{piiServiceUrl}}/language/:analyze-text?api-version=2022-05-01</set-url>
+                <set-method>POST</set-method>
+                <set-header name="Content-Type" exists-action="override">
+                    <value>application/json</value>
+                </set-header>
+                <set-header name="Authorization" exists-action="override">
+                    <value>@("Bearer " + (string)context.Variables["msi-access-token"])</value>
+                </set-header>
+                <!-- <set-header name="Ocp-Apim-Subscription-Key" exists-action="override">
+                    <value>{{piiServiceKey}}</value>
+                </set-header> -->
+
+                <set-body>@{
+                    var request = new JObject();
+                    request["kind"] = "PiiEntityRecognition";
+                    request["parameters"] = new JObject{
+                        {"modelVersion", "latest"},
                 {"redactionPolicy", new JObject{
                     {"policyKind", "CharacterMask"},
                     {"redactionCharacter", "#"}
@@ -286,9 +348,14 @@ This policy expects variables named `piiDeanonymizeContentInput` and `piiMapping
     <!-- Replace placeholders with original PII -->
     <set-variable name="piiDeanonymizedContentOutput" value="@{
         var content = context.Variables.GetValueOrDefault<string>("piiDeanonymizeContentInput");
+        
+        // Pre-process content to replace common encoded symbols
+        content = System.Text.RegularExpressions.Regex.Replace(content, @"\\u003c", "<");
+        content = System.Text.RegularExpressions.Regex.Replace(content, @"\\u003e", ">");
+        
         var mappings = JArray.Parse(
             context.Variables.GetValueOrDefault<string>("piiMappings"));
-
+        
         foreach (var mapping in mappings) {
             var original = mapping["original"].ToString();
             var placeholder = mapping["placeholder"].ToString();
@@ -296,6 +363,107 @@ This policy expects variables named `piiDeanonymizeContentInput` and `piiMapping
         }
         return content;
     }" />
+</fragment>
+```
+
+3. **pii-state-saving** policy fragment:
+
+This fragment logs PII anonymization and deanonymization activity to an Event Hub for auditing and analytics purposes. It expects several variables to be set:
+
+- `piiStateSavingEnabled`: Set to "true" to enable logging to Event Hub
+- `originalRequest`: The original request content before anonymization
+- `originalResponse`: The original response content before deanonymization
+
+```xml
+<fragment>
+    <!-- Save PII anonymization/deanonymization state to Event Hub using native log-to-eventhub policy -->
+    <choose>
+        <when condition="@(context.Variables.GetValueOrDefault<string>("piiStateSavingEnabled") == "true")">
+            <!-- Capture context information -->
+            <set-variable name="piiOperationId" value="@(Guid.NewGuid().ToString())" />
+            <set-variable name="piiOperationTimestamp" value="@(DateTime.UtcNow.ToString("o"))" />
+            <set-variable name="piiApiName" value="@(context.Api.Name ?? "unknown")" />
+            <set-variable name="piiApiId" value="@(context.Api.Id ?? "unknown")" />
+            <set-variable name="piiProductName" value="@(context.Product?.Name ?? "unknown")" />
+            <set-variable name="piiProductId" value="@(context.Product?.Id ?? "unknown")" />
+            <set-variable name="piiSubscriptionName" value="@(context.Subscription?.Name ?? "unknown")" />
+            <set-variable name="piiSubscriptionId" value="@(context.Subscription?.Id ?? "unknown")" />
+            <set-variable name="piiOperationName" value="@(context.Operation.Name ?? "unknown")" />
+            <set-variable name="targetDeployment" value="@(context.Variables.GetValueOrDefault<string>("targetDeployment") ?? "unknown")" />
+            
+            <!-- Log to Event Hub using native policy -->
+            <log-to-eventhub logger-id="pii-usage-eventhub-logger">@{
+                var eventData = new JObject();
+                
+                // Operation metadata
+                eventData["id"] = context.Variables.GetValueOrDefault<string>("piiOperationId");
+                eventData["timestamp"] = context.Variables.GetValueOrDefault<string>("piiOperationTimestamp");
+                eventData["type"] = "PII_Processing";
+                eventData["targetDeployment"] = context.Variables.GetValueOrDefault<string>("targetDeployment");
+                
+                // Enhanced API and subscription context with content
+                eventData["context"] = new JObject {
+                    ["api"] = new JObject {
+                        ["id"] = context.Variables.GetValueOrDefault<string>("piiApiId"),
+                        ["name"] = context.Variables.GetValueOrDefault<string>("piiApiName"),
+                        ["operation"] = new JObject {
+                            ["urlTemplate"] = context.Operation.UrlTemplate ?? "unknown"
+                        }
+                    },
+                    ["product"] = new JObject {
+                        ["id"] = context.Variables.GetValueOrDefault<string>("piiProductId"),
+                        ["name"] = context.Variables.GetValueOrDefault<string>("piiProductName")
+                    },
+                    ["subscription"] = new JObject {
+                        ["id"] = context.Variables.GetValueOrDefault<string>("piiSubscriptionId"),
+                        ["name"] = context.Variables.GetValueOrDefault<string>("piiSubscriptionName")
+                    }
+                };
+                
+                // Process information
+                eventData["process"] = new JObject {
+                    ["anonymizationEnabled"] = context.Variables.GetValueOrDefault<string>("piiAnonymizationEnabled") == "true",
+                    ["confidenceThreshold"] = context.Variables.GetValueOrDefault<double>("piiConfidenceThreshold", 0.8),
+                    ["entityCategoryExclusions"] = context.Variables.GetValueOrDefault<string>("piiEntityCategoryExclusions", ""),
+                    ["deanonymizationPerformed"] = context.Variables.ContainsKey("piiDeanonymizedContentOutput")
+                };
+                
+                // Results summary for PII entities found
+                if (context.Variables.ContainsKey("piiMappings")) {
+                    try {
+                        var mappings = JArray.Parse(context.Variables.GetValueOrDefault<string>("piiMappings"));
+                        eventData["entityCount"] = mappings.Count;
+                        
+                        // Group entities by category for reporting
+                        var categories = new Dictionary<string, int>();
+                        foreach (var mapping in mappings) {
+                            // Category counting logic
+                        }
+                        
+                        var categoryDetails = new JObject();
+                        foreach (var category in categories) {
+                            // Category details
+                        }
+                        eventData["entityCategories"] = categoryDetails;
+                    }
+                    catch (Exception ex) {
+                        eventData["error"] = "Failed to process mappings: " + ex.Message;
+                    }
+                }
+                
+                // Content length metrics (not the actual content)
+                if (context.Variables.ContainsKey("piiInputContent")) {
+                    eventData["metrics"] = new JObject {
+                        ["inputContentLength"] = context.Variables.GetValueOrDefault<string>("piiInputContent", "").Length
+                    };
+                    
+                    // Additional metrics
+                }
+                
+                return eventData.ToString();
+            }</log-to-eventhub>
+        </when>
+    </choose>
 </fragment>
 ```
 
@@ -327,14 +495,80 @@ The following steps can be followed to implement the policies:
 
 Based on decision of the scope of PII anonymization and deanonymization, you can implement the policies in APIM by following the below example.
 
-Below APIM policy can be used with `Product`, `API` or `Operation` scope. The example below shows how to implement the policies in APIM.
+Below APIM policy can be used with `Product`, `API` or `Operation` scope. The example below shows how to implement these policies at the Product level in a sample HR PII product policy.
+
+### HR PII Product Policy Example
+
+The following is a complete example of an HR product policy that implements PII anonymization and deanonymization, as well as model restrictions and capacity management:
 
 ```xml
 <policies>
-    <!-- Throttle, authorize, validate, cache, or transform the requests -->
     <inbound>
         <base />
-        <!-- Common variables -->
+
+        <!-- Defining allowed backends to be used by this product (used to restrict traffic to certain regions) -->
+        <!-- Backend RBAC: Set allowed backends (comma-separated backend-ids, empty means all are allowed) -->
+        <set-variable name="allowedBackend" value="openai-backend-0" />
+
+        <!-- Restrict access for this product to specific models -->
+        <choose>
+            <when condition="@(!new [] { "gpt-4o", "embedding" }.Contains(context.Request.MatchedParameters["deployment-id"] ?? String.Empty))">
+                <return-response>
+                    <set-status code="401" reason="Unauthorized model access" />
+                </return-response>
+            </when>
+        </choose>
+
+        <!-- Capacity management - Subscription Level: allow only assigned tpm for each HR use case subscription -->
+        <set-variable name="target-deployment" value="@((string)context.Request.MatchedParameters["deployment-id"])" />
+        <choose>
+            <when condition="@((string)context.Variables["target-deployment"] == "gpt-4o")">
+                <azure-openai-token-limit 
+                    counter-key="@(context.Subscription.Id + "-" + context.Variables["target-deployment"])" 
+                    tokens-per-minute="10000" 
+                    estimate-prompt-tokens="false" 
+                    tokens-consumed-header-name="consumed-tokens" 
+                    remaining-tokens-header-name="remaining-tokens" 
+                    token-quota="100000"
+                    token-quota-period="Monthly"
+                    retry-after-header-name="retry-after" />
+            </when>
+            <when condition="@((string)context.Variables["target-deployment"] == "chat")">
+                <azure-openai-token-limit 
+                    counter-key="@(context.Subscription.Id + "-" + context.Variables["target-deployment"])" 
+                    tokens-per-minute="2000" 
+                    estimate-prompt-tokens="false" 
+                    tokens-consumed-header-name="consumed-tokens" 
+                    remaining-tokens-header-name="remaining-tokens" 
+                    token-quota="10000"
+                    token-quota-period="Weekly"
+                    retry-after-header-name="retry-after" />
+            </when>
+            <otherwise>
+                <azure-openai-token-limit 
+                    counter-key="@(context.Subscription.Id + "-default")" 
+                    tokens-per-minute="1000" 
+                    estimate-prompt-tokens="false" 
+                    tokens-consumed-header-name="consumed-tokens" 
+                    remaining-tokens-header-name="remaining-tokens" 
+                    token-quota="5000"
+                    token-quota-period="Monthly"
+                    retry-after-header-name="retry-after" />
+            </otherwise>
+        </choose>
+        
+        <!-- Capacity management: Product Level (across all OpenAI models -->
+        <azure-openai-token-limit 
+                    counter-key="@(context.Product?.Name?.ToString() ?? "Portal-Admin")" 
+                    tokens-per-minute="15000" 
+                    estimate-prompt-tokens="false" 
+                    tokens-consumed-header-name="consumed-tokens" 
+                    remaining-tokens-header-name="remaining-tokens" 
+                    token-quota="150000"
+                    token-quota-period="Monthly"
+                    retry-after-header-name="retry-after" />
+
+        <!-- PII Detection and Anonymization -->
         <set-variable name="piiAnonymizationEnabled" value="true" />
         <!-- Variables required by pii-anonymization fragment -->
         <choose>
@@ -342,21 +576,14 @@ Below APIM policy can be used with `Product`, `API` or `Operation` scope. The ex
                 <!-- Configure PII detection settings -->
                 <set-variable name="piiConfidenceThreshold" value="0.75" />
                 <set-variable name="piiEntityCategoryExclusions" value="PersonType,CADriversLicenseNumber" />
+                <set-variable name="piiDetectionLanguage" value="en" /> <!-- Use 'auto' if context have multiple languages -->
+
                 <!-- Configure regex patterns for custom PII detection -->
                 <set-variable name="piiRegexPatterns" value="@{
                     var patterns = new JArray {
                         new JObject {
-                            ["pattern"] = @"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b",
                             ["category"] = "CREDIT_CARD"
                         },
-                        new JObject {
-                            ["pattern"] = @"\b[A-Z]{2}\d{6}[A-Z]\b",
-                            ["category"] = "PASSPORT_NUMBER"
-                        },
-                        new JObject {
-                            ["pattern"] = @"\b\d{3}[-]?\d{4}[-]?\d{7}[-]?\d{1}\b",
-                            ["category"] = "NATIONAL_ID"
-                        }
                     };
                     return patterns.ToString();
                 }" />
@@ -367,15 +594,14 @@ Below APIM policy can be used with `Product`, `API` or `Operation` scope. The ex
                 <set-body>@(context.Variables.GetValueOrDefault<string>("piiAnonymizedContent"))</set-body>
             </when>
         </choose>
+
     </inbound>
-    <!-- Control if and how the requests are forwarded to services  -->
     <backend>
         <base />
     </backend>
-    <!-- Customize the responses -->
     <outbound>
         <base />
-        <!-- Store response body once -->
+        <!-- PII Deanonymization -->
         <set-variable name="responseBodyContent" value="@(context.Response.Body.As<string>(preserveContent: true))" />
         <choose>
             <when condition="@(context.Variables.GetValueOrDefault<string>("piiAnonymizationEnabled") == "true" && 
@@ -389,7 +615,7 @@ Below APIM policy can be used with `Product`, `API` or `Operation` scope. The ex
                 <set-variable name="originalResponse" value="@(context.Variables.GetValueOrDefault<string>("responseBodyContent"))" />
                 
                 <!-- Include the PII state saving fragment to push pii detection results to event hub -->
-                <!-- <include-fragment fragment-id="pii-state-saving" /> -->
+                <include-fragment fragment-id="pii-state-saving" />
                 
                 <!-- Replace response with deanonymized content -->
                 <set-body>@(context.Variables.GetValueOrDefault<string>("piiDeanonymizedContentOutput"))</set-body>
@@ -400,7 +626,6 @@ Below APIM policy can be used with `Product`, `API` or `Operation` scope. The ex
             </otherwise>
         </choose>
     </outbound>
-    <!-- Handle exceptions and customize error responses  -->
     <on-error>
         <base />
     </on-error>
@@ -421,11 +646,11 @@ Below is a sample Azure OpenAI request body that can be used to test the API wit
   "messages": [
     {
       "role": "system",
-      "content": "You are a helpful assistant that responds in Markdown. Context is anonymized with <PII_CATEGORY_0> placeholders that you need to retain exactly as they are if they are part of the response. Always welcome the user with their name if avaiable."
+      "content": "You are a helpful assistant that responds in Markdown. Context is anonymized with <PII_CATEGORY_0> placeholders that you need to retain exactly as they are if they are part of the response. Always welcome the user with their name if available."
     },
     {
       "role": "user",
-      "content": "Hello, my name is Sarah Jones and I need help with my accounts. My first IBAN is AE070331234567890999 and my second IBAN is AE070339876543210123 for my emirates id 784-1987-1234567-1 and customer id 123456. You can contact Sarah Jones at sarah.jones@email.com or call at +971501234567. I want to know how to calculate the distance between earth and moon?"
+      "content": "Hello, my name is Sarah Jones and I need help with my accounts. My first IBAN is AE070331234567890999 and my second IBAN is AE070339876543210123 for my emirates id 784-1987-1234567-1. You can contact Sarah Jones at sarah.jones@email.com or call at +971501234567. I want to know how to calculate the distance between earth and moon?"
     }
   ]
 }
