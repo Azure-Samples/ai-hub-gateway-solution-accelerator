@@ -1,0 +1,20 @@
+<fragment>
+    <!-- Replace placeholders with original PII -->
+    <set-variable name="piiDeanonymizedContentOutput" value="@{
+        var content = context.Variables.GetValueOrDefault<string>("piiDeanonymizeContentInput");
+        
+        // Pre-process content to replace common encoded symbols
+        content = System.Text.RegularExpressions.Regex.Replace(content, @"\\u003c", "<");
+        content = System.Text.RegularExpressions.Regex.Replace(content, @"\\u003e", ">");
+        
+        var mappings = JArray.Parse(
+            context.Variables.GetValueOrDefault<string>("piiMappings"));
+        
+        foreach (var mapping in mappings) {
+            var original = mapping["original"].ToString();
+            var placeholder = mapping["placeholder"].ToString();
+            content = content.Replace(placeholder, original);
+        }
+        return content;
+    }" />
+</fragment>

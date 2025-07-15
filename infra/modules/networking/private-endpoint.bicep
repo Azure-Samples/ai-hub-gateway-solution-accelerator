@@ -8,18 +8,17 @@ param privateEndpointSubnetId string
 param dnsZoneRG string
 param dnsSubId string
 
+// Add a parameter to control DNS integration
+param enableDnsIntegration bool = !empty(dnsZoneRG)
 
-resource privateEndpointDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+resource privateEndpointDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = if (enableDnsIntegration && !empty(dnsZoneName)) {
   name: dnsZoneName
-  scope: resourceGroup(dnsSubId ,dnsZoneRG)
+  scope: resourceGroup(dnsSubId, dnsZoneRG)
 }
 
 resource privateEndpoint 'Microsoft.Network/privateEndpoints@2022-09-01' = {
   name: name
   location: location
-  dependsOn: [
-    privateEndpointDnsZone
-  ]
   properties: {
     subnet: {
       id: privateEndpointSubnetId
@@ -36,7 +35,7 @@ resource privateEndpoint 'Microsoft.Network/privateEndpoints@2022-09-01' = {
   }
 }
 
-resource privateEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2022-09-01' = {
+resource privateEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2022-09-01' = if (enableDnsIntegration && !empty(dnsZoneName)) {
   parent: privateEndpoint
   name: 'privateDnsZoneGroup'
   properties: {

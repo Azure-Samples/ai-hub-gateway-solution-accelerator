@@ -1,25 +1,68 @@
 <policies>
     <inbound>
         <base />
-        <!-- Capacity management: allow only assigned tpm for each Retail use case subscritpion -->
+        <!-- Capacity management - Subscription Level: allow only assigned tpm for each HR use case subscription -->
         <set-variable name="target-deployment" value="@((string)context.Request.MatchedParameters["deployment-id"])" />
         <choose>
             <when condition="@((string)context.Variables["target-deployment"] == "gpt-4o")">
-                <azure-openai-token-limit counter-key="@(context.Subscription.Id + "-" + context.Variables["target-deployment"])" tokens-per-minute="10000" estimate-prompt-tokens="false" tokens-consumed-header-name="consumed-tokens" remaining-tokens-header-name="remaining-tokens" retry-after-header-name="retry-after" />
+                <azure-openai-token-limit 
+                    counter-key="@(context.Subscription.Id + "-" + context.Variables["target-deployment"])" 
+                    tokens-per-minute="10000" 
+                    estimate-prompt-tokens="false" 
+                    tokens-consumed-header-name="consumed-tokens" 
+                    remaining-tokens-header-name="remaining-tokens" 
+                    token-quota="100000"
+                    token-quota-period="Monthly"
+                    retry-after-header-name="retry-after" />
             </when>
             <when condition="@((string)context.Variables["target-deployment"] == "chat")">
-                <azure-openai-token-limit counter-key="@(context.Subscription.Id + "-" + context.Variables["target-deployment"])" tokens-per-minute="2000" estimate-prompt-tokens="false" tokens-consumed-header-name="consumed-tokens" remaining-tokens-header-name="remaining-tokens" retry-after-header-name="retry-after" />
+                <azure-openai-token-limit 
+                    counter-key="@(context.Subscription.Id + "-" + context.Variables["target-deployment"])" 
+                    tokens-per-minute="2000" 
+                    estimate-prompt-tokens="false" 
+                    tokens-consumed-header-name="consumed-tokens" 
+                    remaining-tokens-header-name="remaining-tokens" 
+                    token-quota="10000"
+                    token-quota-period="Weekly"
+                    retry-after-header-name="retry-after" />
             </when>
             <otherwise>
-                <azure-openai-token-limit counter-key="@(context.Subscription.Id + "-default")" tokens-per-minute="1000" estimate-prompt-tokens="false" tokens-consumed-header-name="consumed-tokens" remaining-tokens-header-name="remaining-tokens" retry-after-header-name="retry-after" />
+                <azure-openai-token-limit 
+                    counter-key="@(context.Subscription.Id + "-default")" 
+                    tokens-per-minute="1000" 
+                    estimate-prompt-tokens="false" 
+                    tokens-consumed-header-name="consumed-tokens" 
+                    remaining-tokens-header-name="remaining-tokens" 
+                    token-quota="5000"
+                    token-quota-period="Monthly"
+                    retry-after-header-name="retry-after" />
             </otherwise>
         </choose>
-        <!-- <azure-openai-token-limit counter-key="@(context.Subscription.Id)" 
-            tokens-per-minute="5000" 
-            estimate-prompt-tokens="true" 
-            tokens-consumed-header-name="consumed-tokens" 
-            remaining-tokens-header-name="remaining-tokens" 
-            retry-after-header-name="retry-after" /> -->
+        
+        <!-- Capacity management: Product Level (across all OpenAI models -->
+        <azure-openai-token-limit 
+                    counter-key="@(context.Product?.Name?.ToString() ?? "Portal-Admin")" 
+                    tokens-per-minute="15000" 
+                    estimate-prompt-tokens="false" 
+                    tokens-consumed-header-name="consumed-tokens" 
+                    remaining-tokens-header-name="remaining-tokens" 
+                    token-quota="150000"
+                    token-quota-period="Monthly"
+                    retry-after-header-name="retry-after" />
+
+        <!-- Defining allowed backends to be used by this product (used to restrict traffic to certain regions) -->
+        <!-- Backend RBAC: Set allowed backends (comma-separated backend-ids, empty means all are allowed) -->
+        <set-variable name="allowedBackend" value="openai-backend-0" />
+
+        <!-- Restrict access for this product to specific models -->
+        <choose>
+            <when condition="@(!new [] { "chat", "embedding" }.Contains(context.Request.MatchedParameters["deployment-id"] ?? String.Empty))">
+                <return-response>
+                    <set-status code="401" reason="Unauthorized model access" />
+                </return-response>
+            </when>
+        </choose>
+
     </inbound>
     <backend>
         <base />

@@ -5,7 +5,7 @@
             "Create_Usage_Log": {
                 "inputs": {
                     "parameters": {
-                        "containerId": "@appsetting('CosmosDBContainerUsage')",
+                        "containerId": "@appsetting('CosmosDBContainerPII')",
                         "databaseId": "@appsetting('CosmosDBDatabase')",
                         "isUpsert": true,
                         "item": "@triggerBody()?['contentData']"
@@ -26,8 +26,7 @@
             "New_Usage_Record_Received": {
                 "inputs": {
                     "parameters": {
-                        "eventHubName": "@appsetting('eventHub_name')",
-                        "consumerGroupName": "aiUsageIngestion"
+                        "eventHubName": "@appsetting('eventHub_pii_name')"
                     },
                     "serviceProviderConfiguration": {
                         "connectionName": "eventHub",
