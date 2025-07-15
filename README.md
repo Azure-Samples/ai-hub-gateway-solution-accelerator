@@ -62,11 +62,11 @@ Deploy enterprise-ready AI governance in minutes with Azure Developer CLI (azd) 
 | **🚪 API Management** | Central AI gateway with intelligent routing | Load balancing, throttling, JWT validation |
 | **📊 Application Insights** | Real-time monitoring & analytics | Custom dashboards, throttling alerts |
 | **📨 Event Hub** | Usage data streaming & processing | Real-time cost tracking, compliance logging |
-| **🤖 Azure OpenAI** | Multi-region AI deployments (3 regions) | PTU support, Realtime API, content filtering |
+| **🤖 Azure OpenAI** | Multi-region AI deployments (3 regions) | GPT-models, Realtime API, fully private |
 | **🛡️ Azure Content Safety** | Centralized LLM protection | Prompt Shield and Content Safety protections |
 | **💳 Azure Language Service** | PII entity detection | Natural language based PII entity detection, anonymization |
 | **🗄️ Cosmos DB** | Usage analytics & cost allocation | Global distribution, automatic scaling |
-| **⚡ Logic App** | Event processing & data transformation | Serverless, workflow-based processing |
+| **⚡ Logic App** | Event processing & data transformation | Workflow-based processing |
 | **🔐 Managed Identity** | Zero-credential authentication | Secure service-to-service communication |
 | **🔗 Virtual Network** | Private connectivity & isolation | BYOVNET support, private endpoints |
 

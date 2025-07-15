@@ -124,10 +124,10 @@
         <set-backend-service backend-id="@((string)context.Variables["backendId"])" />
         <choose>
             <when condition="@(context.Variables.GetValueOrDefault<string>("isStream", "false") == "true")">
-                <forward-request buffer-request-body="false" />
+                <forward-request buffer-response="false" />
             </when>
             <otherwise>
-                <forward-request buffer-request-body="true" />
+                <forward-request buffer-response="true" />
             </otherwise>
         </choose>
         <choose>
