@@ -149,11 +149,20 @@ param languageServicePrivateEndpointName string = ''
 @description('Name of the Azure Content Safety service private endpoint. Leave blank to use default naming conventions.')
 param aiContentSafetyPrivateEndpointName string = ''
 
+@description('API Management V2 private endpoint name. Leave blank to use default naming conventions.')
+param apimV2PrivateEndpointName string = ''
+
 // Services network access configuration
 
-@description('Network type for API Management service.')
+@description('Network type for API Management service. Applies only to Premium and Developer SKUs.')
 @allowed([ 'External', 'Internal' ])
 param apimNetworkType string = 'External'
+
+@description('Use private endpoint for API Management service. Applies only to StandardV2 and PremiumV2 SKUs.')
+param apimV2UsePrivateEndpoint bool = true
+
+@description('API Management service external network access. When false, APIM must have private endpoint.')
+param apimV2PublicNetworkAccess bool = true
 
 @description('Azure OpenAI service public network access.')
 @allowed([ 'Enabled', 'Disabled' ])
@@ -209,7 +218,7 @@ param entraAuth bool = false
 // COMPUTE SKU & SIZE - SKUs and capacity settings for services
 //
 @description('API Management service SKU. Only Developer and Premium are supported.')
-@allowed([ 'Developer', 'Premium' ])
+@allowed([ 'Developer', 'Premium', 'StandardV2', 'PremiumV2' ])
 param apimSku string = 'Developer'
 
 @description('API Management service SKU units.')
@@ -380,6 +389,7 @@ var storageFilePrivateDnsZoneName = 'privatelink.file.core.windows.net'
 var storageTablePrivateDnsZoneName = 'privatelink.table.core.windows.net'
 var storageQueuePrivateDnsZoneName = 'privatelink.queue.core.windows.net'
 var aiCogntiveServicesDnsZoneName = 'privatelink.cognitiveservices.azure.com'
+var apimV2SkuDnsZoneName = 'privatelink.azure-api.net'
 
 var privateDnsZoneNames = [
   openAiPrivateDnsZoneName
@@ -392,6 +402,7 @@ var privateDnsZoneNames = [
   storageFilePrivateDnsZoneName
   storageTablePrivateDnsZoneName
   storageQueuePrivateDnsZoneName
+  apimV2SkuDnsZoneName
 ]
 
 // Organize resources in a resource group
@@ -422,6 +433,7 @@ module vnet './modules/networking/vnet.bicep' = if(!useExistingVnet) {
     functionAppNsgName: !empty(functionAppNsgName) ? functionAppNsgName : 'nsg-functionapp-${resourceToken}'
     vnetAddressPrefix: vnetAddressPrefix
     apimSubnetAddressPrefix: apimSubnetPrefix
+    isAPIMV2SKU: apimSku == 'StandardV2' || apimSku == 'PremiumV2'
     privateEndpointSubnetAddressPrefix: privateEndpointSubnetPrefix
     functionAppSubnetAddressPrefix: functionAppSubnetPrefix
     location: location
@@ -638,7 +650,12 @@ module apim './modules/apim/apim.bicep' = {
     aiSearchInstances: aiSearchInstances
     sku: apimSku
     skuCount: apimSkuUnits
-
+    usePrivateEndpoint: apimV2UsePrivateEndpoint
+    apimV2PrivateEndpointName: !empty(apimV2PrivateEndpointName) ? apimV2PrivateEndpointName : '${abbrs.apiManagementService}pe-${resourceToken}'
+    apimV2PublicNetworkAccess: apimV2PublicNetworkAccess
+    privateEndpointSubnetId: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetId : vnet.outputs.privateEndpointSubnetId
+    dnsZoneRG: !useExistingVnet ? resourceGroup.name : dnsZoneRG
+    dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
   dependsOn: [
     vnet

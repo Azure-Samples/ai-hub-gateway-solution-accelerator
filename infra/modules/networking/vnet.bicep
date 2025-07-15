@@ -12,6 +12,7 @@ param vnetAddressPrefix string
 param apimSubnetAddressPrefix string
 param privateEndpointSubnetAddressPrefix string
 param functionAppSubnetAddressPrefix string
+param isAPIMV2SKU bool
 param tags object = {}
 
 // Set to true to enable service endpoints for APIM subnet
@@ -207,6 +208,16 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
             {
               service: 'Microsoft.Storage'
             }
+          ] : []
+          privateEndpointNetworkPolicies: 'Enabled'
+          privateLinkServiceNetworkPolicies: 'Enabled'
+          delegations: isAPIMV2SKU ? [
+          {
+            name: 'Microsoft.Web/serverFarms'
+            properties: {
+            serviceName: 'Microsoft.Web/serverFarms'
+            }
+          }
           ] : []
         }
       }
