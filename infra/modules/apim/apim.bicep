@@ -407,6 +407,11 @@ resource hrPIIProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
     state: 'published'
     terms: 'By subscribing to this product, you agree to the terms and conditions.'
   }
+  dependsOn: [
+    piiAnonymizationPolicyFragment
+    piiDenonymizationPolicyFragment
+    piiStateSavingPolicyFragment
+  ]
 }
 
 resource hrPIIProductOpenAIApi 'Microsoft.ApiManagement/service/products/apiLinks@2023-05-01-preview' = {
