@@ -411,6 +411,7 @@ resource hrPIIProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
     piiAnonymizationPolicyFragment
     piiDenonymizationPolicyFragment
     piiStateSavingPolicyFragment
+    ehPIIUsageLogger
   ]
 }
 
