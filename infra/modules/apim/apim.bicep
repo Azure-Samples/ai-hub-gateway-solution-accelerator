@@ -8,7 +8,9 @@ param publisherEmail string = 'noreply@microsoft.com'
 
 @minLength(1)
 param publisherName string = 'n/a'
+
 param sku string = 'Developer'
+var isV2SKU = sku == 'StandardV2' || sku == 'PremiumV2'
 param skuCount int = 1
 param applicationInsightsName string
 param openAiUris array
@@ -41,6 +43,15 @@ param aiLanguageServiceUrl string
 param apimNetworkType string = 'External'
 param apimSubnetId string
 
+param apimV2PrivateDnsZoneName string = 'privatelink.azure-api.net'
+param apimV2PrivateEndpointName string
+param dnsZoneRG string = resourceGroup().name
+param dnsSubscriptionId string = subscription().subscriptionId
+param privateEndpointSubnetId string
+param usePrivateEndpoint bool = false
+param apimV2PublicNetworkAccess bool = true
+var apimPublicNetworkAccess = apimV2PublicNetworkAccess ? 'Enabled' : 'Disabled'
+
 var openAiApiBackendId = 'openai-backend'
 var openAiApiUamiNamedValue = 'uami-client-id'
 var openAiApiEntraNamedValue = 'entra-auth'
@@ -49,6 +60,7 @@ var openAiApiTenantNamedValue = 'tenant-id'
 var openAiApiAudienceNamedValue = 'audience'
 
 var apiManagementMinApiVersion = '2021-08-01'
+var apiManagementMinApiVersionV2 = '2024-05-01'
 
 // Add this variable near the top with other variables
 // var apimZones = sku == 'Premium' && skuCount > 1 ? ['1','2','3'] : []
@@ -79,7 +91,7 @@ resource eventHubPII 'Microsoft.EventHub/namespaces/eventhubs@2023-01-01-preview
 //   name: aiLanguageServiceName
 // }
 
-resource apimService 'Microsoft.ApiManagement/service@2021-08-01' = {
+resource apimService 'Microsoft.ApiManagement/service@2024-05-01' = {
   name: name
   location: location
   tags: union(tags, { 'azd-service-name': name })
@@ -96,12 +108,13 @@ resource apimService 'Microsoft.ApiManagement/service@2021-08-01' = {
   properties: {
     publisherEmail: publisherEmail
     publisherName: publisherName
-    virtualNetworkType: apimNetworkType
-    virtualNetworkConfiguration: apimNetworkType != 'None' ? {
+    virtualNetworkType: isV2SKU ? 'External' : apimNetworkType
+    publicNetworkAccess: isV2SKU ? apimPublicNetworkAccess : 'Enabled'
+    virtualNetworkConfiguration: apimNetworkType != 'None' || isV2SKU ? {
       subnetResourceId: apimSubnetId
     } : null
     apiVersionConstraint: {
-      minApiVersion: apiManagementMinApiVersion
+      minApiVersion: isV2SKU? apiManagementMinApiVersionV2 : apiManagementMinApiVersion
     }
     // Custom properties are not supported for Consumption SKU
     customProperties: sku == 'Consumption' ? {} : {
@@ -122,6 +135,22 @@ resource apimService 'Microsoft.ApiManagement/service@2021-08-01' = {
     }
   }
   zones: apimZones
+}
+
+module privateEndpoint '../networking/private-endpoint.bicep' = if (isV2SKU && usePrivateEndpoint) {
+  name: '${name}-privateEndpoint'
+  params: {
+    groupIds: [
+      'Gateway'
+    ]
+    dnsZoneName: apimV2PrivateDnsZoneName
+    name: apimV2PrivateEndpointName
+    privateLinkServiceId: apimService.id
+    location: location
+    dnsZoneRG: dnsZoneRG
+    privateEndpointSubnetId: privateEndpointSubnetId
+    dnsSubId: dnsSubscriptionId
+  }
 }
 
 module apimOpenaiApi './api.bicep' = {
@@ -242,6 +271,12 @@ module apimOpenAIRealTimetApi './api.bicep' = if (enableOpenAIRealtime) {
     apiProtocols: ['wss']
   }
   dependsOn: [
+    aadAuthPolicyFragment
+    validateRoutesPolicyFragment
+    backendRoutingPolicyFragment
+    openAIUsagePolicyFragment
+    openAIUsageStreamingPolicyFragment
+    openAiBackends
   ]
 }
 
@@ -372,6 +407,14 @@ resource hrPIIProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
     state: 'published'
     terms: 'By subscribing to this product, you agree to the terms and conditions.'
   }
+  dependsOn: [
+    piiAnonymizationPolicyFragment
+    piiDenonymizationPolicyFragment
+    piiStateSavingPolicyFragment
+    ehUsageLogger
+    ehPIIUsageLogger
+    contentSafetyBackend
+  ]
 }
 
 resource hrPIIProductOpenAIApi 'Microsoft.ApiManagement/service/products/apiLinks@2023-05-01-preview' = {
@@ -681,6 +724,9 @@ resource piiStateSavingPolicyFragment 'Microsoft.ApiManagement/service/policyFra
     value: loadTextContent('./policies/frag-pii-state-saving.xml')
     format: 'rawxml'
   }
+  dependsOn: [
+    ehPIIUsageLogger
+  ]
 }
 
 resource apimLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
