@@ -411,7 +411,9 @@ resource hrPIIProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
     piiAnonymizationPolicyFragment
     piiDenonymizationPolicyFragment
     piiStateSavingPolicyFragment
+    ehUsageLogger
     ehPIIUsageLogger
+    contentSafetyBackend
   ]
 }
 
@@ -722,6 +724,9 @@ resource piiStateSavingPolicyFragment 'Microsoft.ApiManagement/service/policyFra
     value: loadTextContent('./policies/frag-pii-state-saving.xml')
     format: 'rawxml'
   }
+  dependsOn: [
+    ehPIIUsageLogger
+  ]
 }
 
 resource apimLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
