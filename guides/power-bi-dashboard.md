@@ -69,3 +69,28 @@ In order to link the dashboard to the Cosmos DB, you need to update the connecti
 ![Power BI Dashboard](../assets/power-bi-data-final.png)
 
 8. If you need to get fresh copy of the data, you can click on "Refresh" in the Home tab.
+
+## Activating additional metadata
+
+AI Hub Gateway solution accelerator provides additional metadata that can be used to enhance the Power BI dashboard. This metadata is stored in the Cosmos DB and can be accessed through the Power BI dashboard through additional customization.
+
+The current data model includes the following additional metadata:
+- **endUserId**: The ID of the end user making the request.
+- **sessionId**: The ID of the user session.
+- **appId**: The ID of the application/agent making the request.
+
+To leverage these metadata, recommended approach is to send special headers in the API request to the AI Hub Gateway. This will allow you to track the usage of the AI services by end users, sessions, and applications.
+
+The following APIM policy snippet show example of how to capture these metadata and send them to the AI Hub Gateway:
+
+```xml
+<set-variable name="endUserId" value="@(context.Request.Headers.GetValueOrDefault("endUserId", "NA-HEADER"))" />
+<set-variable name="sessionId" value="@(context.Request.Headers.GetValueOrDefault("sessionId", "NA-HEADER"))" />
+<set-variable name="appId" value="@(context.Request.Headers.GetValueOrDefault("appId", "NA-HEADER"))" />
+```
+
+Adding these variable assignment can be included in the ```inbound``` section of the API Policy (if you want it applied to all calls to the API) or in specific APIM Product policy (if you want it applied to specific product only).
+
+OpenAI streaming logs has limited dimensions support, if this metadata is required for OpenAI streaming logs, you can update the openai-usage-streaming policy fragment to include these variables as dimensions.
+
+>**Note:** You can extend data model to include additional metadata that can be captured from the API request. Keep in mind that this will require updates to usage collection policy fragments (like ai-usage, openai-usage and openai-usage-streaming).

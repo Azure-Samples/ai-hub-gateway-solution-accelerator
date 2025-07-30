@@ -14,7 +14,7 @@
                     return new JObject(
                         new JProperty("id", responseBody?["id"]?.ToString() ?? Guid.NewGuid().ToString()),
                         new JProperty("timestamp", DateTime.UtcNow.ToString()),
-                        new JProperty("appId", context.Request.Headers.GetValueOrDefault("Authorization",string.Empty).Split(' ').LastOrDefault()?.AsJwt()?.Claims.GetValueOrDefault("appid", "NA")),
+                        new JProperty("appId", (string)context.Variables.GetValueOrDefault<string>("appId", "NA")),
                         new JProperty("subscriptionId", context.Subscription?.Id?.ToString() ?? "Portal-Admin"),
                         new JProperty("productName", context.Product?.Name?.ToString() ?? "Portal-Admin"),
                         new JProperty("targetService", responseBody?["object"]?.ToString() ?? "NA"),

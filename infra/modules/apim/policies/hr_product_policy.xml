@@ -63,6 +63,10 @@
             </when>
         </choose>
 
+        <!-- Set variables for OpenAI usage logging -->
+        <set-variable name="endUserId" value="@(context.Request.Headers.GetValueOrDefault("endUserId", "NA-HEADER"))" />
+        <set-variable name="sessionId" value="@(context.Request.Headers.GetValueOrDefault("sessionId", "NA-HEADER"))" />
+        <set-variable name="appId" value="@(context.Request.Headers.GetValueOrDefault("appId", "NA-HEADER"))" />
     </inbound>
     <backend>
         <base />
