@@ -186,6 +186,8 @@ resource apimRouteTable 'Microsoft.Network/routeTables@2023-11-01' = {
 }
 ```
 
+>**Note:** If you are using APIM with V2 SKU (StandardV2 or PremiumV2), Route Table requirement is not needed (it only applies to APIM classic version Developer and Premium).
+
 If there is a forced tunneling applied on the subnet (directly through route table or in-directly through BGP), you need to enable service endpoints for the following services (only on the APIM subnet):
 
 - Azure Active Directory
@@ -194,6 +196,8 @@ If there is a forced tunneling applied on the subnet (directly through route tab
 - Service Bus
 - SQL Database
 - Storage
+
+>**Note:** If you are using APIM with V2 SKU (StandardV2 or PremiumV2), this subnet will be delegated to ```Microsoft.Web/serverFarms```. This will allow APIM to access private AI endpoints for OpenAI and Cognitive Services.
 
 ### Function app subnet
 
@@ -247,6 +251,8 @@ Example of the subnet definition:
 }
 ```
 
+>**Note:** APIM V2 SKU (StandardV2 or PremiumV2) requires private endpoints to be configured in the private endpoint subnet to ensure private inbound connectivity.
+
 ### Private DNS Zones
 The following private zones are expected to be available in one resource group (it can be different resource group from the virtual network) and already linked to the virtual network:
 
@@ -260,6 +266,8 @@ var storageBlobPrivateDnsZoneName = 'privatelink.blob.core.windows.net'
 var storageFilePrivateDnsZoneName = 'privatelink.file.core.windows.net'
 var storageTablePrivateDnsZoneName = 'privatelink.table.core.windows.net'
 var storageQueuePrivateDnsZoneName = 'privatelink.queue.core.windows.net'
+var aiCogntiveServicesDnsZoneName = 'privatelink.cognitiveservices.azure.com'
+var apimV2SkuDnsZoneName = 'privatelink.azure-api.net' // This is only needed if you are using APIM with V2 SKU (StandardV2 or PremiumV2)
 ```
 
 Depending on the setup you have for managing private dns zones, you have these options:

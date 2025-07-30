@@ -128,7 +128,7 @@ resource functionAppSettings 'Microsoft.Web/sites/config@2024-04-01' = {
       //AzureWebJobsStorage__accountname: storageAccountName      
       FUNCTIONS_EXTENSION_VERSION:  '~4'
       FUNCTIONS_WORKER_RUNTIME: 'node'
-      WEBSITE_NODE_DEFAULT_VERSION: '~18'
+      WEBSITE_NODE_DEFAULT_VERSION: '~20'
       WEBSITE_CONTENTAZUREFILECONNECTIONSTRING: storageAccountConnectionString
       WEBSITE_CONTENTSHARE: fileShareName
       WEBSITE_VNET_ROUTE_ALL: '0'

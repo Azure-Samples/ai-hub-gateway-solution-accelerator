@@ -2,19 +2,21 @@
 
 Using APIM to handle PII anonymization and deanonymization requests transparently for API requests that may contain PII data.
 
+This can be important for scenarios where you want to ensure that PII data is not exposed to the backend services, while still allowing the client to receive a deanonymized response.
+
+One example of needing such functionality is when you want to use Azure OpenAI API with PII data but outside the supported/allowed regions (geo-restrictions), but you want to ensure that the PII data is not sent to the backend service. In this case, you can use APIM to handle the PII anonymization and deanonymization transparently.
+
 ## Key Updates to PII Handling Framework
 
 The PII handling framework has been enhanced with the following key features:
 
 1. **Managed Identity Authentication**: Authentication to Azure AI Language Services now uses managed identity instead of API keys, improving security.
 
-2. **Regex Pattern Processing**: Enhanced regex pattern processing for custom PII detection prior to calling the Language Service.
+2. **Regex Pattern Processing**: Extend Azure PII detection Natural Language Processing with regex pattern processing for custom PII detection prior to calling the Language Service.
 
 3. **Additional Configuration Options**: New configuration options for language detection and more customizable PII identification.
 
-4. **Event Hub Logging**: Comprehensive logging to Event Hub for auditing, compliance, and analytics.
-
-5. **Encoding Handling**: Improved handling of encoded characters in JSON responses.
+4. **Event Hub Logging**: Comprehensive logging to Event Hub for auditing, compliance, and testing.
 
 ## Process Flow
 
@@ -52,13 +54,13 @@ sequenceDiagram
 ## Implementation Components
 
 1. **PII Detection Methods**:
-   - Azure Language Service PII detection
-   - Custom regex pattern matching
+   - Azure Language Service PII detection (using Natural Language Processing - NLP)
+   - Custom regex pattern matching (provided by the user)
    - Configurable confidence thresholds
-   - Category exclusions
+   - Category exclusions (e.g., excluding PersonType as usually LLM request context containers ```user``` and ```assistant``` are not PII data but rather part of the request context)
 
 2. **Regex Pattern Support**:
-   Built-in patterns for common PII types:
+   Example of extending PII detection with Regex patterns for common PII types:
    ```json
    {
        "patterns": [
@@ -82,7 +84,7 @@ sequenceDiagram
    }
    ```
 
-## Example of PII Anonymization API
+## Understanding of PII NLP-based Anonymization API
 
 The following is an example that send a request to `Azure Language Service PII Anonymization` API. The request is sent using `curl` and shows a sample payload.
 
@@ -181,11 +183,11 @@ Sample output for the above request:
 
 ## APIM implementation
 
-Handling PII anonymization and deanonymization in APIM are done using policy framgments. The following policies can be used to implement the above process:
+Handling PII anonymization and deanonymization in APIM are done using policy fragments. The following policies can be used to implement the above process:
 
 ### Setting up policy fragments
 
-1. **pii-anonymization** policy fragement:
+1. **pii-anonymization** policy fragment:
 
 Anonymization service connection information used by this fragment are stored in APIM named values. The following named values are used in the policy fragment:
 
@@ -469,7 +471,7 @@ This fragment logs PII anonymization and deanonymization activity to an Event Hu
 
 ### Determining the scope of PII anonymization and deanonymization
 
-To implement the above policiy framtements, they need to be referenced in the target API in APIM.
+To implement the above policy fragments, they need to be referenced in the target API in APIM.
 
 It is important to decide the scope of PII anonymization and deanonymization.
 
@@ -506,67 +508,7 @@ The following is a complete example of an HR product policy that implements PII 
     <inbound>
         <base />
 
-        <!-- Defining allowed backends to be used by this product (used to restrict traffic to certain regions) -->
-        <!-- Backend RBAC: Set allowed backends (comma-separated backend-ids, empty means all are allowed) -->
-        <set-variable name="allowedBackend" value="openai-backend-0" />
-
-        <!-- Restrict access for this product to specific models -->
-        <choose>
-            <when condition="@(!new [] { "gpt-4o", "embedding" }.Contains(context.Request.MatchedParameters["deployment-id"] ?? String.Empty))">
-                <return-response>
-                    <set-status code="401" reason="Unauthorized model access" />
-                </return-response>
-            </when>
-        </choose>
-
-        <!-- Capacity management - Subscription Level: allow only assigned tpm for each HR use case subscription -->
-        <set-variable name="target-deployment" value="@((string)context.Request.MatchedParameters["deployment-id"])" />
-        <choose>
-            <when condition="@((string)context.Variables["target-deployment"] == "gpt-4o")">
-                <azure-openai-token-limit 
-                    counter-key="@(context.Subscription.Id + "-" + context.Variables["target-deployment"])" 
-                    tokens-per-minute="10000" 
-                    estimate-prompt-tokens="false" 
-                    tokens-consumed-header-name="consumed-tokens" 
-                    remaining-tokens-header-name="remaining-tokens" 
-                    token-quota="100000"
-                    token-quota-period="Monthly"
-                    retry-after-header-name="retry-after" />
-            </when>
-            <when condition="@((string)context.Variables["target-deployment"] == "chat")">
-                <azure-openai-token-limit 
-                    counter-key="@(context.Subscription.Id + "-" + context.Variables["target-deployment"])" 
-                    tokens-per-minute="2000" 
-                    estimate-prompt-tokens="false" 
-                    tokens-consumed-header-name="consumed-tokens" 
-                    remaining-tokens-header-name="remaining-tokens" 
-                    token-quota="10000"
-                    token-quota-period="Weekly"
-                    retry-after-header-name="retry-after" />
-            </when>
-            <otherwise>
-                <azure-openai-token-limit 
-                    counter-key="@(context.Subscription.Id + "-default")" 
-                    tokens-per-minute="1000" 
-                    estimate-prompt-tokens="false" 
-                    tokens-consumed-header-name="consumed-tokens" 
-                    remaining-tokens-header-name="remaining-tokens" 
-                    token-quota="5000"
-                    token-quota-period="Monthly"
-                    retry-after-header-name="retry-after" />
-            </otherwise>
-        </choose>
-        
-        <!-- Capacity management: Product Level (across all OpenAI models -->
-        <azure-openai-token-limit 
-                    counter-key="@(context.Product?.Name?.ToString() ?? "Portal-Admin")" 
-                    tokens-per-minute="15000" 
-                    estimate-prompt-tokens="false" 
-                    tokens-consumed-header-name="consumed-tokens" 
-                    remaining-tokens-header-name="remaining-tokens" 
-                    token-quota="150000"
-                    token-quota-period="Monthly"
-                    retry-after-header-name="retry-after" />
+        ... other policies ...
 
         <!-- PII Detection and Anonymization -->
         <set-variable name="piiAnonymizationEnabled" value="true" />
@@ -582,8 +524,17 @@ The following is a complete example of an HR product policy that implements PII 
                 <set-variable name="piiRegexPatterns" value="@{
                     var patterns = new JArray {
                         new JObject {
+                            ["pattern"] = @"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b",
                             ["category"] = "CREDIT_CARD"
                         },
+                        new JObject {
+                            ["pattern"] = @"\b[A-Z]{2}\d{6}[A-Z]\b",
+                            ["category"] = "PASSPORT_NUMBER"
+                        },
+                        new JObject {
+                            ["pattern"] = @"\b\d{3}[-]?\d{4}[-]?\d{7}[-]?\d{1}\b",
+                            ["category"] = "NATIONAL_ID"
+                        }
                     };
                     return patterns.ToString();
                 }" />
@@ -636,7 +587,7 @@ The following is a complete example of an HR product policy that implements PII 
 
 You can use the above approach to apply PII anonymization and deanonymization to Azure OpenAI API requests managed through APIM as AI Gateway.
 
-Applyting the policy at the level of the chat completion API will ensure that all requests to the chat completion API are processed by the PII anonymization and deanonymization policies.
+Applying the policy at the level of the chat completion API will ensure that all requests to the chat completion API are processed by the PII anonymization and deanonymization policies.
 
 Below is a sample Azure OpenAI request body that can be used to test the API with PII anonymization and deanonymization policies applied.
 
@@ -683,10 +634,6 @@ Anonymized text mapping:
   {
     "original": "Sarah Jones",
     "placeholder": "<Person_0>"
-  },
-  {
-    "original": "Sarah Jones",
-    "placeholder": "<Person_1>"
   }
 ]
 ```
@@ -703,13 +650,13 @@ Modified request body sent to the Azure OpenAI API:
     },
     {
       "role": "user",
-      "content": "Hello, my name is <Person_0> and I need help with my accounts. My first IBAN is <InternationalBankingAccountNumber_0> and my second IBAN is <InternationalBankingAccountNumber_1>. You can contact <Person_1> at <Email_0> or call at <PhoneNumber_0>. I want to know how to calculate the distance between earth and moon?"
+      "content": "Hello, my name is <Person_0> and I need help with my accounts. My first IBAN is <InternationalBankingAccountNumber_0> and my second IBAN is <InternationalBankingAccountNumber_1>. You can contact <Person_0> at <Email_0> or call at <PhoneNumber_0>. I want to know how to calculate the distance between earth and moon?"
     }
   ]
 }
 ```
 
-This is the reponse from the Azure OpenAI API:
+This is the response from the Azure OpenAI API:
 
 
 ```json
@@ -759,7 +706,7 @@ This is the reponse from the Azure OpenAI API:
 }
 ```
 
-The final response send back the client will be:
+The final response send back the client after deanonymization will be:
 
 ```json
 {
