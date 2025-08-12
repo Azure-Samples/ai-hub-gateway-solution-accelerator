@@ -36,7 +36,7 @@ This guide recommends an **enterprise repository strategy** using branch-based e
 
 ### Repository Structure
 
-Establish a dedicated enterprise repository for the AI Hub Gateway accelerator with the following structure:
+Establish a dedicated enterprise repository for the AI Hub Gateway accelerator with the following suggested structure:
 
 ```
 ai-hub-gateway-enterprise/
