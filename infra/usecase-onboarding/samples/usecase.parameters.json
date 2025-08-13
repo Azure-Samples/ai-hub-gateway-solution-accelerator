@@ -1,0 +1,52 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "apim": {
+      "value": {
+        "subscriptionId": "<sub-guid>",
+        "resourceGroupName": "<apim-rg>",
+        "name": "<apim-name>"
+      }
+    },
+    "keyVault": {
+      "value": {
+        "subscriptionId": "<sub-guid>",
+        "resourceGroupName": "<kv-rg>",
+        "name": "<kv-name>"
+      }
+    },
+    "useCase": {
+      "value": {
+        "businessUnit": "HR",
+        "useCaseName": "InternalAssistant",
+        "environment": "DEV"
+      }
+    },
+    "existingServices": {
+      "value": {
+        "OAI": { "apiResourceIds": [ "/subscriptions/replace-sub-id/resourceGroups/replace-rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/replace-apim-ai-gateway-name/apis/azure-openai-service-api" ] },
+        "DOC": { "apiResourceIds": [ "/subscriptions/replace-sub-id/resourceGroups/replace-rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/replace-apim-ai-gateway-name/apis/document-intelligence-api", "/subscriptions/replace-sub-id/resourceGroups/replace-rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/replace-apim-ai-gateway-name/apis/document-intelligence-api-legacy" ] },
+        "DOCL": { "apiResourceIds": [ "/subscriptions/replace-sub-id/resourceGroups/replace-rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/replace-apim-ai-gateway-name/apis/document-intelligence-api-legacy" ] },
+        "LLM": { "apiResourceIds": [ "/subscriptions/replace-sub-id/resourceGroups/replace-rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/replace-apim-ai-gateway-name/apis/ai-model-inference-api" ] },
+        "SRCH": { "apiResourceIds": [ "/subscriptions/replace-sub-id/resourceGroups/replace-rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/replace-apim-ai-gateway-name/apis/azure-ai-search-index-api" ] },
+        "OAIRT": { "apiResourceIds": [ "/subscriptions/replace-sub-id/resourceGroups/replace-rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/replace-apim-ai-gateway-name/apis/openai-realtime-ws-api" ] }
+      }
+    },
+    "services": {
+      "value": [
+        {
+          "code": "OAI",
+          "endpointSecretName": "AzureOpenAI-Endpoint",
+          "apiKeySecretName": "AzureOpenAI-Key"
+        },
+        {
+          "code": "DOC",
+          "endpointSecretName": "AzureDocumentIntelligence-Endpoint",
+          "apiKeySecretName": "AzureDocumentIntelligence-Key"
+        }
+      ]
+    },
+    "productTerms": { "value": "By using this product you agree to the acceptable use policy." }
+  }
+}
