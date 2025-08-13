@@ -1,0 +1,57 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "apim": {
+      "value": {
+        "subscriptionId": "0000000-0000-0000-0000-0000000",
+        "resourceGroupName": "rg-apim-ai-gateway-name",
+        "name": "apim-ai-gateway-name"
+      }
+    },
+    "keyVault": {
+      "value": {
+        "subscriptionId": "0000000-0000-0000-0000-0000000",
+        "resourceGroupName": "rg-ai-financial-assistant-name",
+        "name": "kv-ai-financial-assistant-name"
+      }
+    },
+    "useCase": {
+      "value": {
+        "businessUnit": "Retail",
+        "useCaseName": "FinancialAssistant",
+        "environment": "DEV"
+      }
+    },
+    "existingServices": {
+      "value": {
+        "OAI": { "apiResourceIds": [ "/subscriptions/0000000-0000-0000-0000-0000000/resourceGroups/rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/apim-ai-gateway-name/apis/azure-openai-service-api" ] },
+        "DOC": { "apiResourceIds": [ "/subscriptions/0000000-0000-0000-0000-0000000/resourceGroups/rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/apim-ai-gateway-name/apis/document-intelligence-api", "/subscriptions/0000000-0000-0000-0000-0000000/resourceGroups/rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/apim-ai-gateway-name/apis/document-intelligence-api-legacy" ] },
+        "DOCL": { "apiResourceIds": [ "/subscriptions/0000000-0000-0000-0000-0000000/resourceGroups/rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/apim-ai-gateway-name/apis/document-intelligence-api-legacy" ] },
+        "LLM": { "apiResourceIds": [ "/subscriptions/0000000-0000-0000-0000-0000000/resourceGroups/rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/apim-ai-gateway-name/apis/ai-model-inference-api" ] },
+        "SRCH": { "apiResourceIds": [ "/subscriptions/0000000-0000-0000-0000-0000000/resourceGroups/rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/apim-ai-gateway-name/apis/azure-ai-search-index-api" ] },
+        "OAIRT": { "apiResourceIds": [ "/subscriptions/0000000-0000-0000-0000-0000000/resourceGroups/rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/apim-ai-gateway-name/apis/openai-realtime-ws-api" ] }
+      }
+    },
+    "services": {
+      "value": [
+        {
+          "code": "OAI",
+          "endpointSecretName": "OAI-ENDPOINT",
+          "apiKeySecretName": "OAI-KEY"
+        },
+        {
+          "code": "DOC",
+          "endpointSecretName": "DOC-ENDPOINT",
+          "apiKeySecretName": "DOC-KEY"
+        },
+        {
+          "code": "OAIRT",
+          "endpointSecretName": "OAIRT-ENDPOINT",
+          "apiKeySecretName": "OAIRT-KEY"
+        }
+      ]
+    },
+    "productTerms": { "value": "By using this product you agree to the acceptable use policy for financial services." }
+  }
+}

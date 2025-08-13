@@ -280,18 +280,42 @@ module apimOpenAIRealTimetApi './api.bicep' = if (enableOpenAIRealtime) {
   ]
 }
 
+module apimDocumentIntelligenceLegacy './api.bicep' = if (enableDocumentIntelligence) {
+  name: 'document-intelligence-api-legacy'
+  params: {
+    serviceName: apimService.name
+    apiName: 'document-intelligence-api-legacy'
+    path: 'formrecognizer'
+    apiRevision: '1'
+    apiDispalyName: 'Document Intelligence API (Legacy)'
+    subscriptionRequired: entraAuth ? false:true
+    subscriptionKeyName: 'Ocp-Apim-Subscription-Key'
+    openApiSpecification: loadTextContent('./doc-intel-api/document-intelligence-2024-11-30-compressed.openapi.yaml')
+    apiDescription: 'Uses (/formrecognizer) url path. Extracts content, layout, and structured data from documents.'
+    policyDocument: loadTextContent('./policies/doc-intelligence-api-policy.xml')
+    enableAPIDeployment: true
+  }
+  dependsOn: [
+    aadAuthPolicyFragment
+    validateRoutesPolicyFragment
+    backendRoutingPolicyFragment
+    aiUsagePolicyFragment
+    throttlingEventsPolicyFragment
+  ]
+}
+
 module apimDocumentIntelligence './api.bicep' = if (enableDocumentIntelligence) {
   name: 'document-intelligence-api'
   params: {
     serviceName: apimService.name
     apiName: 'document-intelligence-api'
-    path: 'formrecognizer'
+    path: 'documentintelligence'
     apiRevision: '1'
     apiDispalyName: 'Document Intelligence API'
     subscriptionRequired: entraAuth ? false:true
     subscriptionKeyName: 'Ocp-Apim-Subscription-Key'
     openApiSpecification: loadTextContent('./doc-intel-api/document-intelligence-2024-11-30-compressed.openapi.yaml')
-    apiDescription: 'Extracts content, layout, and structured data from documents.'
+    apiDescription: 'Uses (/documentintelligence) url path. Extracts content, layout, and structured data from documents.'
     policyDocument: loadTextContent('./policies/doc-intelligence-api-policy.xml')
     enableAPIDeployment: true
   }

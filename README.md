@@ -22,6 +22,9 @@
 - **[Dynamic Throttling Assignment](./guides/dynamic-throttling-assignment.md)** - Intelligent load balancing for PTU models
 - **Enhanced Power BI Dashboards** - Advanced usage analytics with cost allocation
 
+🧩 **Use Case Onboarding Automation**
+- **[APIM Product + Subscription + KV Secrets (Bicep)](./infra/usecase-onboarding/README.md)** - Automate per-use-case onboarding to the AI Gateway; creates per-service products, subscriptions, and writes endpoint + key secrets to Key Vault. Includes a ready-to-use Financial Assistant example.
+
 ## 🎯 Core Capabilities
 
 ![ai-hub-gateway-benefits.png](./assets/ai-hub-gateway-benefits.png)
@@ -30,6 +33,7 @@
 - Centralized access control and API key management
 - Managed identity integration (no master keys required)
 - Multi-tenant isolation with product-based access control
+- Per-use-case onboarding automation for APIM Products and Subscriptions
 
 **⚡ Intelligent Routing**
 - Priority-based backend selection with automatic failover
@@ -142,3 +146,4 @@ Comprehensive guides to master AI Hub Gateway implementation and operations.
 | Guide | Description |
 |-------|-------------|
 | [Hybrid Deployment](./guides/ai-hub-gateway-hybrid-deployment.md) | Multi-cloud and edge scenarios |
+| [Use Case Onboarding (APIM Product Automation)](./infra/usecase-onboarding/README.md) | Automate per-use-case APIM Products, Subscriptions, and Key Vault secrets; includes “Financial Assistant” example |

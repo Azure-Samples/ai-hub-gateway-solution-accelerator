@@ -1,0 +1,413 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "languageVersion": "2.0",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.37.4.10188",
+      "templateHash": "18277901564264477872"
+    }
+  },
+  "parameters": {
+    "apim": {
+      "type": "object",
+      "metadata": {
+        "description": "APIM resource coordinates"
+      }
+    },
+    "keyVault": {
+      "type": "object",
+      "metadata": {
+        "description": "Target Key Vault for storing endpoint and API key secrets"
+      }
+    },
+    "useCase": {
+      "type": "object",
+      "metadata": {
+        "description": "Use case descriptor used in naming: <code>-<businessUnit>-<useCaseName>-<environment>"
+      }
+    },
+    "existingServices": {
+      "type": "object",
+      "metadata": {
+        "description": "Catalog of existing AI services in APIM as an object map by code. Example: { OAI: { apiResourceIds: [\"/subscriptions/.../resourceGroups/.../providers/Microsoft.ApiManagement/service/<apimName>/apis/<apiName>\"] } }"
+      }
+    },
+    "services": {
+      "type": "array",
+      "metadata": {
+        "description": "Required AI services for this use case. Each item: { code: \"OAI\", endpointSecretName: \"OAI_ENDPOINT\", apiKeySecretName: \"OAI_KEY\", policyXml: \"<policies>...</policies>\" }"
+      }
+    },
+    "productTerms": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional product terms shown to subscribers"
+      }
+    }
+  },
+  "variables": {
+    "copy": [
+      {
+        "name": "normalizedServices",
+        "count": "[length(parameters('services'))]",
+        "input": "[union(createObject('policyXml', ''), parameters('services')[copyIndex('normalizedServices')])]"
+      }
+    ],
+    "productPostfix": "[format('{0}-{1}-{2}', parameters('useCase').businessUnit, parameters('useCase').useCaseName, parameters('useCase').environment)]"
+  },
+  "resources": {
+    "apimRg": {
+      "existing": true,
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2022-09-01",
+      "subscriptionId": "[parameters('apim').subscriptionId]",
+      "name": "[parameters('apim').resourceGroupName]"
+    },
+    "apimSvc": {
+      "existing": true,
+      "type": "Microsoft.ApiManagement/service",
+      "apiVersion": "2024-05-01",
+      "subscriptionId": "[parameters('apim').subscriptionId]",
+      "resourceGroup": "[parameters('apim').resourceGroupName]",
+      "name": "[parameters('apim').name]"
+    },
+    "kvRg": {
+      "existing": true,
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2022-09-01",
+      "subscriptionId": "[parameters('keyVault').subscriptionId]",
+      "name": "[parameters('keyVault').resourceGroupName]"
+    },
+    "kv": {
+      "existing": true,
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2023-07-01",
+      "subscriptionId": "[parameters('keyVault').subscriptionId]",
+      "resourceGroup": "[parameters('keyVault').resourceGroupName]",
+      "name": "[parameters('keyVault').name]"
+    },
+    "onboard": {
+      "copy": {
+        "name": "onboard",
+        "count": "[length(variables('normalizedServices'))]"
+      },
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('onboard-{0}-{1}', variables('normalizedServices')[copyIndex()].code, variables('productPostfix'))]",
+      "subscriptionId": "[parameters('apim').subscriptionId]",
+      "resourceGroup": "[parameters('apim').resourceGroupName]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "apimName": {
+            "value": "[parameters('apim').name]"
+          },
+          "productId": {
+            "value": "[format('{0}-{1}', variables('normalizedServices')[copyIndex()].code, variables('productPostfix'))]"
+          },
+          "productDisplayName": {
+            "value": "[format('{0} {1} {2} {3}', variables('normalizedServices')[copyIndex()].code, parameters('useCase').businessUnit, parameters('useCase').useCaseName, parameters('useCase').environment)]"
+          },
+          "productDescription": {
+            "value": "[format('AI Gateway product for {0} - {1}', variables('normalizedServices')[copyIndex()].code, parameters('useCase').useCaseName)]"
+          },
+          "productTerms": {
+            "value": "[parameters('productTerms')]"
+          },
+          "apiResourceIds": {
+            "value": "[parameters('existingServices')[variables('normalizedServices')[copyIndex()].code].apiResourceIds]"
+          },
+          "productPolicyXml": {
+            "value": "[variables('normalizedServices')[copyIndex()].policyXml]"
+          },
+          "subscriptionName": {
+            "value": "[format('{0}-{1}-SUB-01', variables('normalizedServices')[copyIndex()].code, variables('productPostfix'))]"
+          },
+          "subscriptionDisplayName": {
+            "value": "[format('{0}-{1}-SUB-01', variables('normalizedServices')[copyIndex()].code, variables('productPostfix'))]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.0",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "9071235648865231712"
+            }
+          },
+          "parameters": {
+            "apimName": {
+              "type": "string",
+              "metadata": {
+                "description": "Existing APIM service name"
+              }
+            },
+            "productId": {
+              "type": "string",
+              "metadata": {
+                "description": "APIM product identifier (resource name). e.g., OAI-HR-InternalAssistant-DEV"
+              }
+            },
+            "productDisplayName": {
+              "type": "string",
+              "metadata": {
+                "description": "APIM product display name"
+              }
+            },
+            "productDescription": {
+              "type": "string",
+              "defaultValue": "AI Gateway product for use case",
+              "metadata": {
+                "description": "APIM product description"
+              }
+            },
+            "productTerms": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "APIM product terms"
+              }
+            },
+            "apiResourceIds": {
+              "type": "array",
+              "metadata": {
+                "description": "List of API resourceIds to include in product"
+              }
+            },
+            "productPolicyXml": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Optional product policy XML; if empty, a default minimal policy is applied"
+              }
+            },
+            "subscriptionName": {
+              "type": "string",
+              "metadata": {
+                "description": "Subscription name (resource name) e.g., <productId>-SUB-01"
+              }
+            },
+            "subscriptionDisplayName": {
+              "type": "string",
+              "metadata": {
+                "description": "Subscription display name"
+              }
+            }
+          },
+          "variables": {
+            "defaultPolicy": "<policies>\n  <inbound>\n    <base />\n    <rate-limit calls=\"60\" renewal-period=\"60\" />\n    <check-header name=\"Ocp-Apim-Subscription-Key\" failed-check-httpcode=\"401\" failed-check-error-message=\"Subscription key required\" />\n  </inbound>\n  <backend>\n    <base />\n  </backend>\n  <outbound>\n    <base />\n  </outbound>\n  <on-error>\n    <base />\n  </on-error>\n</policies>",
+            "firstApiName": "[last(split(parameters('apiResourceIds')[0], '/'))]"
+          },
+          "resources": {
+            "apim": {
+              "existing": true,
+              "type": "Microsoft.ApiManagement/service",
+              "apiVersion": "2024-05-01",
+              "name": "[parameters('apimName')]"
+            },
+            "product": {
+              "type": "Microsoft.ApiManagement/service/products",
+              "apiVersion": "2024-05-01",
+              "name": "[format('{0}/{1}', parameters('apimName'), parameters('productId'))]",
+              "properties": {
+                "displayName": "[parameters('productDisplayName')]",
+                "description": "[parameters('productDescription')]",
+                "terms": "[parameters('productTerms')]",
+                "subscriptionRequired": true,
+                "approvalRequired": true,
+                "subscriptionsLimit": -1,
+                "state": "published"
+              }
+            },
+            "productApis": {
+              "copy": {
+                "name": "productApis",
+                "count": "[length(parameters('apiResourceIds'))]"
+              },
+              "type": "Microsoft.ApiManagement/service/products/apis",
+              "apiVersion": "2024-05-01",
+              "name": "[format('{0}/{1}/{2}', parameters('apimName'), parameters('productId'), last(split(parameters('apiResourceIds')[copyIndex()], '/')))]",
+              "dependsOn": [
+                "product"
+              ]
+            },
+            "policy": {
+              "type": "Microsoft.ApiManagement/service/products/policies",
+              "apiVersion": "2024-05-01",
+              "name": "[format('{0}/{1}/{2}', parameters('apimName'), parameters('productId'), 'policy')]",
+              "properties": {
+                "format": "xml",
+                "value": "[if(empty(parameters('productPolicyXml')), variables('defaultPolicy'), parameters('productPolicyXml'))]"
+              },
+              "dependsOn": [
+                "product"
+              ]
+            },
+            "sub": {
+              "type": "Microsoft.ApiManagement/service/subscriptions",
+              "apiVersion": "2024-05-01",
+              "name": "[format('{0}/{1}', parameters('apimName'), parameters('subscriptionName'))]",
+              "properties": {
+                "displayName": "[parameters('subscriptionDisplayName')]",
+                "scope": "[format('/products/{0}', parameters('productId'))]",
+                "state": "active"
+              }
+            },
+            "api": {
+              "existing": true,
+              "type": "Microsoft.ApiManagement/service/apis",
+              "apiVersion": "2024-05-01",
+              "name": "[format('{0}/{1}', parameters('apimName'), variables('firstApiName'))]"
+            }
+          },
+          "outputs": {
+            "productName": {
+              "type": "string",
+              "value": "[parameters('productId')]"
+            },
+            "subscriptionNameOut": {
+              "type": "string",
+              "value": "[parameters('subscriptionName')]"
+            },
+            "subscriptionPrimaryKey": {
+              "type": "securestring",
+              "value": "[listSecrets('sub', '2024-05-01').primaryKey]"
+            },
+            "apiPath": {
+              "type": "string",
+              "value": "[reference('api').path]"
+            }
+          }
+        }
+      }
+    },
+    "kvWrites": {
+      "copy": {
+        "name": "kvWrites",
+        "count": "[length(variables('normalizedServices'))]"
+      },
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('kv-{0}-{1}', variables('normalizedServices')[copyIndex()].code, variables('productPostfix'))]",
+      "subscriptionId": "[parameters('keyVault').subscriptionId]",
+      "resourceGroup": "[parameters('keyVault').resourceGroupName]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "keyVaultName": {
+            "value": "[parameters('keyVault').name]"
+          },
+          "secretNames": {
+            "value": [
+              "[variables('normalizedServices')[copyIndex()].endpointSecretName]",
+              "[variables('normalizedServices')[copyIndex()].apiKeySecretName]"
+            ]
+          },
+          "secretValues": {
+            "value": {
+              "[format('{0}', variables('normalizedServices')[copyIndex()].endpointSecretName)]": "[format('{0}/{1}', reference('apimSvc').gatewayUrl, reference(format('onboard[{0}]', copyIndex())).outputs.apiPath.value)]",
+              "[format('{0}', variables('normalizedServices')[copyIndex()].apiKeySecretName)]": "[listOutputsWithSecureValues(format('onboard[{0}]', copyIndex()), '2022-09-01').subscriptionPrimaryKey]"
+            }
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "9432321189899560493"
+            }
+          },
+          "parameters": {
+            "keyVaultName": {
+              "type": "string",
+              "metadata": {
+                "description": "Target Key Vault name where app secrets will be created/updated"
+              }
+            },
+            "secretNames": {
+              "type": "array",
+              "metadata": {
+                "description": "Secret names to create/update"
+              }
+            },
+            "secretValues": {
+              "type": "secureObject",
+              "metadata": {
+                "description": "Secret values in same order as secretNames"
+              }
+            }
+          },
+          "resources": [
+            {
+              "copy": {
+                "name": "kvSecrets",
+                "count": "[length(parameters('secretNames'))]"
+              },
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2023-07-01",
+              "name": "[format('{0}/{1}', parameters('keyVaultName'), parameters('secretNames')[copyIndex()])]",
+              "properties": {
+                "value": "[parameters('secretValues')[parameters('secretNames')[copyIndex()]]]",
+                "contentType": "text/plain"
+              }
+            }
+          ],
+          "outputs": {
+            "createdSecretNames": {
+              "type": "array",
+              "value": "[parameters('secretNames')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "apimSvc",
+        "[format('onboard[{0}]', copyIndex())]",
+        "[format('onboard[{0}]', copyIndex())]"
+      ]
+    }
+  },
+  "outputs": {
+    "apimGatewayUrl": {
+      "type": "string",
+      "value": "[reference('apimSvc').gatewayUrl]"
+    },
+    "products": {
+      "type": "array",
+      "copy": {
+        "count": "[length(parameters('services'))]",
+        "input": {
+          "productId": "[format('{0}-{1}', parameters('services')[copyIndex()].code, variables('productPostfix'))]",
+          "displayName": "[format('{0} {1} {2} {3}', parameters('services')[copyIndex()].code, parameters('useCase').businessUnit, parameters('useCase').useCaseName, parameters('useCase').environment)]"
+        }
+      }
+    },
+    "subscriptions": {
+      "type": "array",
+      "copy": {
+        "count": "[length(parameters('services'))]",
+        "input": {
+          "name": "[format('{0}-{1}-SUB-01', parameters('services')[copyIndex()].code, variables('productPostfix'))]",
+          "productId": "[format('{0}-{1}', parameters('services')[copyIndex()].code, variables('productPostfix'))]",
+          "keyVaultApiKeySecretName": "[parameters('services')[copyIndex()].apiKeySecretName]",
+          "keyVaultEndpointSecretName": "[parameters('services')[copyIndex()].endpointSecretName]"
+        }
+      }
+    }
+  }
+}

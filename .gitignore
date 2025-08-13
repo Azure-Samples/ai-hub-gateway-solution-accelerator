@@ -412,3 +412,4 @@ local/**/*
 **/test
 **/package-lock.json
 **/.vscode
+**/*.local.parameters.json
