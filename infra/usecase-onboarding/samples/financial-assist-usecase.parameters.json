@@ -4,16 +4,16 @@
   "parameters": {
     "apim": {
       "value": {
-        "subscriptionId": "d2e7f84f-2790-4baa-9520-59ae8169ed0d",
-        "resourceGroupName": "rg-ai-hub-gw-51",
-        "name": "apim-7c3dvrbie5sui"
+        "subscriptionId": "0000000-0000-0000-0000-0000000",
+        "resourceGroupName": "rg-apim-ai-gateway-name",
+        "name": "apim-ai-gateway-name"
       }
     },
     "keyVault": {
       "value": {
-        "subscriptionId": "d2e7f84f-2790-4baa-9520-59ae8169ed0d",
-        "resourceGroupName": "rg-ai-citadel-banking-03",
-        "name": "kv-ai-citadel-banking-03"
+        "subscriptionId": "0000000-0000-0000-0000-0000000",
+        "resourceGroupName": "rg-ai-financial-assistant-name",
+        "name": "kv-ai-financial-assistant-name"
       }
     },
     "useCase": {
@@ -25,12 +25,12 @@
     },
     "existingServices": {
       "value": {
-        "OAI": { "apiResourceIds": [ "/subscriptions/d2e7f84f-2790-4baa-9520-59ae8169ed0d/resourceGroups/rg-ai-hub-gw-51/providers/Microsoft.ApiManagement/service/apim-7c3dvrbie5sui/apis/azure-openai-service-api" ] },
-        "DOC": { "apiResourceIds": [ "/subscriptions/d2e7f84f-2790-4baa-9520-59ae8169ed0d/resourceGroups/rg-ai-hub-gw-51/providers/Microsoft.ApiManagement/service/apim-7c3dvrbie5sui/apis/document-intelligence-api", "/subscriptions/d2e7f84f-2790-4baa-9520-59ae8169ed0d/resourceGroups/rg-ai-hub-gw-51/providers/Microsoft.ApiManagement/service/apim-7c3dvrbie5sui/apis/document-intelligence-api-legacy" ] },
-        "DOCL": { "apiResourceIds": [ "/subscriptions/d2e7f84f-2790-4baa-9520-59ae8169ed0d/resourceGroups/rg-ai-hub-gw-51/providers/Microsoft.ApiManagement/service/apim-7c3dvrbie5sui/apis/document-intelligence-api-legacy" ] },
-        "LLM": { "apiResourceIds": [ "/subscriptions/d2e7f84f-2790-4baa-9520-59ae8169ed0d/resourceGroups/rg-ai-hub-gw-51/providers/Microsoft.ApiManagement/service/apim-7c3dvrbie5sui/apis/ai-model-inference-api" ] },
-        "SRCH": { "apiResourceIds": [ "/subscriptions/d2e7f84f-2790-4baa-9520-59ae8169ed0d/resourceGroups/rg-ai-hub-gw-51/providers/Microsoft.ApiManagement/service/apim-7c3dvrbie5sui/apis/azure-ai-search-index-api" ] },
-        "OAIRT": { "apiResourceIds": [ "/subscriptions/d2e7f84f-2790-4baa-9520-59ae8169ed0d/resourceGroups/rg-ai-hub-gw-51/providers/Microsoft.ApiManagement/service/apim-7c3dvrbie5sui/apis/openai-realtime-ws-api" ] }
+        "OAI": { "apiResourceIds": [ "/subscriptions/0000000-0000-0000-0000-0000000/resourceGroups/rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/apim-ai-gateway-name/apis/azure-openai-service-api" ] },
+        "DOC": { "apiResourceIds": [ "/subscriptions/0000000-0000-0000-0000-0000000/resourceGroups/rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/apim-ai-gateway-name/apis/document-intelligence-api", "/subscriptions/0000000-0000-0000-0000-0000000/resourceGroups/rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/apim-ai-gateway-name/apis/document-intelligence-api-legacy" ] },
+        "DOCL": { "apiResourceIds": [ "/subscriptions/0000000-0000-0000-0000-0000000/resourceGroups/rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/apim-ai-gateway-name/apis/document-intelligence-api-legacy" ] },
+        "LLM": { "apiResourceIds": [ "/subscriptions/0000000-0000-0000-0000-0000000/resourceGroups/rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/apim-ai-gateway-name/apis/ai-model-inference-api" ] },
+        "SRCH": { "apiResourceIds": [ "/subscriptions/0000000-0000-0000-0000-0000000/resourceGroups/rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/apim-ai-gateway-name/apis/azure-ai-search-index-api" ] },
+        "OAIRT": { "apiResourceIds": [ "/subscriptions/0000000-0000-0000-0000-0000000/resourceGroups/rg-apim-ai-gateway-name/providers/Microsoft.ApiManagement/service/apim-ai-gateway-name/apis/openai-realtime-ws-api" ] }
       }
     },
     "services": {
