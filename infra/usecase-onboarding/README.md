@@ -1,4 +1,8 @@
-# 🚀 Use Case Onboarding for AI Hub Gateway (APIM)
+# 🚀 Use Case Onboarding for AI Hub Gateway (Automation)
+
+Part of operating AI Hub Gateway as central AI governance, security and observability, you need to add use-cases and on-board teams to avail access to approved AI services.
+
+This Bicep package simplifies the onboarding process by automating the creation of necessary resources and configurations, but providing a source-controlled parameter file with the use case needs and details.
 
 Automate onboarding of a new use case to your existing APIM-based AI Gateway using a small, reusable Bicep package.
 
