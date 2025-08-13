@@ -37,18 +37,18 @@
       "value": [
         {
           "code": "OAI",
-          "endpointSecretName": "OAI_ENDPOINT",
-          "apiKeySecretName": "OAI_KEY"
+          "endpointSecretName": "OAI-ENDPOINT",
+          "apiKeySecretName": "OAI-KEY"
         },
         {
-          "code": "DOC",  
-          "endpointSecretName": "DOC_ENDPOINT",
-          "apiKeySecretName": "DOC_KEY"
+          "code": "DOC",
+          "endpointSecretName": "DOC-ENDPOINT",
+          "apiKeySecretName": "DOC-KEY"
         },
         {
-          "code": "DOCL",
-          "endpointSecretName": "DOCL_ENDPOINT",
-          "apiKeySecretName": "DOCL_KEY"
+          "code": "OAIRT",
+          "endpointSecretName": "OAIRT-ENDPOINT",
+          "apiKeySecretName": "OAIRT-KEY"
         }
       ]
     },
