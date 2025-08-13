@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "apim": {
+      "value": {
+        "subscriptionId": "<sub-guid>",
+        "resourceGroupName": "<apim-rg>",
+        "name": "<apim-name>"
+      }
+    },
+    "keyVault": {
+      "value": {
+        "subscriptionId": "<sub-guid>",
+        "resourceGroupName": "<kv-rg>",
+        "name": "<kv-name>"
+      }
+    },
+    "useCase": {
+      "value": {
+        "businessUnit": "HR",
+        "useCaseName": "InternalAssistant",
+        "environment": "DEV"
+      }
+    },
+    "existingServices": {
+      "value": {
+        "OAI": { "apiResourceIds": [ "/subscriptions/<sub-guid>/resourceGroups/<apim-rg>/providers/Microsoft.ApiManagement/service/<apim-name>/apis/azure-openai" ] },
+        "DOC": { "apiResourceIds": [ "/subscriptions/<sub-guid>/resourceGroups/<apim-rg>/providers/Microsoft.ApiManagement/service/<apim-name>/apis/document-intelligence" ] },
+        "LLM": { "apiResourceIds": [ "/subscriptions/<sub-guid>/resourceGroups/<apim-rg>/providers/Microsoft.ApiManagement/service/<apim-name>/apis/foundry-model" ] },
+        "SRCH": { "apiResourceIds": [ "/subscriptions/<sub-guid>/resourceGroups/<apim-rg>/providers/Microsoft.ApiManagement/service/<apim-name>/apis/ai-search" ] },
+        "OAIRT": { "apiResourceIds": [ "/subscriptions/<sub-guid>/resourceGroups/<apim-rg>/providers/Microsoft.ApiManagement/service/<apim-name>/apis/azure-openai-realtime" ] }
+      }
+    },
+    "services": {
+      "value": [
+        {
+          "code": "OAI",
+          "endpointSecretName": "OAI_ENDPOINT",
+          "apiKeySecretName": "OAI_KEY"
+        },
+        {
+          "code": "DOC",
+          "endpointSecretName": "DOC_ENDPOINT",
+          "apiKeySecretName": "DOC_KEY"
+        }
+      ]
+    },
+    "productTerms": { "value": "By using this product you agree to the acceptable use policy." }
+  }
+}
