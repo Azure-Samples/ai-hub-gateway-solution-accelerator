@@ -12,7 +12,7 @@ param useCase object
 @description('Catalog of existing AI services in APIM as an object map by code. Example: { OAI: { apiResourceIds: ["/subscriptions/.../resourceGroups/.../providers/Microsoft.ApiManagement/service/<apimName>/apis/<apiName>"] } }')
 param existingServices object
 
-@description('Required AI services for this use case. Each item: { code: "OAI", endpointSecretName: "OAI_ENDPOINT", apiKeySecretName: "OAI_KEY", policyXml: "<policies>...</policies>" }')
+@description('Required AI services for this use case. Each item: { code: "OAI", endpointSecretName: "OAI_ENDPOINT", apiKeySecretName: "OAI_KEY", policyXml?: "<policies>...</policies>" }. If omitted or empty, the default policy at policies/default-ai-product-policy.xml is used.')
 param services array
 
 @description('Optional product terms shown to subscribers')
@@ -20,8 +20,11 @@ param productTerms string = ''
 
 var productPostfix = '${useCase.businessUnit}-${useCase.useCaseName}-${useCase.environment}'
 
-// Normalize services by merging a default policyXml property
-var normalizedServices = [for s in services: union({ policyXml: '' }, s)]
+// // Normalize services by merging a default policyXml property
+// var normalizedServices = [for s in services: union({ policyXml: '' }, s)]
+
+// Default APIM product policy (applied when a service item does not provide policyXml)
+var defaultProductPolicyXml = loadTextContent('./policies/default-ai-product-policy.xml')
 
 resource apimRg 'Microsoft.Resources/resourceGroups@2022-09-01' existing = {
   scope: subscription(apim.subscriptionId)
@@ -44,7 +47,7 @@ resource kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
 }
 
 // Onboard each requested service into APIM
-module onboard 'modules/apimOnboardService.bicep' = [for s in normalizedServices: {
+module onboard 'modules/apimOnboardService.bicep' = [for s in services: {
   name: 'onboard-${s.code}-${productPostfix}'
   scope: apimRg
   params: {
@@ -55,7 +58,7 @@ module onboard 'modules/apimOnboardService.bicep' = [for s in normalizedServices
     productTerms: productTerms
     apiResourceIds: existingServices[s.code].apiResourceIds
   // policyXml is optional per service; pass normalized value
-  productPolicyXml: s.policyXml
+  productPolicyXml: s.policyXml == '' ? defaultProductPolicyXml : s.policyXml
     subscriptionName: '${s.code}-${productPostfix}-SUB-01'
     subscriptionDisplayName: '${s.code}-${productPostfix}-SUB-01'
   }
@@ -63,7 +66,7 @@ module onboard 'modules/apimOnboardService.bicep' = [for s in normalizedServices
 
 // Write Key Vault secrets per service
 // Create/update KV secrets; normalize names (Key Vault does not allow underscores)
-module kvWrites 'modules/kvSecrets.bicep' = [for (s, i) in normalizedServices: {
+module kvWrites 'modules/kvSecrets.bicep' = [for (s, i) in services: {
   name: 'kv-${s.code}-${productPostfix}'
   scope: kvRg
   params: {
@@ -81,7 +84,7 @@ output products array = [for s in services: {
   productId: '${s.code}-${productPostfix}'
   displayName: '${s.code} ${useCase.businessUnit} ${useCase.useCaseName} ${useCase.environment}'
 }]
-output subscriptions array = [for s in normalizedServices: {
+output subscriptions array = [for s in services: {
   name: '${s.code}-${productPostfix}-SUB-01'
   productId: '${s.code}-${productPostfix}'
   keyVaultApiKeySecretName: toLower(replace(s.apiKeySecretName, '_', '-'))

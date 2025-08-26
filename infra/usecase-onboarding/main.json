@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "18277901564264477872"
+      "templateHash": "1626768243939706846"
     }
   },
   "parameters": {
@@ -37,7 +37,7 @@
     "services": {
       "type": "array",
       "metadata": {
-        "description": "Required AI services for this use case. Each item: { code: \"OAI\", endpointSecretName: \"OAI_ENDPOINT\", apiKeySecretName: \"OAI_KEY\", policyXml: \"<policies>...</policies>\" }"
+        "description": "Required AI services for this use case. Each item: { code: \"OAI\", endpointSecretName: \"OAI_ENDPOINT\", apiKeySecretName: \"OAI_KEY\", policyXml?: \"<policies>...</policies>\" }. If omitted or empty, the default policy at policies/default-ai-product-policy.xml is used."
       }
     },
     "productTerms": {
@@ -49,14 +49,8 @@
     }
   },
   "variables": {
-    "copy": [
-      {
-        "name": "normalizedServices",
-        "count": "[length(parameters('services'))]",
-        "input": "[union(createObject('policyXml', ''), parameters('services')[copyIndex('normalizedServices')])]"
-      }
-    ],
-    "productPostfix": "[format('{0}-{1}-{2}', parameters('useCase').businessUnit, parameters('useCase').useCaseName, parameters('useCase').environment)]"
+    "productPostfix": "[format('{0}-{1}-{2}', parameters('useCase').businessUnit, parameters('useCase').useCaseName, parameters('useCase').environment)]",
+    "defaultProductPolicyXml": "<policies>\r\n  <inbound>\r\n    <base />\r\n    <!-- Basic rate limit per subscription as a safeguard -->\r\n    <rate-limit calls=\"100\" renewal-period=\"60\" />\r\n  </inbound>\r\n  <backend>\r\n    <base />\r\n  </backend>\r\n  <outbound>\r\n    <base />\r\n  </outbound>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>\r\n"
   },
   "resources": {
     "apimRg": {
@@ -92,11 +86,11 @@
     "onboard": {
       "copy": {
         "name": "onboard",
-        "count": "[length(variables('normalizedServices'))]"
+        "count": "[length(parameters('services'))]"
       },
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
-      "name": "[format('onboard-{0}-{1}', variables('normalizedServices')[copyIndex()].code, variables('productPostfix'))]",
+      "name": "[format('onboard-{0}-{1}', parameters('services')[copyIndex()].code, variables('productPostfix'))]",
       "subscriptionId": "[parameters('apim').subscriptionId]",
       "resourceGroup": "[parameters('apim').resourceGroupName]",
       "properties": {
@@ -109,28 +103,26 @@
             "value": "[parameters('apim').name]"
           },
           "productId": {
-            "value": "[format('{0}-{1}', variables('normalizedServices')[copyIndex()].code, variables('productPostfix'))]"
+            "value": "[format('{0}-{1}', parameters('services')[copyIndex()].code, variables('productPostfix'))]"
           },
           "productDisplayName": {
-            "value": "[format('{0} {1} {2} {3}', variables('normalizedServices')[copyIndex()].code, parameters('useCase').businessUnit, parameters('useCase').useCaseName, parameters('useCase').environment)]"
+            "value": "[format('{0} {1} {2} {3}', parameters('services')[copyIndex()].code, parameters('useCase').businessUnit, parameters('useCase').useCaseName, parameters('useCase').environment)]"
           },
           "productDescription": {
-            "value": "[format('AI Gateway product for {0} - {1}', variables('normalizedServices')[copyIndex()].code, parameters('useCase').useCaseName)]"
+            "value": "[format('AI Gateway product for {0} - {1}', parameters('services')[copyIndex()].code, parameters('useCase').useCaseName)]"
           },
           "productTerms": {
             "value": "[parameters('productTerms')]"
           },
           "apiResourceIds": {
-            "value": "[parameters('existingServices')[variables('normalizedServices')[copyIndex()].code].apiResourceIds]"
+            "value": "[parameters('existingServices')[parameters('services')[copyIndex()].code].apiResourceIds]"
           },
-          "productPolicyXml": {
-            "value": "[variables('normalizedServices')[copyIndex()].policyXml]"
-          },
+          "productPolicyXml": "[if(equals(parameters('services')[copyIndex()].policyXml, ''), createObject('value', variables('defaultProductPolicyXml')), createObject('value', parameters('services')[copyIndex()].policyXml))]",
           "subscriptionName": {
-            "value": "[format('{0}-{1}-SUB-01', variables('normalizedServices')[copyIndex()].code, variables('productPostfix'))]"
+            "value": "[format('{0}-{1}-SUB-01', parameters('services')[copyIndex()].code, variables('productPostfix'))]"
           },
           "subscriptionDisplayName": {
-            "value": "[format('{0}-{1}-SUB-01', variables('normalizedServices')[copyIndex()].code, variables('productPostfix'))]"
+            "value": "[format('{0}-{1}-SUB-01', parameters('services')[copyIndex()].code, variables('productPostfix'))]"
           }
         },
         "template": {
@@ -141,7 +133,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "9071235648865231712"
+              "templateHash": "9229402873619434252"
             }
           },
           "parameters": {
@@ -223,8 +215,8 @@
                 "description": "[parameters('productDescription')]",
                 "terms": "[parameters('productTerms')]",
                 "subscriptionRequired": true,
-                "approvalRequired": true,
-                "subscriptionsLimit": -1,
+                "approvalRequired": false,
+                "subscriptionsLimit": 10,
                 "state": "published"
               }
             },
@@ -258,9 +250,12 @@
               "name": "[format('{0}/{1}', parameters('apimName'), parameters('subscriptionName'))]",
               "properties": {
                 "displayName": "[parameters('subscriptionDisplayName')]",
-                "scope": "[format('/products/{0}', parameters('productId'))]",
+                "scope": "[resourceId('Microsoft.ApiManagement/service/products', parameters('apimName'), parameters('productId'))]",
                 "state": "active"
-              }
+              },
+              "dependsOn": [
+                "product"
+              ]
             },
             "api": {
               "existing": true,
@@ -293,11 +288,11 @@
     "kvWrites": {
       "copy": {
         "name": "kvWrites",
-        "count": "[length(variables('normalizedServices'))]"
+        "count": "[length(parameters('services'))]"
       },
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
-      "name": "[format('kv-{0}-{1}', variables('normalizedServices')[copyIndex()].code, variables('productPostfix'))]",
+      "name": "[format('kv-{0}-{1}', parameters('services')[copyIndex()].code, variables('productPostfix'))]",
       "subscriptionId": "[parameters('keyVault').subscriptionId]",
       "resourceGroup": "[parameters('keyVault').resourceGroupName]",
       "properties": {
@@ -311,14 +306,14 @@
           },
           "secretNames": {
             "value": [
-              "[variables('normalizedServices')[copyIndex()].endpointSecretName]",
-              "[variables('normalizedServices')[copyIndex()].apiKeySecretName]"
+              "[toLower(replace(parameters('services')[copyIndex()].endpointSecretName, '_', '-'))]",
+              "[toLower(replace(parameters('services')[copyIndex()].apiKeySecretName, '_', '-'))]"
             ]
           },
           "secretValues": {
             "value": {
-              "[format('{0}', variables('normalizedServices')[copyIndex()].endpointSecretName)]": "[format('{0}/{1}', reference('apimSvc').gatewayUrl, reference(format('onboard[{0}]', copyIndex())).outputs.apiPath.value)]",
-              "[format('{0}', variables('normalizedServices')[copyIndex()].apiKeySecretName)]": "[listOutputsWithSecureValues(format('onboard[{0}]', copyIndex()), '2022-09-01').subscriptionPrimaryKey]"
+              "[format('{0}', toLower(replace(parameters('services')[copyIndex()].endpointSecretName, '_', '-')))]": "[format('{0}/{1}', reference('apimSvc').gatewayUrl, reference(format('onboard[{0}]', copyIndex())).outputs.apiPath.value)]",
+              "[format('{0}', toLower(replace(parameters('services')[copyIndex()].apiKeySecretName, '_', '-')))]": "[listOutputsWithSecureValues(format('onboard[{0}]', copyIndex()), '2022-09-01').subscriptionPrimaryKey]"
             }
           }
         },
@@ -329,7 +324,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "9432321189899560493"
+              "templateHash": "16580792813839761015"
             }
           },
           "parameters": {
@@ -363,7 +358,7 @@
               "name": "[format('{0}/{1}', parameters('keyVaultName'), parameters('secretNames')[copyIndex()])]",
               "properties": {
                 "value": "[parameters('secretValues')[parameters('secretNames')[copyIndex()]]]",
-                "contentType": "text/plain"
+                "contentType": "string"
               }
             }
           ],
@@ -404,8 +399,8 @@
         "input": {
           "name": "[format('{0}-{1}-SUB-01', parameters('services')[copyIndex()].code, variables('productPostfix'))]",
           "productId": "[format('{0}-{1}', parameters('services')[copyIndex()].code, variables('productPostfix'))]",
-          "keyVaultApiKeySecretName": "[parameters('services')[copyIndex()].apiKeySecretName]",
-          "keyVaultEndpointSecretName": "[parameters('services')[copyIndex()].endpointSecretName]"
+          "keyVaultApiKeySecretName": "[toLower(replace(parameters('services')[copyIndex()].apiKeySecretName, '_', '-'))]",
+          "keyVaultEndpointSecretName": "[toLower(replace(parameters('services')[copyIndex()].endpointSecretName, '_', '-'))]"
         }
       }
     }
