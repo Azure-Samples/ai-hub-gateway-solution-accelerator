@@ -38,12 +38,14 @@
         {
           "code": "OAI",
           "endpointSecretName": "AzureOpenAI-Endpoint",
-          "apiKeySecretName": "AzureOpenAI-Key"
+          "apiKeySecretName": "AzureOpenAI-Key",
+          "policyXml": ""
         },
         {
           "code": "DOC",
           "endpointSecretName": "AzureDocumentIntelligence-Endpoint",
-          "apiKeySecretName": "AzureDocumentIntelligence-Key"
+          "apiKeySecretName": "AzureDocumentIntelligence-Key",
+          "policyXml": ""
         }
       ]
     },

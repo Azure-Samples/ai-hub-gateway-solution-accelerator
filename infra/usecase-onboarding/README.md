@@ -170,7 +170,6 @@ pie title Services onboarded
 
 Where to start
 - Parameters file (generic placeholders): `infra/usecase-onboarding/samples/financial-assist-usecase.parameters.json`
-- Parameters file (local sample): `infra/usecase-onboarding/samples/financial-assist-usecase.local.parameters.json`
 
 Key fields (excerpt)
 - `useCase`: `{ businessUnit: "Retail", useCaseName: "FinancialAssistant", environment: "DEV" }`
