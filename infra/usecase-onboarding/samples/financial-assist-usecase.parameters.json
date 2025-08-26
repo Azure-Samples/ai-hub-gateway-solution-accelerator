@@ -38,17 +38,20 @@
         {
           "code": "OAI",
           "endpointSecretName": "OAI-ENDPOINT",
-          "apiKeySecretName": "OAI-KEY"
+          "apiKeySecretName": "OAI-KEY",
+          "policyXml": ""
         },
         {
           "code": "DOC",
           "endpointSecretName": "DOC-ENDPOINT",
-          "apiKeySecretName": "DOC-KEY"
+          "apiKeySecretName": "DOC-KEY",
+          "policyXml": ""
         },
         {
           "code": "OAIRT",
           "endpointSecretName": "OAIRT-ENDPOINT",
-          "apiKeySecretName": "OAIRT-KEY"
+          "apiKeySecretName": "OAIRT-KEY",
+          "policyXml": ""
         }
       ]
     },
