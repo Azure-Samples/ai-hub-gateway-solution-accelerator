@@ -112,6 +112,7 @@ param functionAppSubnetPrefix string = '10.170.0.128/26'
 
 
 var openAiPrivateDnsZoneName = 'privatelink.openai.azure.com'
+var aiCognitiveServicesDnsZoneName = 'privatelink.cognitiveservices.azure.com'
 var keyVaultPrivateDnsZoneName = 'privatelink.vaultcore.azure.net'
 var monitorPrivateDnsZoneName = 'privatelink.monitor.azure.com'
 var eventHubPrivateDnsZoneName = 'privatelink.servicebus.windows.net'
@@ -123,6 +124,7 @@ var storageQueuePrivateDnsZoneName = 'privatelink.queue.core.windows.net'
 
 var privateDnsZoneNames = [
   openAiPrivateDnsZoneName
+  aiCognitiveServicesDnsZoneName
   keyVaultPrivateDnsZoneName
   monitorPrivateDnsZoneName
   eventHubPrivateDnsZoneName 
@@ -222,6 +224,65 @@ param openAiInstances object = {
           format: 'OpenAI'
           name: 'text-embedding-3-large'
           version: '1'
+        }
+        sku: {
+          name: 'Standard'
+          capacity: deploymentCapacity
+        }
+      }
+    ]
+  }
+}
+
+// You can add more AI Foundry instances by adding more objects to the aiFoundryInstances object
+@description('Object containing AI Foundry (AIServices) instances. You can add more instances by adding more objects to this parameter.')
+param aiFoundryInstances object = {
+  aiFoundry1: {
+    name: 'ai-foundry1'
+    location: 'eastus'
+    deployments: [
+      {
+        name: 'chat'
+        model: {
+          format: 'OpenAI'
+          name: 'gpt-4o-mini'
+          version: '2024-07-18'
+        }
+        sku: {
+          name: 'Standard'
+          capacity: deploymentCapacity
+        }
+      }
+    ]
+  }
+  aiFoundry2: {
+    name: 'ai-foundry2'
+    location: 'westus'
+    deployments: [
+      {
+        name: 'chat'
+        model: {
+          format: 'OpenAI'
+          name: 'gpt-4o-mini'
+          version: '2024-07-18'
+        }
+        sku: {
+          name: 'Standard'
+          capacity: deploymentCapacity
+        }
+      }
+    ]
+  }
+  aiFoundry3: {
+    name: 'ai-foundry3'
+    location: 'westeurope'
+    deployments: [
+      {
+        name: 'chat'
+        model: {
+          format: 'OpenAI'
+          name: 'gpt-4o-mini'
+          version: '2024-07-18'
         }
         sku: {
           name: 'Standard'
@@ -404,6 +465,37 @@ module openAis 'modules/ai/cognitiveservices.bicep' = [for (config, i) in items(
   ]
 }]
 
+@batchSize(1)
+module aiFoundryServices 'modules/ai/aiservices.bicep' = [for (config, i) in items(aiFoundryInstances): {
+  name: '${config.value.name}-${resourceToken}'
+  scope: resourceGroup
+  params: {
+    name: '${config.value.name}-${resourceToken}'
+    location: config.value.location
+    tags: tags
+    managedIdentityName: apimManagedIdentity.outputs.managedIdentityName
+    vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
+    vNetLocation: useExistingVnet ? vnetExisting.outputs.location : vnet.outputs.location
+    privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
+    aiServicesPrivateEndpointName: '${config.value.name}-pe-${resourceToken}'
+    publicNetworkAccess: openAIExternalNetworkAccess
+    aiCognitiveServicesDnsZoneName: aiCognitiveServicesDnsZoneName
+    sku: {
+      name: openAiSkuName
+    }
+    deploymentCapacity: deploymentCapacity
+    deployments: config.value.deployments
+    vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
+    dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
+    dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
+  }
+  dependsOn: [
+    vnet
+    vnetExisting
+    apimManagedIdentity
+  ]
+}]
+
 module eventHub './modules/event-hub/event-hub.bicep' = {
   name: 'event-hub'
   scope: resourceGroup
@@ -434,6 +526,7 @@ module apim './modules/apim/apim.bicep' = {
     tags: tags
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     openAiUris: [for i in range(0, length(openAiInstances)): openAis[i].outputs.openAiEndpointUri]
+    aiFoundryUris: [for i in range(0, length(aiFoundryInstances)): aiFoundryServices[i].outputs.aiServicesEndpoint]
     managedIdentityName: apimManagedIdentity.outputs.managedIdentityName
     entraAuth: entraAuth
     clientAppId: entraAuth ? entraClientId : null 

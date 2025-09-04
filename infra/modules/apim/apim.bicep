@@ -12,6 +12,7 @@ param sku string = 'Developer'
 param skuCount int = 1
 param applicationInsightsName string
 param openAiUris array
+param aiFoundryUris array
 param managedIdentityName string
 param clientAppId string = ' '
 param tenantId string = tenant().tenantId
@@ -36,6 +37,8 @@ var openAiApiEntraNamedValue = 'entra-auth'
 var openAiApiClientNamedValue = 'client-id'
 var openAiApiTenantNamedValue = 'tenant-id'
 var openAiApiAudienceNamedValue = 'audience'
+
+var aiFoundryApiBackendId = 'ai-foundry-backend'
 
 var apiManagementMinApiVersion = '2021-08-01'
 
@@ -123,6 +126,33 @@ module apimOpenaiApi './api.bicep' = {
     openAIUsagePolicyFragment
     openAIUsageStreamingPolicyFragment
     openAiBackends
+    throttlingEventsPolicyFragment
+    dynamicThrottlingAssignmentFragment
+  ]
+}
+
+module apimAiFoundryApi './api.bicep' = if (length(aiFoundryUris) > 0) {
+  name: 'azure-ai-foundry-service-api'
+  params: {
+    serviceName: apimService.name
+    apiName: 'azure-ai-foundry-service-api'
+    path: 'ai-foundry'
+    apiRevision: '1'
+    apiDispalyName: 'Azure AI Foundry API'
+    subscriptionRequired: entraAuth ? false:true
+    subscriptionKeyName: 'api-key'
+    openApiSpecification: string(loadYamlContent('./ai-foundry-api/ai-foundry-api-spec.yaml'))
+    apiDescription: 'Azure AI Foundry API'
+    policyDocument: loadTextContent('./policies/ai-foundry-api-policy.xml')
+    enableAPIDeployment: true
+  }
+  dependsOn: [
+    aadAuthPolicyFragment
+    validateRoutesPolicyFragment
+    backendRoutingPolicyFragment
+    openAIUsagePolicyFragment
+    openAIUsageStreamingPolicyFragment
+    aiFoundryBackends
     throttlingEventsPolicyFragment
     dynamicThrottlingAssignmentFragment
   ]
@@ -340,6 +370,20 @@ resource openAiBackends 'Microsoft.ApiManagement/service/backends@2022-08-01' = 
   properties: {
     description: openAiApiBackendId
     url: openAiUri
+    protocol: 'http'
+    tls: {
+      validateCertificateChain: true
+      validateCertificateName: true
+    }
+  }
+}]
+
+resource aiFoundryBackends 'Microsoft.ApiManagement/service/backends@2022-08-01' = [for (aiFoundryUri, i) in aiFoundryUris: if(length(aiFoundryUris) > 0) {
+  name: '${aiFoundryApiBackendId}-${i}'
+  parent: apimService
+  properties: {
+    description: aiFoundryApiBackendId
+    url: aiFoundryUri
     protocol: 'http'
     tls: {
       validateCertificateChain: true
@@ -593,6 +637,9 @@ output apimName string = apimService.name
 
 @description('The path for the OpenAI API in the deployed API Management service.')
 output apimOpenaiApiPath string = apimOpenaiApi.outputs.path
+
+@description('The path for the AI Foundry API in the deployed API Management service.')
+output apimAiFoundryApiPath string = length(aiFoundryUris) > 0 ? apimAiFoundryApi.outputs.path : ''
 
 @description('Gateway URL for the deployed API Management resource.')
 output apimGatewayUrl string = apimService.properties.gatewayUrl

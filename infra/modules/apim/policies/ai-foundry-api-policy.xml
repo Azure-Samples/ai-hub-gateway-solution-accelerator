@@ -1,0 +1,119 @@
+<policies>
+    <inbound>
+        <base />
+        <!-- AAD Authorization -->
+        <!-- Enabled if entra-validate named value is set to true -->
+        <include-fragment fragment-id="aad-auth" />
+        
+        <!-- Detecting streaming request to adjust token calculations -->
+        <choose>
+            <when condition="@(context.Request.Body.As<JObject>(true)["stream"] != null && context.Request.Body.As<JObject>(true)["stream"].Type != JTokenType.Null)">
+                <set-variable name="isStream" value="@{
+                var content = (context.Request.Body?.As<JObject>(true));
+                string streamValue = content["stream"].ToString().ToLower();
+                return streamValue;
+            }" />
+            </when>
+        </choose>
+        
+        <!-- Deleting api-key header so it is not passed to AI Foundry endpoint-->
+        <set-header name="api-key" exists-action="delete" />
+        
+        <!-- Setting cache keys -->
+        <set-variable name="deployment-id" value="@((string)context.Request.MatchedParameters["deployment-id"])" />
+        <set-variable name="routesCacheKey" value="@((string)context.Variables["deployment-id"] + "Routes" + context.Deployment.Region + context.Api.Revision)" />
+        <set-variable name="aiFoundryClustersCacheKey" value="@("aiFoundryClusters" + context.Deployment.Region + context.Api.Revision)" />
+
+        <!-- Getting AI Foundry clusters configuration -->
+        <cache-lookup-value key="@((string)context.Variables.GetValueOrDefault<string>("aiFoundryClustersCacheKey", "ALL-AI-FOUNDRY-CLUSTERS"))" variable-name="oaClusters" />
+        <!-- If we can't find the configuration cached, it will be loaded -->
+        <choose>
+            <when condition="@(context.Variables.ContainsKey("oaClusters") == false)">
+                <set-variable name="oaClusters" value="@{
+                        // route is an Azure AI Foundry API endpoints
+                        JArray routes = new JArray();
+                        // cluster is a group of routes that are capable of serving a specific deployment name (model and version)
+                        JArray clusters = new JArray();
+                        // Update the below if condition when using multiple APIM gateway regions/SHGW to get different configurations for each region
+                        if(context.Deployment.Region == "West Europe" || true)
+                        {
+                            // Adding all Azure AI Foundry endpoints routes (which are set as APIM Backend)
+                            routes.Add(new JObject()
+                            {
+                                ["name"] = "ai-foundry-backend-0",
+                                ["backend-id"] = "ai-foundry-backend-0",
+                                ["priority"] = 1,
+                                ["isThrottling"] = false, 
+                                ["retryAfter"] = DateTime.MinValue
+                                
+                            });
+                            routes.Add(new JObject()
+                            {
+                                ["name"] = "ai-foundry-backend-1", 
+                                ["backend-id"] = "ai-foundry-backend-1",
+                                ["priority"] = 2,
+                                ["isThrottling"] = false,
+                                ["retryAfter"] = DateTime.MinValue
+                                
+                            });
+                            routes.Add(new JObject()
+                            {
+                                ["name"] = "ai-foundry-backend-2",
+                                ["backend-id"] = "ai-foundry-backend-2", 
+                                ["priority"] = 3,
+                                ["isThrottling"] = false,
+                                ["retryAfter"] = DateTime.MinValue
+                                
+                            });
+                        }
+                        // Creating clusters based on capability matrix.
+                        // All AI Foundry backends support the same deployments
+                        clusters.Add(new JObject()
+                        {
+                            ["deploymentName"] = "chat", 
+                            ["routes"] = routes
+                        });
+                        clusters.Add(new JObject()
+                        {
+                            ["deploymentName"] = "gpt-4o-mini", 
+                            ["routes"] = routes
+                        });
+                        return clusters;  
+                    }" />
+                <cache-store-value key="@((string)context.Variables.GetValueOrDefault<string>("aiFoundryClustersCacheKey", "ALL-AI-FOUNDRY-CLUSTERS"))" value="@((JArray)context.Variables["oaClusters"])" duration="300" />
+            </when>
+        </choose>
+
+        <!-- Validate Requests -->
+        <include-fragment fragment-id="validate-routes" />
+
+        <!-- Authentication to backend -->
+        <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="msi-access-token" client-id="{{uami-client-id}}" ignore-error="false" /> 
+        <set-header name="Authorization" exists-action="override">
+            <value>@("Bearer " + (string)context.Variables["msi-access-token"])</value>
+        </set-header>
+
+        <!-- Getting the model for capacity calculations -->
+        <set-variable name="model" value="@{
+                var content = (context.Request.Body?.As<JObject>(true));
+                string modelValue = "";
+                if (content != null && content.ContainsKey("model")) {
+                    modelValue = (string)content["model"];
+                } else {
+                    modelValue = (string)context.Variables["deployment-id"];
+                }
+                return modelValue;
+            }" />
+
+    </inbound>
+    <backend>
+        <!-- Backend Routing -->
+        <include-fragment fragment-id="backend-routing" />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>
