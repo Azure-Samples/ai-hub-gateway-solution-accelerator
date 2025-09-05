@@ -23,24 +23,24 @@ param apimServiceName string = ''
 
 @description('Network type for API Management service. Leave blank to use default naming conventions.')
 @allowed([ 'External', 'Internal' ])
-param apimNetworkType string = 'External'
+param apimNetworkType string
 
 @description('API Management service SKU. Due to networking constraints, only Developer and Premium are supported.')
 @allowed([ 'Developer', 'Premium' ])
-param apimSku string = 'Developer'
+param apimSku string
 
 @description('API Management service SKU units.')
-param apimSkuUnits int = 1
+param apimSkuUnits int
 
 @description('Azure OpenAI service public access')
 @allowed([ 'Enabled', 'Disabled' ])
-param openAIExternalNetworkAccess string = 'Disabled'
+param openAIExternalNetworkAccess string
 
 @description('Name of the Log Analytics workspace. Leave blank to use default naming conventions.')
 param logAnalyticsName string = ''
 
 @description('Create Application Insights dashboard. Turn it on only if you need it.')
-param createAppInsightsDashboard bool = false
+param createAppInsightsDashboard bool
 
 @description('Name of the Application Insights dashboard. Leave blank to use default naming conventions.')
 param applicationInsightsDashboardName string = ''
@@ -64,7 +64,7 @@ param cosmosDbAccountName string = ''
 param streamAnalyticsJobName string = ''
 
 @description('Flag to create Azure Function App. Turn it on only if you need it.')
-param provisionFunctionApp bool = false
+param provisionFunctionApp bool
 
 @description('Name of the Function App resource. Leave blank to use default naming conventions.')
 param usageProcessingFunctionAppName string = ''
@@ -79,15 +79,15 @@ param functionContentShareName string = 'usage-function-content'
 param logicContentShareName string = 'usage-logic-content'
 
 @description('Provision stream analytics job, turn it on only if you need it. Azure Function App will be provisioned to process usage data from Event Hub.')
-param provisionStreamAnalytics bool = false
+param provisionStreamAnalytics bool
 
 @description('This is to use Azure Monitor Private Link Scope for Log Analytics and Application Insights. If exsiting vnet is used, this should not be enabled')
-param useAzureMonitorPrivateLinkScope bool = !useExistingVnet
+param useAzureMonitorPrivateLinkScope bool
 
 //Networking - VNet
 
 // ONLY for using existing VNet, set useExistingVnet to true and provide the existing VNet details
-param useExistingVnet bool = false
+param useExistingVnet bool
 param existingVnetRG string = ''
 param vnetName string = ''
 param apimSubnetName string = ''
@@ -104,10 +104,10 @@ param privateEndpointNsgName string = ''
 param functionAppNsgName string = ''
 
 // Networking - Address Space
-param vnetAddressPrefix string = '10.170.0.0/24'
-param apimSubnetPrefix string = '10.170.0.0/26'
-param privateEndpointSubnetPrefix string = '10.170.0.64/26'
-param functionAppSubnetPrefix string = '10.170.0.128/26'
+param vnetAddressPrefix string
+param apimSubnetPrefix string
+param privateEndpointSubnetPrefix string
+param functionAppSubnetPrefix string
 
 
 
@@ -138,9 +138,9 @@ var privateDnsZoneNames = [
 // You can add more OpenAI instances by adding more objects to the openAiInstances object
 // Then update the apim policy xml to include the new instances
 @description('Object containing OpenAI instances. You can add more instances by adding more objects to this parameter.')
-param openAiInstances object = {
+var openAiInstances = {
   openAi1: {
-    name: 'openai1'
+    name: 'openai1-${environmentName}'
     location: 'eastus'
     deployments: [
       {
@@ -183,7 +183,7 @@ param openAiInstances object = {
     ]
   }
   openAi2: {
-    name: 'openai2'
+    name: 'openai2-${environmentName}'
     location: 'northcentralus'
     deployments: [
       {
@@ -202,7 +202,7 @@ param openAiInstances object = {
     ]
   }
   openAi3: {
-    name: 'openai3'
+    name: 'openai3-${environmentName}'
     location: 'eastus2'
     deployments: [
       {
@@ -236,9 +236,9 @@ param openAiInstances object = {
 
 // You can add more AI Foundry instances by adding more objects to the aiFoundryInstances object
 @description('Object containing AI Foundry (AIServices) instances. You can add more instances by adding more objects to this parameter.')
-param aiFoundryInstances object = {
+var aiFoundryInstances = {
   aiFoundry1: {
-    name: 'ai-foundry1'
+    name: 'ai-foundry1-${environmentName}'
     location: 'eastus'
     deployments: [
       {
@@ -256,7 +256,7 @@ param aiFoundryInstances object = {
     ]
   }
   aiFoundry2: {
-    name: 'ai-foundry2'
+    name: 'ai-foundry2-${environmentName}'
     location: 'westus'
     deployments: [
       {
@@ -274,8 +274,8 @@ param aiFoundryInstances object = {
     ]
   }
   aiFoundry3: {
-    name: 'ai-foundry3'
-    location: 'westeurope'
+    name: 'ai-foundry3-${environmentName}'
+    location: 'swedencentral'
     deployments: [
       {
         name: 'chat'
@@ -293,7 +293,7 @@ param aiFoundryInstances object = {
   }
 }
 
-param enableAzureAISearch bool = true
+param enableAzureAISearch bool
 
 @description('Object containing AI Search existing instances. You can add more instances by adding more objects to this parameter.')
 param aiSearchInstances array = [
@@ -311,16 +311,16 @@ param aiSearchInstances array = [
 
 // OpenAI settings
 @description('SKU name for OpenAI.')
-param openAiSkuName string = 'S0'
+param openAiSkuName string
 
 @description('The OpenAI endpoints capacity (in thousands of tokens per minute)')
-param deploymentCapacity int = 20
+param deploymentCapacity int
 
 @description('Tags to be applied to resources.')
 param tags object = { 'azd-env-name': environmentName }
 
 @description('Should Entra ID validation be enabled')
-param entraAuth bool = false
+param entraAuth bool
 param entraTenantId string = ''
 param entraClientId string = ''
 param entraAudience string = '' 
