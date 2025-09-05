@@ -25,6 +25,168 @@
       "metadata": {
         "description": "The OpenAI endpoints capacity (in thousands of tokens per minute)."
       }
+    },
+    "apimSku": {
+      "value": "${AZURE_APIM_SKU}",
+      "metadata": {
+        "description": "API Management service SKU (Developer, Premium)."
+      }
+    },
+    "apimSkuUnits": {
+      "value": "${AZURE_APIM_SKU_UNITS}",
+      "metadata": {
+        "description": "API Management service SKU units."
+      }
+    },
+    "apimNetworkType": {
+      "value": "${AZURE_APIM_NETWORK_TYPE}",
+      "metadata": {
+        "description": "Network type for API Management service (External, Internal)."
+      }
+    },
+    "openAIExternalNetworkAccess": {
+      "value": "${AZURE_OPENAI_EXTERNAL_NETWORK_ACCESS}",
+      "metadata": {
+        "description": "Azure OpenAI service public access (Enabled, Disabled)."
+      }
+    },
+    "provisionFunctionApp": {
+      "value": "${AZURE_PROVISION_FUNCTION_APP}",
+      "metadata": {
+        "description": "Flag to create Azure Function App."
+      }
+    },
+    "provisionStreamAnalytics": {
+      "value": "${AZURE_PROVISION_STREAM_ANALYTICS}",
+      "metadata": {
+        "description": "Provision stream analytics job."
+      }
+    },
+    "createAppInsightsDashboard": {
+      "value": "${AZURE_CREATE_APP_INSIGHTS_DASHBOARD}",
+      "metadata": {
+        "description": "Create Application Insights dashboard."
+      }
+    },
+    "enableAzureAISearch": {
+      "value": "${AZURE_ENABLE_AI_SEARCH}",
+      "metadata": {
+        "description": "Enable Azure AI Search integration."
+      }
+    },
+    "useExistingVnet": {
+      "value": "${AZURE_USE_EXISTING_VNET}",
+      "metadata": {
+        "description": "Use existing VNet instead of creating new one."
+      }
+    },
+    "useAzureMonitorPrivateLinkScope": {
+      "value": "${AZURE_USE_AZURE_MONITOR_PRIVATE_LINK_SCOPE}",
+      "metadata": {
+        "description": "Use Azure Monitor Private Link Scope for Log Analytics and Application Insights."
+      }
+    },
+    "vnetAddressPrefix": {
+      "value": "${AZURE_VNET_ADDRESS_PREFIX}",
+      "metadata": {
+        "description": "VNet address prefix."
+      }
+    },
+    "apimSubnetPrefix": {
+      "value": "${AZURE_APIM_SUBNET_PREFIX}",
+      "metadata": {
+        "description": "APIM subnet address prefix."
+      }
+    },
+    "privateEndpointSubnetPrefix": {
+      "value": "${AZURE_PRIVATE_ENDPOINT_SUBNET_PREFIX}",
+      "metadata": {
+        "description": "Private endpoint subnet address prefix."
+      }
+    },
+    "functionAppSubnetPrefix": {
+      "value": "${AZURE_FUNCTION_APP_SUBNET_PREFIX}",
+      "metadata": {
+        "description": "Function app subnet address prefix."
+      }
+    },
+    "openAiSkuName": {
+      "value": "${OPENAI_SKU_NAME}",
+      "metadata": {
+        "description": "SKU name for OpenAI."
+      }
+    },
+    "resourceGroupName": {
+      "value": "${AZURE_RESOURCE_GROUP_NAME}",
+      "metadata": {
+        "description": "Name of the resource group."
+      }
+    },
+    "apimServiceName": {
+      "value": "${AZURE_APIM_SERVICE_NAME}",
+      "metadata": {
+        "description": "Name of the API Management service."
+      }
+    },
+    "logAnalyticsName": {
+      "value": "${AZURE_LOG_ANALYTICS_NAME}",
+      "metadata": {
+        "description": "Name of the Log Analytics workspace."
+      }
+    },
+    "applicationInsightsName": {
+      "value": "${AZURE_APPLICATION_INSIGHTS_NAME}",
+      "metadata": {
+        "description": "Name of the Application Insights for APIM resource."
+      }
+    },
+    "eventHubNamespaceName": {
+      "value": "${AZURE_EVENT_HUB_NAMESPACE_NAME}",
+      "metadata": {
+        "description": "Name of the Event Hub Namespace resource."
+      }
+    },
+    "cosmosDbAccountName": {
+      "value": "${AZURE_COSMOS_DB_ACCOUNT_NAME}",
+      "metadata": {
+        "description": "Name of the Cosmos Db account resource."
+      }
+    },
+    "storageAccountName": {
+      "value": "${AZURE_STORAGE_ACCOUNT_NAME}",
+      "metadata": {
+        "description": "Name of the Storage Account."
+      }
+    },
+    "usageProcessingLogicAppName": {
+      "value": "${AZURE_USAGE_PROCESSING_LOGIC_APP_NAME}",
+      "metadata": {
+        "description": "Name of the Logic App for usage processing."
+      }
+    },
+    "vnetName": {
+      "value": "${AZURE_VNET_NAME}",
+      "metadata": {
+        "description": "Name of the Virtual Network."
+      }
+    },
+    "apimSubnetName": {
+      "value": "${AZURE_APIM_SUBNET_NAME}",
+      "metadata": {
+        "description": "Name of the APIM subnet."
+      }
+    },
+    "privateEndpointSubnetName": {
+      "value": "${AZURE_PRIVATE_ENDPOINT_SUBNET_NAME}",
+      "metadata": {
+        "description": "Name of the private endpoint subnet."
+      }
+    },
+    "functionAppSubnetName": {
+      "value": "${AZURE_FUNCTION_APP_SUBNET_NAME}",
+      "metadata": {
+        "description": "Name of the function app subnet."
+      }
     }
   }
 }
