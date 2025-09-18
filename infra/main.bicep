@@ -219,7 +219,7 @@ param entraAuth bool = false
 //
 @description('API Management service SKU. Only Developer and Premium are supported.')
 @allowed([ 'Developer', 'Premium', 'StandardV2', 'PremiumV2' ])
-param apimSku string = 'Developer'
+param apimSku string = 'StandardV2'
 
 @description('API Management service SKU units.')
 param apimSkuUnits int = 1

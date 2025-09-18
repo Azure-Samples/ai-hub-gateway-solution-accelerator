@@ -75,13 +75,13 @@ resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-
   name: managedIdentityName
 }
 
-resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2023-01-01-preview' existing = {
-  name: eventHubName
-}
+// resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2023-01-01-preview' existing = {
+//   name: eventHubName
+// }
 
-resource eventHubPII 'Microsoft.EventHub/namespaces/eventhubs@2023-01-01-preview' existing = {
-  name: eventHubPIIName
-}
+// resource eventHubPII 'Microsoft.EventHub/namespaces/eventhubs@2023-01-01-preview' existing = {
+//   name: eventHubPIIName
+// }
 
 // resource contentSafetyService 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
 //   name: contentSafetyServiceName
@@ -326,6 +326,55 @@ module apimDocumentIntelligence './api.bicep' = if (enableDocumentIntelligence) 
     aiUsagePolicyFragment
     throttlingEventsPolicyFragment
   ]
+}
+
+module apiUniversalLLM './api.bicep' = {
+  name: 'universal-llm-api'
+  params: {
+    serviceName: apimService.name
+    apiName: 'universal-llm-api'
+    path: 'llm'
+    apiRevision: '1'
+    apiDispalyName: 'Universal LLM API'
+    subscriptionRequired: entraAuth ? false:true
+    subscriptionKeyName: 'api-key'
+    openApiSpecification: loadTextContent('./universal-llm-api/Universal-LLM-Basic-API.openapi.yaml')
+    apiDescription: 'Universal LLM API to route requests to different LLM providers including Azure OpenAI and AI Foundry.'
+    policyDocument: loadTextContent('./policies/universal-llm-api-policy.xml')
+    enableAPIDeployment: true
+  }
+  dependsOn: [
+    aadAuthPolicyFragment
+    validateRoutesPolicyFragment
+    backendRoutingPolicyFragment
+    aiUsagePolicyFragment
+    throttlingEventsPolicyFragment
+    aiFoundryCompatibilityPolicyFragment
+    aiFoundryDeploymentsPolicyFragment
+  ]
+}
+
+// Typed resource reference for the Universal LLM API (created by module above)
+resource universalLLMApi 'Microsoft.ApiManagement/service/apis@2022-08-01' existing = {
+  name: 'universal-llm-api'
+  parent: apimService
+  dependsOn: [
+    apiUniversalLLM
+  ]
+}
+
+resource universalLlmDeploymentOperation 'Microsoft.ApiManagement/service/apis/operations@2022-08-01' existing = {
+  name: 'deployments'
+  parent: universalLLMApi
+}
+
+resource universalLlmDeploymentOperationPolicy 'Microsoft.ApiManagement/service/apis/operations/policies@2022-08-01' = {
+  name: 'policy'
+  parent: universalLlmDeploymentOperation
+  properties: {
+    format: 'rawxml'
+    value: loadTextContent('./policies/universal-llm-api-deployments-policy.xml')
+  }
 }
 
 // Create AI-Retail product
@@ -753,6 +802,24 @@ resource piiStateSavingPolicyFragment 'Microsoft.ApiManagement/service/policyFra
   ]
 }
 
+resource aiFoundryCompatibilityPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = if (enablePIIAnonymization) {
+  parent: apimService
+  name: 'ai-foundry-compatibility'
+  properties: {
+    value: loadTextContent('./policies/frag-ai-foundry-compatibility.xml')
+    format: 'rawxml'
+  }
+}
+
+resource aiFoundryDeploymentsPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = if (enableAIModelInference) {
+  parent: apimService
+  name: 'ai-foundry-deployments'
+  properties: {
+    value: loadTextContent('./policies/frag-ai-foundry-deployments.xml')
+    format: 'rawxml'
+  }
+}
+
 resource apimLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
   name: 'appinsights-logger'
   parent: apimService
@@ -815,7 +882,7 @@ resource ehUsageLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
     loggerType: 'azureEventHub'
     description: 'Event Hub logger for OpenAI usage metrics'
     credentials: {
-      name: eventHub.name
+      name: eventHubName
       endpointAddress: replace(eventHubEndpoint, 'https://', '')
       identityClientId: managedIdentity.properties.clientId
     }
@@ -829,7 +896,7 @@ resource ehPIIUsageLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' =
     loggerType: 'azureEventHub'
     description: 'Event Hub logger for PII usage metrics and logs'
     credentials: {
-      name: eventHubPII.name
+      name: eventHubPIIName
       endpointAddress: replace(eventHubPIIEndpoint, 'https://', '')
       identityClientId: managedIdentity.properties.clientId
     }

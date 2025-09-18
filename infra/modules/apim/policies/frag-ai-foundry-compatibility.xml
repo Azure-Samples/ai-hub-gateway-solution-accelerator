@@ -1,0 +1,20 @@
+<fragment>
+    <cors allow-credentials="true">
+        <allowed-origins>
+            <origin>https://ai.azure.com</origin>
+        </allowed-origins>
+        <allowed-methods>
+            <method>GET</method>
+            <method>POST</method>
+            <method>PUT</method>
+            <method>DELETE</method>
+            <method>OPTIONS</method>
+        </allowed-methods>
+        <allowed-headers>
+            <header>*</header>
+        </allowed-headers>
+        <expose-headers>
+            <header>*</header>
+        </expose-headers>
+    </cors>
+</fragment>

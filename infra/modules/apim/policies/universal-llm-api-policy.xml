@@ -1,0 +1,15 @@
+<policies>
+    <inbound>
+        <base />
+        <include-fragment fragment-id="ai-foundry-compatibility" />
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

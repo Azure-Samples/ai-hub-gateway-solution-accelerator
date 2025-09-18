@@ -45,7 +45,7 @@ resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-01-01' existing 
   parent: vnet
 }
 
-resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-05-01-preview' = {
+resource eventHubNamespace 'Microsoft.EventHub/namespaces@2025-05-01-preview' = {
   name: name
   location: location
   tags: union(tags, { 'azd-service-name': name })
@@ -63,9 +63,9 @@ resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-05-01-preview' = 
   }
 }
 
-resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-05-01-preview' = {
-  name: eventHubName
+resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2025-05-01-preview' = {
   parent: eventHubNamespace
+  name: eventHubName
   properties: {
     messageRetentionInDays: messageRetentionInDays
     partitionCount: 4
@@ -73,9 +73,9 @@ resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-05-01-preview' =
   }
 }
 
-resource eventHubPII 'Microsoft.EventHub/namespaces/eventhubs@2024-05-01-preview' = if (isPIIEnabled) {
-  name: eventHubNamePII
+resource eventHubPII 'Microsoft.EventHub/namespaces/eventhubs@2025-05-01-preview' = if (isPIIEnabled) {
   parent: eventHubNamespace
+  name: eventHubNamePII
   properties: {
     messageRetentionInDays: messageRetentionInDays
     partitionCount: 2
@@ -84,27 +84,25 @@ resource eventHubPII 'Microsoft.EventHub/namespaces/eventhubs@2024-05-01-preview
 }
 
 // Consider adding a consumer group for each consumer application
-resource defaultConsumerGroup 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2024-05-01-preview' = {
+resource defaultConsumerGroup 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2024-01-01' = {
   name: '$Default'
   parent: eventHub
 }
 
-resource aiUsageConsumerGroup 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2024-05-01-preview' = {
+resource aiUsageConsumerGroup 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2024-01-01' = {
   name: 'aiUsageIngestion'
   parent: eventHub
 }
 
-resource defaultPIIConsumerGroup 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2024-05-01-preview' = {
+resource defaultPIIConsumerGroup 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2024-01-01' = if (isPIIEnabled) {
   name: '$Default'
   parent: eventHubPII
 }
 
-resource piiUsageConsumerGroup 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2024-05-01-preview' = {
+resource piiUsageConsumerGroup 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2024-01-01' = if (isPIIEnabled) {
   name: 'piiUsageIngestion'
   parent: eventHubPII
 }
-
-
 
 // Private endpoint for secure connectivity
 module privateEndpoint '../networking/private-endpoint.bicep' = {
@@ -124,14 +122,14 @@ module privateEndpoint '../networking/private-endpoint.bicep' = {
 }
 
 // Optional: Add disaster recovery configuration if needed
-resource disasterRecovery 'Microsoft.EventHub/namespaces/disasterRecoveryConfigs@2024-05-01-preview' = if (!empty(disasterRecoveryConfig)) {
+resource disasterRecovery 'Microsoft.EventHub/namespaces/disasterRecoveryConfigs@2024-01-01' = if (!empty(disasterRecoveryConfig)) {
   name: 'default'
   parent: eventHubNamespace
   properties: disasterRecoveryConfig
 }
 
 output eventHubNamespaceName string = eventHubNamespace.name
-output eventHubName string = eventHub.name
+output eventHubName string = 'ai-usage'
 output eventHubEndpoint string = eventHubNamespace.properties.serviceBusEndpoint
-output eventHubPIIName string = eventHubPII.name ?? ''
+output eventHubPIIName string = isPIIEnabled ? 'pii-usage' : ''
 output eventHubResourceId string = eventHubNamespace.id

@@ -1,0 +1,69 @@
+<fragment>
+    <authentication-managed-identity resource="https://management.azure.com/" />
+    <rewrite-uri template="/deployments?api-version=2023-05-01" copy-unmatched-params="false" />
+    
+    <!-- Initialize variables with default values if not already set -->
+    <set-variable name="AOAIAccountName" value="@((string)context.Variables.GetValueOrDefault("AOAIAccountName", "default"))" />
+    <set-variable name="AOAIAccounts" value="@{
+        JArray existingAccounts = (JArray)context.Variables.GetValueOrDefault("AOAIAccounts");
+        if (existingAccounts == null)
+        {
+            return new JArray(
+                new JObject 
+                {
+                    ["AOAIAccountName"] = "default",
+                    ["RGName"] = "default-rg", 
+                    ["SubId"] = "default-subscription-id"
+                }
+            );
+        }
+        return existingAccounts;
+    }" />
+    
+    <!-- Set variables for dynamic backend selection -->
+    <set-variable name="targetAccountName" value="@((string)context.Variables.GetValueOrDefault("AOAIAccountName", "default"))" />
+    
+    <set-variable name="selectedAccount" value="@{
+        JArray accountsArray = (JArray)context.Variables.GetValueOrDefault("AOAIAccounts", new JArray());
+        string targetAccount = (string)context.Variables.GetValueOrDefault("targetAccountName", "default");
+        
+        foreach (var account in accountsArray)
+        {
+            if (account["AOAIAccountName"]?.ToString() == targetAccount)
+            {
+                return account;
+            }
+        }
+        
+        return null;
+    }" />
+    
+    <!-- Azure Resource Manager backend service with dynamic URL construction -->
+    <choose>
+        <when condition="@(context.Variables.GetValueOrDefault("selectedAccount") != null)">
+            <set-backend-service base-url="@{
+                var account = (JToken)context.Variables.GetValueOrDefault("selectedAccount");
+                string subscriptionId = account["SubId"]?.ToString();
+                string resourceGroupName = account["RGName"]?.ToString();
+                string accountName = account["AOAIAccountName"]?.ToString();
+                
+                return string.Format("https://management.azure.com/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.CognitiveServices/accounts/{2}", subscriptionId, resourceGroupName, accountName);
+            }" />
+        </when>
+        <otherwise>
+            <!-- Fallback or error handling -->
+            <return-response>
+                <set-status code="400" reason="Bad Request" />
+                <set-header name="Content-Type" exists-action="override">
+                    <value>application/json</value>
+                </set-header>
+                <set-body>@{
+                    return JsonConvert.SerializeObject(new {
+                        error = "Invalid or missing AOAIAccountName. No matching account found in the configuration.",
+                        requestedAccount = (string)context.Variables.GetValueOrDefault("AOAIAccountName", "default")
+                    });
+                }</set-body>
+            </return-response>
+        </otherwise>
+    </choose>
+</fragment>
