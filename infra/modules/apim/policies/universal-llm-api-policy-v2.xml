@@ -1,0 +1,309 @@
+<policies>
+    <inbound>
+        <base />
+        <!-- AAD Authorization -->
+        <!-- Enabled if entra-validate named value is set to true -->
+        <include-fragment fragment-id="aad-auth" />
+        
+        <!-- Extract model from request payload (avoid generics/encoded chars) -->
+        <set-variable name="requestedModel" value="@{
+                try
+                {
+                    var bodyText = context.Request.Body.As<string>(preserveContent: true);
+                    if (string.IsNullOrEmpty(bodyText))
+                    {
+                        return string.Empty;
+                    }
+                    var body = JObject.Parse(bodyText);
+                    return body["model"] != null ? body["model"].ToString() : string.Empty;
+                }
+                catch
+                {
+                    return string.Empty;
+                }
+            }"  />
+
+        <!-- Validate that model parameter is present, if not return 400 Bad Request -->
+        <choose>
+            <when condition="@(string.IsNullOrEmpty((string)context.Variables["requestedModel"]))">
+                <return-response>
+                    <set-status code="400" reason="Bad Request" />
+                    <set-header name="Content-Type" exists-action="override">
+                        <value>application/json</value>
+                    </set-header>
+                    <set-body>@{
+                            return new JObject(
+                                    new JProperty("error", new JObject(
+                                            new JProperty("message", "Model could not be detected"),
+                                            new JProperty("type", "invalid_request_error"),
+                                            new JProperty("code", "missing_model_parameter"),
+                                            new JProperty("param", "model")
+                                    ))
+                            ).ToString();
+                    }</set-body>
+                </return-response>
+            </when>
+        </choose>
+        <!-- Deleting api-key header so it is not passed to backend endpoints-->
+        <set-header name="api-key" exists-action="delete" />
+        
+        <!-- Setting cache keys -->
+        <set-variable name="backendPoolsCacheKey" value="@("backendPools" + context.Deployment.Region + context.Api.Revision)" />
+        <set-variable name="modelMappingsCacheKey" value="@("modelMappings" + context.Deployment.Region + context.Api.Revision)" />
+
+        <!-- RBAC: Set allowed backends (comma-separated backend-pool-ids, empty means all are allowed) -->
+        <set-variable name="allowedBackendPools" value="" />
+        
+        <!-- Set default backend pool (optional - set to empty string to return error for unmapped models) -->
+        <set-variable name="defaultBackendPool" value="" />
+
+        <!-- Getting backend pools configuration from cache -->
+         <cache-lookup-value key="@((string)context.Variables.GetValueOrDefault<string>("backendPoolsCacheKey", "ALL-BACKEND-POOLS"))" variable-name="backendPools" />
+
+        <!-- If we can't find the configuration cached, it will be loaded -->
+        <choose>
+            <when condition="@(context.Variables.ContainsKey("backendPools") == false)">
+                <set-variable name="backendPools"
+                    value="@{
+                        // Define backend pools with their supported models and routing configurations
+                        JArray backendPools = new JArray();
+                        
+                        // Update the below if condition when using multiple APIM gateway regions/SHGW to get different configurations for each region
+                        if(context.Deployment.Region == "All Regions" || true)
+                        {
+                            // Azure OpenAI Backend Pool
+                            var azureOpenAIPool = new JObject()
+                            {
+                                { "poolName", "azure-openai-backend-pool" },
+                                { "poolType", "azure-openai" },
+                                { "supportedModels", new JArray("chat", "gpt-4o", "text-embedding-3-large") }
+                            };
+                            backendPools.Add(azureOpenAIPool);
+                            
+                            // AI Foundry Llama Backend Pool
+                            var aiFoundryLlamaPool = new JObject()
+                            {
+                                { "poolName", "ai-foundry-llama-pool" },
+                                { "poolType", "ai-foundry" },
+                                { "supportedModels", new JArray("Llama-3.3-70B-Instruct") }
+                            };
+                            backendPools.Add(aiFoundryLlamaPool);
+                            
+                            // AI Foundry Phi Backend Pool
+                            var aiFoundryPhiPool = new JObject()
+                            {
+                                { "poolName", "ai-foundry-phi-pool" },
+                                { "poolType", "ai-foundry" },
+                                { "supportedModels", new JArray("phi-4", "Phi-4-multimodal-instruct") }
+                            };
+                            backendPools.Add(aiFoundryPhiPool);
+                        }
+                        else
+                        {
+                            //No backend pools found for selected region, either return error (default behavior) or set default pools in the else section
+                        }
+                        
+                        return backendPools;   
+                    }" />
+
+                <!-- Add backend pools configurations to cache -->
+                <cache-store-value key="@((string)context.Variables.GetValueOrDefault<string>("backendPoolsCacheKey", "ALL-BACKEND-POOLS"))" value="@((JArray)context.Variables["backendPools"])" duration="86400" />
+            </when>
+        </choose>
+
+        <!-- Determine target backend pool based on requested model -->
+        <set-variable name="targetBackendPool" value="@{
+                // Get backend pool for requested model after checking allowed backend-pools. If no backend pool is found, check defaultBackendPool if is not empty then use it, if not empty then all backend pools are allowed
+                string requestedModel = (string)context.Variables["requestedModel"];
+                string defaultBackendPool = (string)context.Variables["defaultBackendPool"];
+                string allowedBackendPools = (string)context.Variables["allowedBackendPools"];
+
+                JArray backendPools = (JArray)context.Variables["backendPools"];
+
+                var allowedPools = string.IsNullOrWhiteSpace(allowedBackendPools)
+                    ? null
+                    : allowedBackendPools.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0).ToArray();
+
+                // Find all backend pools that support the requested model
+                List<JObject> matchingPools = new List<JObject>();
+                foreach (JObject pool in backendPools)
+                {
+                    JArray supportedModels = (JArray)pool["supportedModels"];
+                    if (supportedModels.Any(model => model.ToString().Equals(requestedModel, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        matchingPools.Add(pool);
+                    }
+                }
+
+                // If we have matching pools, filter by allowed pools if necessary
+                if (matchingPools.Count > 0)
+                {
+                    // If there are no restrictions, use the first matching pool
+                    if (allowedPools == null || allowedPools.Length == 0)
+                    {
+                        return matchingPools[0]["poolName"].ToString();
+                    }
+                    
+                    // Otherwise, find the first matching pool that is also in allowed pools
+                    foreach (var pool in matchingPools)
+                    {
+                        string poolName = pool["poolName"].ToString();
+                        if (allowedPools.Contains(poolName))
+                        {
+                            return poolName;
+                        }
+                    }
+                    
+                    // If no allowed pools match, check if default backend pool should be used
+                    if (!string.IsNullOrWhiteSpace(defaultBackendPool))
+                    {
+                        return defaultBackendPool;
+                    }
+                    
+                    // If no default is specified, return the error that no allowed pools match
+                    return "ERROR_NO_ALLOWED_POOLS";
+                }
+
+                // If no matching pools at all, check for default backend pool
+                if (!string.IsNullOrWhiteSpace(defaultBackendPool))
+                {
+                    return defaultBackendPool;
+                }
+                
+                // No matching pools and no default - error
+                return "ERROR_NO_MODEL";
+            }" />
+
+        <!-- Validate target backend pool and return error if needed -->
+        <choose>
+            <when condition="@(((string)context.Variables["targetBackendPool"]).StartsWith("ERROR_"))">
+                <choose>
+                    <when condition="@(((string)context.Variables["targetBackendPool"]) == "ERROR_NO_MODEL")">
+                        <return-response>
+                            <set-status code="400" reason="Bad Request" />
+                            <set-header name="Content-Type" exists-action="override">
+                                <value>application/json</value>
+                            </set-header>
+                            <set-body>@{
+                                return new JObject(
+                                    new JProperty("error", new JObject(
+                                        new JProperty("message", "Model parameter is required in the request payload"),
+                                        new JProperty("type", "invalid_request_error"),
+                                        new JProperty("code", "missing_model_parameter")
+                                    ))
+                                ).ToString();
+                            }</set-body>
+                        </return-response>
+                    </when>
+                    <when condition="@(((string)context.Variables["targetBackendPool"]) == "ERROR_MODEL_NOT_SUPPORTED")">
+                        <return-response>
+                            <set-status code="400" reason="Bad Request" />
+                            <set-header name="Content-Type" exists-action="override">
+                                <value>application/json</value>
+                            </set-header>
+                            <set-body>@{
+                                string requestedModel = (string)context.Variables["requestedModel"];
+                                JObject modelMappings = (JObject)context.Variables["modelMappings"];
+                                JArray supportedModels = new JArray();
+                                
+                                foreach (var kvp in modelMappings)
+                                {
+                                    supportedModels.Add(kvp.Key);
+                                }
+                                
+                                return new JObject(
+                                    new JProperty("error", new JObject(
+                                        new JProperty("message", $"Model '{requestedModel}' is not supported. Supported models: {string.Join(", ", supportedModels.Select(m => m.ToString()))}"),
+                                        new JProperty("type", "invalid_request_error"),
+                                        new JProperty("code", "unsupported_model"),
+                                        new JProperty("param", "model"),
+                                        new JProperty("supported_models", supportedModels)
+                                    ))
+                                ).ToString();
+                            }</set-body>
+                        </return-response>
+                    </when>
+                    <when condition="@(((string)context.Variables["targetBackendPool"]) == "ERROR_NO_ALLOWED_POOLS")">
+                        <return-response>
+                            <set-status code="403" reason="Forbidden" />
+                            <set-header name="Content-Type" exists-action="override">
+                                <value>application/json</value>
+                            </set-header>
+                            <set-body>@{
+                                string requestedModel = (string)context.Variables["requestedModel"];
+                                string allowedBackendPools = (string)context.Variables["allowedBackendPools"];
+                                
+                                return new JObject(
+                                    new JProperty("error", new JObject(
+                                        new JProperty("message", $"Access to model '{requestedModel}' is not allowed for this client. You do not have access to any of the backend pools that support this model."),
+                                        new JProperty("type", "access_error"),
+                                        new JProperty("code", "backend_pool_access_forbidden"),
+                                        new JProperty("allowed_backend_pools", allowedBackendPools)
+                                    ))
+                                ).ToString();
+                            }</set-body>
+                        </return-response>
+                    </when>
+                </choose>
+            </when>
+        </choose>
+
+        <!-- Set poolType variable based on the target backend pool -->
+        <set-variable name="targetPoolType" value="@{
+                string targetBackendPool = (string)context.Variables["targetBackendPool"];
+                JArray backendPools = (JArray)context.Variables["backendPools"];
+
+                foreach (JObject pool in backendPools)
+                {
+                    if (pool["poolName"].ToString() == targetBackendPool)
+                    {
+                        return pool["poolType"].ToString();
+                    }
+                }
+
+                return string.Empty;
+            }" />
+
+        <!-- Set authentication and target url-rewrite (if any) based on backend pool type -->
+        <choose>
+            <when condition="@(((string)context.Variables["targetPoolType"]) == "azure-openai")">
+                <!-- Azure OpenAI Backend Managed Identity -->
+                <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="msi-access-token" client-id="{{uami-client-id}}" ignore-error="false" />
+                <set-header name="Authorization" exists-action="override">
+                    <value>@("Bearer " + (string)context.Variables["msi-access-token"])</value>
+                </set-header>
+                <!-- Set target URL rewrite for Azure OpenAI to inject /deployments/{RequestedModel/ -->
+                <set-variable name="rewriteTemplate" value="@{
+                    string requestedModel = (string)context.Variables["requestedModel"];
+                    return $"/deployments/{requestedModel}/chat/completions";
+                }" />
+                <rewrite-uri template="@((string)context.Variables["rewriteTemplate"])" copy-unmatched-params="true" />
+            </when>
+            <otherwise>
+                <!-- AI Foundry Backend Managed Identity -->
+                <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="msi-access-token" client-id="{{uami-client-id}}" ignore-error="false" />
+                <set-header name="Authorization" exists-action="override">
+                    <value>@("Bearer " + (string)context.Variables["msi-access-token"])</value>
+                </set-header>
+            </otherwise>
+        </choose>
+        <set-backend-service backend-id="@((string)context.Variables["targetBackendPool"])" />
+    </inbound>
+    <backend>
+        <!--Set count to one less than the number of backends in the pool to try all backends until the backend pool is temporarily unavailable.-->
+        <retry count="2" interval="0" first-fast-retry="true" condition="@(context.Response.StatusCode == 429 || (context.Response.StatusCode == 503 && !context.Response.StatusReason.Contains("Backend pool") && !context.Response.StatusReason.Contains("is temporarily unavailable")))">
+            <forward-request buffer-request-body="true" />
+        </retry>
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+        <!-- This is used to push custom metrics related to 429 throttling errors -->
+        <!-- It is designed to permit setting up Azure Monitor Alerts notifying the team of potential service degradation -->
+        <set-variable name="service-name" value="Universal LLM API" />
+        <set-variable name="target-deployment" value="@((string)context.Variables["requestedModel"])" />
+        <include-fragment fragment-id="throttling-events" />
+    </on-error>
+</policies>

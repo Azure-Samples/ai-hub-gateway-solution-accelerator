@@ -170,7 +170,7 @@ param openAIExternalNetworkAccess string = 'Disabled'
 
 @description('Cosmos DB public network access.')
 @allowed([ 'Enabled', 'Disabled' ])
-param cosmosDbPublicAccess string = 'Enabled'
+param cosmosDbPublicAccess string = 'Disabled'
 
 @description('Event Hub public network access.')
 @allowed([ 'Enabled', 'Disabled' ]) 

@@ -340,7 +340,7 @@ module apiUniversalLLM './api.bicep' = {
     subscriptionKeyName: 'api-key'
     openApiSpecification: loadTextContent('./universal-llm-api/Universal-LLM-Basic-API.openapi.yaml')
     apiDescription: 'Universal LLM API to route requests to different LLM providers including Azure OpenAI and AI Foundry.'
-    policyDocument: loadTextContent('./policies/universal-llm-api-policy.xml')
+    policyDocument: loadTextContent('./policies/universal-llm-api-policy-v2.xml')
     enableAPIDeployment: true
   }
   dependsOn: [
