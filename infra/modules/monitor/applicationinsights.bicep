@@ -42,6 +42,7 @@ module applicationInsightsDashboard 'applicationinsights-dashboard.bicep' = if(c
     name: dashboardName
     location: location
     applicationInsightsName: applicationInsights.name
+    tags: tags
   }
 }
 

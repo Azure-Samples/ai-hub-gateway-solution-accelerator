@@ -118,6 +118,7 @@ module privateEndpoint '../networking/private-endpoint.bicep' = {
     dnsZoneRG: dnsZoneRG
     privateEndpointSubnetId: subnet.id
     dnsSubId: dnsSubscriptionId
+    tags: tags
   }
 }
 

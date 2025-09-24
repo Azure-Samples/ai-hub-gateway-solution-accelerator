@@ -8,6 +8,8 @@ param privateEndpointSubnetId string
 param dnsZoneRG string
 param dnsSubId string
 
+param tags object = {}
+
 // Add a parameter to control DNS integration
 param enableDnsIntegration bool = !empty(dnsZoneRG)
 
@@ -19,6 +21,7 @@ resource privateEndpointDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' e
 resource privateEndpoint 'Microsoft.Network/privateEndpoints@2022-09-01' = {
   name: name
   location: location
+  tags: tags
   properties: {
     subnet: {
       id: privateEndpointSubnetId

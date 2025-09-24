@@ -33,6 +33,7 @@ resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-01-01' existing 
 resource privateLinkScope 'microsoft.insights/privateLinkScopes@2021-07-01-preview' = if (usePrivateLinkScope) {
   name: privateLinkScopeName
   location: 'global'
+  tags: tags
   properties: {
     accessModeSettings: {
       ingestionAccessMode: 'Open'
@@ -93,6 +94,7 @@ module privateEndpoint '../networking/private-endpoint.bicep' = if (usePrivateLi
     privateEndpointSubnetId: subnet.id
     dnsSubId: dnsSubscriptionId
     enableDnsIntegration: usePrivateLinkScope
+    tags: tags
   }
   dependsOn: [
     logAnalytics

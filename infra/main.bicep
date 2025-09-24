@@ -417,6 +417,7 @@ module dnsDeployment './modules/networking/dns.bicep' = [for privateDnsZoneName 
   scope: resourceGroup
   params: {
     name: privateDnsZoneName
+    tags: tags
   }
 }]
 

@@ -271,6 +271,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
 resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = [for privateDnsZoneName in privateDnsZoneNames: {
   name: '${privateDnsZoneName}/privateDnsZoneLink'
   location: 'global'
+  tags: tags
   properties: {
     virtualNetwork: {
       id: virtualNetwork.id

@@ -83,6 +83,7 @@ module privateEndpoint '../networking/private-endpoint.bicep' = {
     privateEndpointSubnetId: subnet.id
     dnsZoneRG: dnsZoneRG
     dnsSubId: dnsSubscriptionId
+    tags: tags
   }
   dependsOn: [
     deployment
