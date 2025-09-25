@@ -412,3 +412,6 @@ local/**/*
 **/test
 **/package-lock.json
 **/.vscode
+# macOS
+.DS_Store
+**/.DS_Store

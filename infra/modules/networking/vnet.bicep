@@ -12,6 +12,9 @@ param vnetAddressPrefix string
 param apimSubnetAddressPrefix string
 param privateEndpointSubnetAddressPrefix string
 param functionAppSubnetAddressPrefix string
+param appGatewaySubnetName string
+param appGatewayNsgName string
+param appGatewaySubnetAddressPrefix string
 param tags object = {}
 
 // Set to true to enable service endpoints for APIM subnet
@@ -149,6 +152,68 @@ resource functionAppNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
   }
 }
 
+resource appGatewayNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
+  name: appGatewayNsgName
+  location: location
+  tags: union(tags, { 'azd-service-name': appGatewayNsgName })
+  properties: {
+    securityRules: [
+      {
+        name: 'AllowHealthProbes'
+        properties: {
+          protocol: '*'
+          sourcePortRange: '*'
+          destinationPortRange: '65200-65535'
+          sourceAddressPrefix: 'GatewayManager'
+          destinationAddressPrefix: '*'
+          access: 'Allow'
+          priority: 100
+          direction: 'Inbound'
+        }
+      }
+      {
+        name: 'AllowAzureLoadBalancer'
+        properties: {
+          protocol: '*'
+          sourcePortRange: '*'
+          destinationPortRange: '*'
+          sourceAddressPrefix: 'AzureLoadBalancer'
+          destinationAddressPrefix: '*'
+          access: 'Allow'
+          priority: 110
+          direction: 'Inbound'
+        }
+      }
+      {
+        name: 'AllowClientTrafficToSubnet'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRanges: ['80', '443']
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: appGatewaySubnetAddressPrefix
+          access: 'Allow'
+          priority: 120
+          direction: 'Inbound'
+        }
+      }
+      {
+        name: 'AllowOutboundToAPIM443'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '443'
+          sourceAddressPrefix: appGatewaySubnetAddressPrefix
+          destinationAddressPrefix: apimSubnetAddressPrefix
+          access: 'Allow'
+          priority: 100
+          direction: 'Outbound'
+        }
+      }
+    ]
+  }
+}
+
 resource apimRouteTable 'Microsoft.Network/routeTables@2023-11-01' = {
   name: apimRouteTableName
   location: location
@@ -240,6 +305,15 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
           ]
         }
       }
+      {
+        name: appGatewaySubnetName
+        properties: {
+          addressPrefix: appGatewaySubnetAddressPrefix
+          networkSecurityGroup: appGatewayNsg.id == '' ? null : {
+            id: appGatewayNsg.id
+          }
+        }
+      }
     ]
   }
   
@@ -254,6 +328,10 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
 
   resource functionAppSubnet 'subnets' existing = {
     name: functionAppSubnetName
+  }
+
+  resource appGatewaySubnet 'subnets' existing = {
+    name: appGatewaySubnetName
   }
 }
 
@@ -276,5 +354,8 @@ output privateEndpointSubnetName string = virtualNetwork::privateEndpointSubnet.
 output privateEndpointSubnetId string = virtualNetwork::privateEndpointSubnet.id
 output functionAppSubnetName string = virtualNetwork::functionAppSubnet.name
 output functionAppSubnetId string = virtualNetwork::functionAppSubnet.id
+output appGatewaySubnetName string = virtualNetwork::appGatewaySubnet.name
+output appGatewaySubnetId string = virtualNetwork::appGatewaySubnet.id
+output appGatewaySubnetPrefix string = appGatewaySubnetAddressPrefix
 output location string = virtualNetwork.location
 output vnetRG string = resourceGroup().name

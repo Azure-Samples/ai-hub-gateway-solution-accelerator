@@ -110,6 +110,24 @@
         "description": "Function app subnet address prefix."
       }
     },
+    "appGatewaySubnetPrefix": {
+      "value": "${AZURE_APP_GATEWAY_SUBNET_PREFIX}",
+      "metadata": {
+        "description": "Application Gateway subnet address prefix."
+      }
+    },
+    "appGatewayDnsLabel": {
+      "value": "${AZURE_APP_GATEWAY_DNS_LABEL}",
+      "metadata": {
+        "description": "DNS label for the Application Gateway Public IP (creates Azure-generated FQDN like myapi.eastus.cloudapp.azure.com)."
+      }
+    },
+    "apimGatewayHostname": {
+      "value": "${AZURE_APIM_GATEWAY_HOSTNAME}",
+      "metadata": {
+        "description": "APIM internal gateway hostname for health probes and backend HTTP settings."
+      }
+    },
     "openAiSkuName": {
       "value": "${OPENAI_SKU_NAME}",
       "metadata": {

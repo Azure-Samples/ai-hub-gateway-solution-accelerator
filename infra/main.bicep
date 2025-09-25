@@ -46,7 +46,7 @@ param createAppInsightsDashboard bool
 param applicationInsightsDashboardName string = ''
 
 @description('Name of the Application Insights dashboard. Leave blank to use default naming conventions.')
-param funcAplicationInsightsDashboardName string = ''
+param funcApplicationInsightsDashboardName string = ''
 
 @description('Name of the Application Insights for APIM resource. Leave blank to use default naming conventions.')
 param applicationInsightsName string = ''
@@ -93,6 +93,7 @@ param vnetName string = ''
 param apimSubnetName string = ''
 param privateEndpointSubnetName string = ''
 param functionAppSubnetName string = ''
+param appGatewaySubnetName string = ''
 
 // ONLY for existing VNet - Existing Private DNS zones mapping
 param dnsZoneRG string = ''
@@ -102,14 +103,27 @@ param dnsSubscriptionId string = ''
 param apimNsgName string = ''
 param privateEndpointNsgName string = ''
 param functionAppNsgName string = ''
+param appGatewayNsgName string = ''
 
 // Networking - Address Space
 param vnetAddressPrefix string
 param apimSubnetPrefix string
 param privateEndpointSubnetPrefix string
 param functionAppSubnetPrefix string
+param appGatewaySubnetPrefix string
 
+// Note: All other Application Gateway settings use sensible defaults:
+// - Capacity: 2 instances (no autoscaling)
+// - Timeouts: 60s request, 30s probe interval/timeout, 3 unhealthy threshold
+// - Certificate: 12 months validity, no additional DNS names
+// - Backend: IP mode to APIM private IP
 
+// Application Gateway module parameters (Azure-generated DNS)
+@description('DNS label for the Application Gateway Public IP (creates Azure-generated FQDN like myapi.eastus.cloudapp.azure.com).')
+param appGatewayDnsLabel string
+
+@description('APIM internal gateway hostname for health probes and backend HTTP settings.')
+param apimGatewayHostname string
 
 var openAiPrivateDnsZoneName = 'privatelink.openai.azure.com'
 var aiCognitiveServicesDnsZoneName = 'privatelink.cognitiveservices.azure.com'
@@ -358,10 +372,13 @@ module vnet './modules/networking/vnet.bicep' = if(!useExistingVnet) {
     privateEndpointNsgName: !empty(privateEndpointNsgName) ? privateEndpointNsgName : 'nsg-pe-${resourceToken}'
     functionAppSubnetName: !empty(functionAppSubnetName) ? functionAppSubnetName : 'snet-functionapp'
     functionAppNsgName: !empty(functionAppNsgName) ? functionAppNsgName : 'nsg-functionapp-${resourceToken}'
+    appGatewaySubnetName: !empty(appGatewaySubnetName) ? appGatewaySubnetName : 'snet-appgw'
+    appGatewayNsgName: !empty(appGatewayNsgName) ? appGatewayNsgName : 'nsg-appgw-${resourceToken}'
     vnetAddressPrefix: vnetAddressPrefix
     apimSubnetAddressPrefix: apimSubnetPrefix
     privateEndpointSubnetAddressPrefix: privateEndpointSubnetPrefix
     functionAppSubnetAddressPrefix: functionAppSubnetPrefix
+    appGatewaySubnetAddressPrefix: appGatewaySubnetPrefix
     location: location
     tags: tags
     privateDnsZoneNames: privateDnsZoneNames
@@ -380,10 +397,82 @@ module vnetExisting './modules/networking/vnet-existing.bicep' = if(useExistingV
     apimSubnetName: !empty(apimSubnetName) ? apimSubnetName : 'snet-apim'
     privateEndpointSubnetName: !empty(privateEndpointSubnetName) ? privateEndpointSubnetName : 'snet-private-endpoint'
     functionAppSubnetName: !empty(functionAppSubnetName) ? functionAppSubnetName : 'snet-functionapp'
+    appGatewaySubnetName: !empty(appGatewaySubnetName) ? appGatewaySubnetName : 'snet-appgw'
     vnetRG: existingVnetRG
   }
   dependsOn: [
     dnsDeployment
+  ]
+}
+
+// Application Gateway Public IP
+module appGatewayPublicIp './modules/networking/public-ip.bicep' = {
+  name: 'app-gateway-public-ip'
+  scope: resourceGroup
+  params: {
+    name: '${abbrs.networkPublicIPAddresses}appgw-${resourceToken}'
+    location: location
+    dnsLabel: appGatewayDnsLabel // Azure-generated FQDN
+    ipVersion: 'IPv4'
+    idleTimeoutInMinutes: 4 // Default timeout
+    tags: union(tags, {
+      'azd-service-name': 'app-gateway-public-ip'
+      'Component': 'ApplicationGateway'
+    })
+  }
+}
+
+// Application Gateway Managed Identity (UAMI)
+// Note: UAMI removed - not needed for Azure-generated DNS (no Key Vault access required)
+
+// Application Gateway WAF Policy
+module appGatewayWafPolicy './modules/security/waf-policy.bicep' = {
+  name: 'app-gateway-waf-policy'
+  scope: resourceGroup
+  params: {
+    name: 'wafp-appgw-${resourceToken}'
+    location: location
+    mode: 'Detection' // Default detection mode
+    requestBodySizeLimitInKb: 128 // Default limit
+    maxRequestBodySizeInKb: 128 // Default limit
+    fileUploadSizeLimitInMb: 100 // Default limit
+    tags: union(tags, {
+      'azd-service-name': 'app-gateway-waf-policy'
+      'Component': 'ApplicationGateway'
+      'WAF-Mode': 'Detection'
+    })
+  }
+}
+
+// Note: Key Vault removed - not needed for Azure-generated DNS (no certificates required)
+
+// Note: Certificate Management removed - not needed for Azure-generated DNS (no certificates required)
+
+// Application Gateway WAF_v2 (targeting APIM backend)
+module applicationGateway './modules/app-gateway/app-gateway.bicep' = {
+  name: 'application-gateway'
+  scope: resourceGroup
+  params: {
+    appGatewayName: '${abbrs.networkApplicationGateways}appgw-${resourceToken}'
+    location: location
+    subnetId: useExistingVnet ? vnetExisting.outputs.appGatewaySubnetId : vnet.outputs.appGatewaySubnetId
+    publicIpId: appGatewayPublicIp.outputs.publicIpId
+    wafPolicyId: appGatewayWafPolicy.outputs.wafPolicyId
+    apimGatewayHostname: apimGatewayHostname
+    backendType: 'fqdn'
+    apimPrivateIp: ''
+    apimBackendFqdn: apimGatewayHostname
+    tags: union(tags, {
+      'azd-service-name': 'application-gateway'
+      'Component': 'ApplicationGateway'
+    })
+  }
+  dependsOn: [
+    appGatewayPublicIp
+    appGatewayWafPolicy
+    apim
+    vnet
+    vnetExisting
   ]
 }
 
@@ -418,7 +507,7 @@ module monitoring './modules/monitor/monitoring.bicep' = {
     apimApplicationInsightsName: !empty(applicationInsightsName) ? applicationInsightsName : '${abbrs.insightsComponents}apim-${resourceToken}'
     apimApplicationInsightsDashboardName: !empty(applicationInsightsDashboardName) ? applicationInsightsDashboardName : '${abbrs.portalDashboards}apim-${resourceToken}'
     functionApplicationInsightsName: !empty(funcApplicationInsightsName) ? funcApplicationInsightsName : '${abbrs.insightsComponents}func-${resourceToken}'
-    functionApplicationInsightsDashboardName: !empty(funcAplicationInsightsDashboardName) ? funcAplicationInsightsDashboardName : '${abbrs.portalDashboards}func-${resourceToken}'
+    functionApplicationInsightsDashboardName: !empty(funcApplicationInsightsDashboardName) ? funcApplicationInsightsDashboardName : '${abbrs.portalDashboards}func-${resourceToken}'
     vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
@@ -546,6 +635,23 @@ module apim './modules/apim/apim.bicep' = {
     vnetExisting
     apimManagedIdentity
     eventHub
+  ]
+}
+
+// Ensure internal DNS resolution for APIM FQDN within VNet
+module apimInternalDns './modules/networking/apim-internal-dns.bicep' = {
+  name: 'apim-internal-dns'
+  scope: resourceGroup
+  params: {
+    vnetId: useExistingVnet ? vnetExisting.outputs.virtualNetworkId : vnet.outputs.virtualNetworkId
+    apimName: (!empty(apimServiceName) ? apimServiceName : '${abbrs.apiManagementService}${resourceToken}')
+    apimResourceGroup: resourceGroup.name
+    tags: tags
+  }
+  dependsOn: [
+    apim
+    vnet
+    vnetExisting
   ]
 }
 
@@ -685,3 +791,21 @@ module logicApp './modules/logicapp/logicapp.bicep' = {
 output APIM_NAME string = apim.outputs.apimName
 output APIM_AOI_PATH string = apim.outputs.apimOpenaiApiPath
 output APIM_GATEWAY_URL string = apim.outputs.apimGatewayUrl
+output APIM_PRIVATE_IP string = apim.outputs.apimPrivateIp
+output APP_GATEWAY_SUBNET_NAME string = vnet.outputs.appGatewaySubnetName
+output APP_GATEWAY_SUBNET_ID string = vnet.outputs.appGatewaySubnetId
+output APP_GATEWAY_SUBNET_PREFIX string = vnet.outputs.appGatewaySubnetPrefix
+output APP_GATEWAY_PUBLIC_IP_ID string = appGatewayPublicIp.outputs.publicIpId
+output APP_GATEWAY_PUBLIC_IP_ADDRESS string = appGatewayPublicIp.outputs.publicIpAddress
+output APP_GATEWAY_PUBLIC_IP_FQDN string = appGatewayPublicIp.outputs.publicIpFqdn
+output APP_GATEWAY_WAF_POLICY_ID string = appGatewayWafPolicy.outputs.wafPolicyId
+output APP_GATEWAY_WAF_POLICY_NAME string = appGatewayWafPolicy.outputs.wafPolicyName
+output APP_GATEWAY_WAF_POLICY_MODE string = appGatewayWafPolicy.outputs.wafPolicyMode
+output APP_GATEWAY_WAF_POLICY_CONFIG object = appGatewayWafPolicy.outputs.wafPolicyConfig
+// Debug outputs to check if module is being processed
+output APP_GATEWAY_DEBUG_SUBNET_ID string = useExistingVnet ? vnetExisting.outputs.appGatewaySubnetId : vnet.outputs.appGatewaySubnetId
+output APP_GATEWAY_DEBUG_PUBLIC_IP_ID string = appGatewayPublicIp.outputs.publicIpId
+output APP_GATEWAY_DEBUG_WAF_POLICY_ID string = appGatewayWafPolicy.outputs.wafPolicyId
+output APP_GATEWAY_DEBUG_APIM_HOSTNAME string = apimGatewayHostname
+output APP_GATEWAY_NAME string = applicationGateway.outputs.appGatewayName
+output APP_GATEWAY_FQDN string = appGatewayPublicIp.outputs.publicIpFqdn // Azure-generated FQDN
