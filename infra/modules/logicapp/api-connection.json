@@ -10,6 +10,13 @@
         },
         "location": {
             "type": "string"
+        },
+        "tags": {
+            "type": "object",
+            "defaultValue": {
+                "environment": "dev",
+                "owner": "platform"
+            }
         }
     },
     "variables": {},
@@ -19,6 +26,7 @@
             "name": "[parameters('connection_name')]",
             "apiVersion": "[providers('Microsoft.Web','connections').apiVersions[0]]",
             "location": "[parameters('location')]",
+            "tags": "[parameters('tags')]",
             "kind": "V2",
             "properties": {
                 "alternativeParameterValues": {},

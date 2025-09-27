@@ -194,6 +194,7 @@ module azureMonitorConnection 'api-connection.json' = {
     connection_name: 'azuremonitorlogs'
     display_name: 'conn-azure-monitor'
     location: location
+    tags: tags
   }
 }
 
@@ -204,8 +205,6 @@ module azureMonitorConnectionAccess 'api-connection-access.bicep' = {
     accessPolicyName: 'azuremonitorlogs-access'
     identityPrincipalId: logicApp.identity.principalId
     location: location
+    tags: tags
   }
-  dependsOn:[
-    azureMonitorConnection
-  ]
 }

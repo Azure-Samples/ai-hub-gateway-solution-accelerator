@@ -44,6 +44,7 @@
                 </return-response>
             </when>
         </choose>
+        
         <!-- Deleting api-key header so it is not passed to backend endpoints-->
         <set-header name="api-key" exists-action="delete" />
         
