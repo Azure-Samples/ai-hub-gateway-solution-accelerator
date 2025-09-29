@@ -110,7 +110,7 @@ param vnetAddressPrefix string
 param apimSubnetPrefix string
 param privateEndpointSubnetPrefix string
 param functionAppSubnetPrefix string
-param appGatewaySubnetPrefix string
+param appGatewaySubnetPrefix string = ''
 
 // Note: All other Application Gateway settings use sensible defaults:
 // - Capacity: 2 instances (no autoscaling)
@@ -123,10 +123,10 @@ param appGatewaySubnetPrefix string
 param enableApplicationGateway bool = true
 
 @description('DNS label for the Application Gateway Public IP (creates Azure-generated FQDN like myapi.eastus.cloudapp.azure.com).')
-param appGatewayDnsLabel string
+param appGatewayDnsLabel string = ''
 
 @description('APIM internal gateway hostname for health probes and backend HTTP settings.')
-param apimGatewayHostname string
+param apimGatewayHostname string = ''
 
 var openAiPrivateDnsZoneName = 'privatelink.openai.azure.com'
 var aiCognitiveServicesDnsZoneName = 'privatelink.cognitiveservices.azure.com'
@@ -382,6 +382,7 @@ module vnet './modules/networking/vnet.bicep' = if(!useExistingVnet) {
     privateEndpointSubnetAddressPrefix: privateEndpointSubnetPrefix
     functionAppSubnetAddressPrefix: functionAppSubnetPrefix
     appGatewaySubnetAddressPrefix: appGatewaySubnetPrefix
+    enableApplicationGateway: enableApplicationGateway
     location: location
     tags: tags
     privateDnsZoneNames: privateDnsZoneNames
@@ -409,7 +410,7 @@ module vnetExisting './modules/networking/vnet-existing.bicep' = if(useExistingV
 }
 
 // Application Gateway Public IP
-module appGatewayPublicIp './modules/networking/public-ip.bicep' = if(enableApplicationGateway) {
+module appGatewayPublicIp './modules/networking/public-ip.bicep' = if(enableApplicationGateway && !empty(appGatewayDnsLabel)) {
   name: 'app-gateway-public-ip'
   scope: resourceGroup
   params: {
@@ -429,7 +430,7 @@ module appGatewayPublicIp './modules/networking/public-ip.bicep' = if(enableAppl
 // Note: UAMI removed - not needed for Azure-generated DNS (no Key Vault access required)
 
 // Application Gateway WAF Policy
-module appGatewayWafPolicy './modules/security/waf-policy.bicep' = if(enableApplicationGateway) {
+module appGatewayWafPolicy './modules/security/waf-policy.bicep' = if(enableApplicationGateway && !empty(appGatewayDnsLabel)) {
   name: 'app-gateway-waf-policy'
   scope: resourceGroup
   params: {
@@ -452,7 +453,7 @@ module appGatewayWafPolicy './modules/security/waf-policy.bicep' = if(enableAppl
 // Note: Certificate Management removed - not needed for Azure-generated DNS (no certificates required)
 
 // Application Gateway WAF_v2 (targeting APIM backend)
-module applicationGateway './modules/app-gateway/app-gateway.bicep' = if(enableApplicationGateway) {
+module applicationGateway './modules/app-gateway/app-gateway.bicep' = if(enableApplicationGateway && !empty(appGatewayDnsLabel) && !empty(apimGatewayHostname)) {
   name: 'application-gateway'
   scope: resourceGroup
   params: {
@@ -798,17 +799,17 @@ output APIM_PRIVATE_IP string = apim.outputs.apimPrivateIp
 output APP_GATEWAY_SUBNET_NAME string = vnet.outputs.appGatewaySubnetName
 output APP_GATEWAY_SUBNET_ID string = vnet.outputs.appGatewaySubnetId
 output APP_GATEWAY_SUBNET_PREFIX string = vnet.outputs.appGatewaySubnetPrefix
-output APP_GATEWAY_PUBLIC_IP_ID string = enableApplicationGateway ? appGatewayPublicIp.outputs.publicIpId : ''
-output APP_GATEWAY_PUBLIC_IP_ADDRESS string = enableApplicationGateway ? appGatewayPublicIp.outputs.publicIpAddress : ''
-output APP_GATEWAY_PUBLIC_IP_FQDN string = enableApplicationGateway ? appGatewayPublicIp.outputs.publicIpFqdn : ''
-output APP_GATEWAY_WAF_POLICY_ID string = enableApplicationGateway ? appGatewayWafPolicy.outputs.wafPolicyId : ''
-output APP_GATEWAY_WAF_POLICY_NAME string = enableApplicationGateway ? appGatewayWafPolicy.outputs.wafPolicyName : ''
-output APP_GATEWAY_WAF_POLICY_MODE string = enableApplicationGateway ? appGatewayWafPolicy.outputs.wafPolicyMode : ''
-output APP_GATEWAY_WAF_POLICY_CONFIG object = enableApplicationGateway ? appGatewayWafPolicy.outputs.wafPolicyConfig : {}
+output APP_GATEWAY_PUBLIC_IP_ID string = (enableApplicationGateway && !empty(appGatewayDnsLabel)) ? appGatewayPublicIp.outputs.publicIpId : ''
+output APP_GATEWAY_PUBLIC_IP_ADDRESS string = (enableApplicationGateway && !empty(appGatewayDnsLabel)) ? appGatewayPublicIp.outputs.publicIpAddress : ''
+output APP_GATEWAY_PUBLIC_IP_FQDN string = (enableApplicationGateway && !empty(appGatewayDnsLabel)) ? appGatewayPublicIp.outputs.publicIpFqdn : ''
+output APP_GATEWAY_WAF_POLICY_ID string = (enableApplicationGateway && !empty(appGatewayDnsLabel)) ? appGatewayWafPolicy.outputs.wafPolicyId : ''
+output APP_GATEWAY_WAF_POLICY_NAME string = (enableApplicationGateway && !empty(appGatewayDnsLabel)) ? appGatewayWafPolicy.outputs.wafPolicyName : ''
+output APP_GATEWAY_WAF_POLICY_MODE string = (enableApplicationGateway && !empty(appGatewayDnsLabel)) ? appGatewayWafPolicy.outputs.wafPolicyMode : ''
+output APP_GATEWAY_WAF_POLICY_CONFIG object = (enableApplicationGateway && !empty(appGatewayDnsLabel)) ? appGatewayWafPolicy.outputs.wafPolicyConfig : {}
 // Debug outputs to check if module is being processed
-output APP_GATEWAY_DEBUG_SUBNET_ID string = enableApplicationGateway ? (useExistingVnet ? vnetExisting.outputs.appGatewaySubnetId : vnet.outputs.appGatewaySubnetId) : ''
-output APP_GATEWAY_DEBUG_PUBLIC_IP_ID string = enableApplicationGateway ? appGatewayPublicIp.outputs.publicIpId : ''
-output APP_GATEWAY_DEBUG_WAF_POLICY_ID string = enableApplicationGateway ? appGatewayWafPolicy.outputs.wafPolicyId : ''
+output APP_GATEWAY_DEBUG_SUBNET_ID string = (enableApplicationGateway && !empty(appGatewayDnsLabel)) ? (useExistingVnet ? vnetExisting.outputs.appGatewaySubnetId : vnet.outputs.appGatewaySubnetId) : ''
+output APP_GATEWAY_DEBUG_PUBLIC_IP_ID string = (enableApplicationGateway && !empty(appGatewayDnsLabel)) ? appGatewayPublicIp.outputs.publicIpId : ''
+output APP_GATEWAY_DEBUG_WAF_POLICY_ID string = (enableApplicationGateway && !empty(appGatewayDnsLabel)) ? appGatewayWafPolicy.outputs.wafPolicyId : ''
 output APP_GATEWAY_DEBUG_APIM_HOSTNAME string = apimGatewayHostname
-output APP_GATEWAY_NAME string = enableApplicationGateway ? applicationGateway.outputs.appGatewayName : ''
-output APP_GATEWAY_FQDN string = enableApplicationGateway ? appGatewayPublicIp.outputs.publicIpFqdn : '' // Azure-generated FQDN
+output APP_GATEWAY_NAME string = (enableApplicationGateway && !empty(appGatewayDnsLabel) && !empty(apimGatewayHostname)) ? applicationGateway.outputs.appGatewayName : ''
+output APP_GATEWAY_FQDN string = (enableApplicationGateway && !empty(appGatewayDnsLabel)) ? appGatewayPublicIp.outputs.publicIpFqdn : '' // Azure-generated FQDN

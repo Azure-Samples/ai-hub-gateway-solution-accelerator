@@ -15,6 +15,7 @@ param functionAppSubnetAddressPrefix string
 param appGatewaySubnetName string
 param appGatewayNsgName string
 param appGatewaySubnetAddressPrefix string
+param enableApplicationGateway bool = true
 param tags object = {}
 
 // Set to true to enable service endpoints for APIM subnet
@@ -242,7 +243,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
         vnetAddressPrefix
       ]
     }
-    subnets: [
+    subnets: concat([
       {
         name: apimSubnetName
         properties: {
@@ -305,6 +306,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
           ]
         }
       }
+    ], enableApplicationGateway ? [
       {
         name: appGatewaySubnetName
         properties: {
@@ -314,7 +316,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
           }
         }
       }
-    ]
+    ] : [])
   }
   
 
@@ -330,7 +332,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
     name: functionAppSubnetName
   }
 
-  resource appGatewaySubnet 'subnets' existing = {
+  resource appGatewaySubnet 'subnets' existing = if(enableApplicationGateway) {
     name: appGatewaySubnetName
   }
 }
@@ -354,8 +356,8 @@ output privateEndpointSubnetName string = virtualNetwork::privateEndpointSubnet.
 output privateEndpointSubnetId string = virtualNetwork::privateEndpointSubnet.id
 output functionAppSubnetName string = virtualNetwork::functionAppSubnet.name
 output functionAppSubnetId string = virtualNetwork::functionAppSubnet.id
-output appGatewaySubnetName string = virtualNetwork::appGatewaySubnet.name
-output appGatewaySubnetId string = virtualNetwork::appGatewaySubnet.id
-output appGatewaySubnetPrefix string = appGatewaySubnetAddressPrefix
+output appGatewaySubnetName string = enableApplicationGateway ? virtualNetwork::appGatewaySubnet.name : ''
+output appGatewaySubnetId string = enableApplicationGateway ? virtualNetwork::appGatewaySubnet.id : ''
+output appGatewaySubnetPrefix string = enableApplicationGateway ? appGatewaySubnetAddressPrefix : ''
 output location string = virtualNetwork.location
 output vnetRG string = resourceGroup().name
