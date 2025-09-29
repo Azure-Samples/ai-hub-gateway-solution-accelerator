@@ -116,6 +116,12 @@
         "description": "Application Gateway subnet address prefix."
       }
     },
+    "enableApplicationGateway": {
+      "value": "${AZURE_ENABLE_APP_GATEWAY}",
+      "metadata": {
+        "description": "Enable Application Gateway deployment. Set to false to skip Application Gateway and related resources."
+      }
+    },
     "appGatewayDnsLabel": {
       "value": "${AZURE_APP_GATEWAY_DNS_LABEL}",
       "metadata": {
