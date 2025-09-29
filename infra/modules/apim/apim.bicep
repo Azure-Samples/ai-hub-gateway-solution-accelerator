@@ -645,4 +645,4 @@ output apimAiFoundryApiPath string = length(aiFoundryUris) > 0 ? apimAiFoundryAp
 output apimGatewayUrl string = apimService.properties.gatewayUrl
 
 @description('Primary private IP address of the API Management service (for Internal network type).')
-output apimPrivateIp string = length(apimService.properties.privateIPAddresses) > 0 ? apimService.properties.privateIPAddresses[0] : ''
+output apimPrivateIp string = apimService.properties.privateIPAddresses != null && length(apimService.properties.privateIPAddresses) > 0 ? apimService.properties.privateIPAddresses[0] : ''

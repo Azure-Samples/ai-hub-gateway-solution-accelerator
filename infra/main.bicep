@@ -642,8 +642,8 @@ module apim './modules/apim/apim.bicep' = {
   ]
 }
 
-// Ensure internal DNS resolution for APIM FQDN within VNet
-module apimInternalDns './modules/networking/apim-internal-dns.bicep' = {
+// Ensure internal DNS resolution for APIM FQDN within VNet (only needed when Application Gateway is enabled)
+module apimInternalDns './modules/networking/apim-internal-dns.bicep' = if(enableApplicationGateway) {
   name: 'apim-internal-dns'
   scope: resourceGroup
   params: {
