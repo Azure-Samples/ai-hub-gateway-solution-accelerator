@@ -119,6 +119,9 @@ param appGatewaySubnetPrefix string
 // - Backend: IP mode to APIM private IP
 
 // Application Gateway module parameters (Azure-generated DNS)
+@description('Enable Application Gateway deployment. Set to false to skip Application Gateway and related resources.')
+param enableApplicationGateway bool = true
+
 @description('DNS label for the Application Gateway Public IP (creates Azure-generated FQDN like myapi.eastus.cloudapp.azure.com).')
 param appGatewayDnsLabel string
 
@@ -406,7 +409,7 @@ module vnetExisting './modules/networking/vnet-existing.bicep' = if(useExistingV
 }
 
 // Application Gateway Public IP
-module appGatewayPublicIp './modules/networking/public-ip.bicep' = {
+module appGatewayPublicIp './modules/networking/public-ip.bicep' = if(enableApplicationGateway) {
   name: 'app-gateway-public-ip'
   scope: resourceGroup
   params: {
@@ -426,7 +429,7 @@ module appGatewayPublicIp './modules/networking/public-ip.bicep' = {
 // Note: UAMI removed - not needed for Azure-generated DNS (no Key Vault access required)
 
 // Application Gateway WAF Policy
-module appGatewayWafPolicy './modules/security/waf-policy.bicep' = {
+module appGatewayWafPolicy './modules/security/waf-policy.bicep' = if(enableApplicationGateway) {
   name: 'app-gateway-waf-policy'
   scope: resourceGroup
   params: {
@@ -449,7 +452,7 @@ module appGatewayWafPolicy './modules/security/waf-policy.bicep' = {
 // Note: Certificate Management removed - not needed for Azure-generated DNS (no certificates required)
 
 // Application Gateway WAF_v2 (targeting APIM backend)
-module applicationGateway './modules/app-gateway/app-gateway.bicep' = {
+module applicationGateway './modules/app-gateway/app-gateway.bicep' = if(enableApplicationGateway) {
   name: 'application-gateway'
   scope: resourceGroup
   params: {
@@ -795,17 +798,17 @@ output APIM_PRIVATE_IP string = apim.outputs.apimPrivateIp
 output APP_GATEWAY_SUBNET_NAME string = vnet.outputs.appGatewaySubnetName
 output APP_GATEWAY_SUBNET_ID string = vnet.outputs.appGatewaySubnetId
 output APP_GATEWAY_SUBNET_PREFIX string = vnet.outputs.appGatewaySubnetPrefix
-output APP_GATEWAY_PUBLIC_IP_ID string = appGatewayPublicIp.outputs.publicIpId
-output APP_GATEWAY_PUBLIC_IP_ADDRESS string = appGatewayPublicIp.outputs.publicIpAddress
-output APP_GATEWAY_PUBLIC_IP_FQDN string = appGatewayPublicIp.outputs.publicIpFqdn
-output APP_GATEWAY_WAF_POLICY_ID string = appGatewayWafPolicy.outputs.wafPolicyId
-output APP_GATEWAY_WAF_POLICY_NAME string = appGatewayWafPolicy.outputs.wafPolicyName
-output APP_GATEWAY_WAF_POLICY_MODE string = appGatewayWafPolicy.outputs.wafPolicyMode
-output APP_GATEWAY_WAF_POLICY_CONFIG object = appGatewayWafPolicy.outputs.wafPolicyConfig
+output APP_GATEWAY_PUBLIC_IP_ID string = enableApplicationGateway ? appGatewayPublicIp.outputs.publicIpId : ''
+output APP_GATEWAY_PUBLIC_IP_ADDRESS string = enableApplicationGateway ? appGatewayPublicIp.outputs.publicIpAddress : ''
+output APP_GATEWAY_PUBLIC_IP_FQDN string = enableApplicationGateway ? appGatewayPublicIp.outputs.publicIpFqdn : ''
+output APP_GATEWAY_WAF_POLICY_ID string = enableApplicationGateway ? appGatewayWafPolicy.outputs.wafPolicyId : ''
+output APP_GATEWAY_WAF_POLICY_NAME string = enableApplicationGateway ? appGatewayWafPolicy.outputs.wafPolicyName : ''
+output APP_GATEWAY_WAF_POLICY_MODE string = enableApplicationGateway ? appGatewayWafPolicy.outputs.wafPolicyMode : ''
+output APP_GATEWAY_WAF_POLICY_CONFIG object = enableApplicationGateway ? appGatewayWafPolicy.outputs.wafPolicyConfig : {}
 // Debug outputs to check if module is being processed
-output APP_GATEWAY_DEBUG_SUBNET_ID string = useExistingVnet ? vnetExisting.outputs.appGatewaySubnetId : vnet.outputs.appGatewaySubnetId
-output APP_GATEWAY_DEBUG_PUBLIC_IP_ID string = appGatewayPublicIp.outputs.publicIpId
-output APP_GATEWAY_DEBUG_WAF_POLICY_ID string = appGatewayWafPolicy.outputs.wafPolicyId
+output APP_GATEWAY_DEBUG_SUBNET_ID string = enableApplicationGateway ? (useExistingVnet ? vnetExisting.outputs.appGatewaySubnetId : vnet.outputs.appGatewaySubnetId) : ''
+output APP_GATEWAY_DEBUG_PUBLIC_IP_ID string = enableApplicationGateway ? appGatewayPublicIp.outputs.publicIpId : ''
+output APP_GATEWAY_DEBUG_WAF_POLICY_ID string = enableApplicationGateway ? appGatewayWafPolicy.outputs.wafPolicyId : ''
 output APP_GATEWAY_DEBUG_APIM_HOSTNAME string = apimGatewayHostname
-output APP_GATEWAY_NAME string = applicationGateway.outputs.appGatewayName
-output APP_GATEWAY_FQDN string = appGatewayPublicIp.outputs.publicIpFqdn // Azure-generated FQDN
+output APP_GATEWAY_NAME string = enableApplicationGateway ? applicationGateway.outputs.appGatewayName : ''
+output APP_GATEWAY_FQDN string = enableApplicationGateway ? appGatewayPublicIp.outputs.publicIpFqdn : '' // Azure-generated FQDN
