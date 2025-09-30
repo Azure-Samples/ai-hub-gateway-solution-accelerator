@@ -15,7 +15,7 @@ param functionAppSubnetAddressPrefix string
 param appGatewaySubnetName string
 param appGatewayNsgName string
 param appGatewaySubnetAddressPrefix string
-param enableApplicationGateway bool = true
+param enableApplicationGateway bool = false
 param tags object = {}
 
 // Set to true to enable service endpoints for APIM subnet
@@ -153,7 +153,7 @@ resource functionAppNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
   }
 }
 
-resource appGatewayNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
+resource appGatewayNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = if(enableApplicationGateway) {
   name: appGatewayNsgName
   location: location
   tags: union(tags, { 'azd-service-name': appGatewayNsgName })

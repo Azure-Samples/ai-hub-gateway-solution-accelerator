@@ -120,7 +120,7 @@ param appGatewaySubnetPrefix string = ''
 
 // Application Gateway module parameters (Azure-generated DNS)
 @description('Enable Application Gateway deployment. Set to false to skip Application Gateway and related resources.')
-param enableApplicationGateway bool = true
+param enableApplicationGateway bool = false
 
 @description('DNS label for the Application Gateway Public IP (creates Azure-generated FQDN like myapi.eastus.cloudapp.azure.com).')
 param appGatewayDnsLabel string = ''
@@ -130,6 +130,7 @@ param apimGatewayHostname string = ''
 
 var openAiPrivateDnsZoneName = 'privatelink.openai.azure.com'
 var aiCognitiveServicesDnsZoneName = 'privatelink.cognitiveservices.azure.com'
+var aiFoundryServicesDnsZoneName = 'privatelink.services.ai.azure.com'
 var keyVaultPrivateDnsZoneName = 'privatelink.vaultcore.azure.net'
 var monitorPrivateDnsZoneName = 'privatelink.monitor.azure.com'
 var eventHubPrivateDnsZoneName = 'privatelink.servicebus.windows.net'
@@ -142,6 +143,7 @@ var storageQueuePrivateDnsZoneName = 'privatelink.queue.core.windows.net'
 var privateDnsZoneNames = [
   openAiPrivateDnsZoneName
   aiCognitiveServicesDnsZoneName
+  aiFoundryServicesDnsZoneName
   keyVaultPrivateDnsZoneName
   monitorPrivateDnsZoneName
   eventHubPrivateDnsZoneName 
@@ -171,7 +173,6 @@ var openAiInstances = {
           name: 'Standard'
           capacity: deploymentCapacity
         }
-        
       }
       {
         name: 'embedding'
@@ -572,7 +573,7 @@ module aiFoundryServices 'modules/ai/aiservices.bicep' = [for (config, i) in ite
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
     aiServicesPrivateEndpointName: '${config.value.name}-pe-${resourceToken}'
     publicNetworkAccess: openAIExternalNetworkAccess
-    aiCognitiveServicesDnsZoneName: aiCognitiveServicesDnsZoneName
+    aiCognitiveServicesDnsZoneName: aiFoundryServicesDnsZoneName
     sku: {
       name: openAiSkuName
     }
