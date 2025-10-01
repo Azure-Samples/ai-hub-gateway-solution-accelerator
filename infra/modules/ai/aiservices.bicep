@@ -51,7 +51,7 @@ resource aiServicesAccount 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
     customSubDomainName: toLower(name)
     publicNetworkAccess: publicNetworkAccess
     networkAcls: {
-      defaultAction: 'Deny'
+      defaultAction: 'Allow'
       ipRules: []
       virtualNetworkRules: []
     }
@@ -93,4 +93,4 @@ module aiServicesPrivateEndpoint '../networking/private-endpoint.bicep' = {
 }
 
 output aiServicesName string = aiServicesAccount.name
-output aiServicesEndpoint string = aiServicesAccount.properties.endpoint
+output aiServicesEndpoint string = replace(aiServicesAccount.properties.endpoint, '.cognitiveservices.azure.com/', '.services.ai.azure.com/models/')
