@@ -590,7 +590,7 @@ resource aiSearchBackends 'Microsoft.ApiManagement/service/backends@2022-08-01' 
   }
 }]
 
-resource contentSafetyBackend 'Microsoft.ApiManagement/service/backends@2022-08-01' = {
+resource contentSafetyBackend 'Microsoft.ApiManagement/service/backends@2024-05-01' = {
   name: 'content-safety-backend'
   parent: apimService
   properties: {
@@ -600,6 +600,12 @@ resource contentSafetyBackend 'Microsoft.ApiManagement/service/backends@2022-08-
     tls: {
       validateCertificateChain: true
       validateCertificateName: true
+    }
+    credentials: {
+      managedIdentity: {
+        clientId: managedIdentity.properties.clientId
+        resource: 'https://cognitiveservices.azure.com'
+      }
     }
   }
 }
