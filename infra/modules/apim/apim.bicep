@@ -826,7 +826,7 @@ resource aiFoundryDeploymentsPolicyFragment 'Microsoft.ApiManagement/service/pol
   }
 }
 
-resource apimLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
+resource apimLogger 'Microsoft.ApiManagement/service/loggers@2024-05-01' = {
   name: 'appinsights-logger'
   parent: apimService
   properties: {
@@ -840,7 +840,16 @@ resource apimLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
   }
 }
 
-resource apimAppInsights 'Microsoft.ApiManagement/service/diagnostics@2022-08-01' = {
+resource apimAzMonitorLogger 'Microsoft.ApiManagement/service/loggers@2024-05-01' = {
+  parent: apimService
+  name: 'azuremonitor'
+  properties: {
+    loggerType: 'azureMonitor'
+    isBuffered: false // Set to false to ensure logs are sent immediately
+  }
+}
+
+resource apimAppInsights 'Microsoft.ApiManagement/service/diagnostics@2024-05-01' = {
   parent: apimService
   name: 'applicationinsights'
   properties: {
@@ -906,6 +915,27 @@ resource ehPIIUsageLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' =
       endpointAddress: replace(eventHubPIIEndpoint, 'https://', '')
       identityClientId: managedIdentity.properties.clientId
     }
+  }
+}
+
+resource apimDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  scope: apimService
+  name: 'apimDiagnosticSettings'
+  properties: {
+    workspaceId: applicationInsights.properties.WorkspaceResourceId
+    logAnalyticsDestinationType: 'Dedicated'
+    logs: [
+      {
+        categoryGroup: 'AllLogs'
+        enabled: true
+      }
+    ]
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+      }
+    ]
   }
 }
 
