@@ -167,6 +167,7 @@ module apimOpenaiApi './api.bicep' = {
     apiDescription: 'Azure OpenAI API'
     policyDocument: loadTextContent('./policies/openai_api_policy.xml')
     enableAPIDeployment: true
+    enableAPIDiagnostics: true
   }
   dependsOn: [
     aadAuthPolicyFragment
@@ -194,6 +195,7 @@ module apimAiSearchIndexApi './api.bicep' = if (enableAzureAISearch) {
     apiDescription: 'Azure AI Search Index Client APIs'
     policyDocument: loadTextContent('./policies/ai-search-index-api-policy.xml')
     enableAPIDeployment: true
+    enableAPIDiagnostics: false
   }
   dependsOn: [
     aadAuthPolicyFragment
@@ -242,6 +244,7 @@ module apimAiModelInferenceApi './api.bicep' = if (enableAIModelInference) {
     apiDescription: 'Access to AI inference models published through Azure AI Foundry'
     policyDocument: loadTextContent('./policies/ai-model-inference-api-policy.xml')
     enableAPIDeployment: true
+    enableAPIDiagnostics: true
   }
   dependsOn: [
     aadAuthPolicyFragment
@@ -269,6 +272,7 @@ module apimOpenAIRealTimetApi './api.bicep' = if (enableOpenAIRealtime) {
     serviceUrl: 'wss://to-be-replaced-by-policy'
     apiType: 'websocket'
     apiProtocols: ['wss']
+    enableAPIDiagnostics: false
   }
   dependsOn: [
     aadAuthPolicyFragment
@@ -294,6 +298,7 @@ module apimDocumentIntelligenceLegacy './api.bicep' = if (enableDocumentIntellig
     apiDescription: 'Uses (/formrecognizer) url path. Extracts content, layout, and structured data from documents.'
     policyDocument: loadTextContent('./policies/doc-intelligence-api-policy.xml')
     enableAPIDeployment: true
+    enableAPIDiagnostics: false
   }
   dependsOn: [
     aadAuthPolicyFragment
@@ -318,6 +323,7 @@ module apimDocumentIntelligence './api.bicep' = if (enableDocumentIntelligence) 
     apiDescription: 'Uses (/documentintelligence) url path. Extracts content, layout, and structured data from documents.'
     policyDocument: loadTextContent('./policies/doc-intelligence-api-policy.xml')
     enableAPIDeployment: true
+    enableAPIDiagnostics: false
   }
   dependsOn: [
     aadAuthPolicyFragment
@@ -342,6 +348,7 @@ module apiUniversalLLM './api.bicep' = {
     apiDescription: 'Universal LLM API to route requests to different LLM providers including Azure OpenAI and AI Foundry.'
     policyDocument: loadTextContent('./policies/universal-llm-api-policy-v2.xml')
     enableAPIDeployment: true
+    enableAPIDiagnostics: true
   }
   dependsOn: [
     aadAuthPolicyFragment
@@ -840,12 +847,13 @@ resource apimLogger 'Microsoft.ApiManagement/service/loggers@2024-05-01' = {
   }
 }
 
-resource apimAzMonitorLogger 'Microsoft.ApiManagement/service/loggers@2024-05-01' = {
+resource apimAzMonitorLogger 'Microsoft.ApiManagement/service/loggers@2024-10-01-preview' = {
   parent: apimService
   name: 'azuremonitor'
   properties: {
     loggerType: 'azureMonitor'
     isBuffered: false // Set to false to ensure logs are sent immediately
+    description: 'Azure Monitor logger for Log Analytics'
   }
 }
 

@@ -49,3 +49,4 @@ module applicationInsightsDashboard 'applicationinsights-dashboard.bicep' = if(c
 output connectionString string = applicationInsights.properties.ConnectionString
 output instrumentationKey string = applicationInsights.properties.InstrumentationKey
 output name string = applicationInsights.name
+output id string = applicationInsights.id

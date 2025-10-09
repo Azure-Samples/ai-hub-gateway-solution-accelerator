@@ -40,6 +40,10 @@ param subscriptionKeyName string = ''
 
 param enableAPIDeployment bool = true
 
+param apimLoggerId string = 'azuremonitor'
+
+param enableAPIDiagnostics bool
+
 // Assume the content format is JSON format if the ending is .json - otherwise, it's YAML
 var contentFormat = startsWith(openApiSpecification, '{') ? 'openapi+json' : 'openapi'
 
@@ -68,6 +72,11 @@ resource apimService 'Microsoft.ApiManagement/service@2022-08-01' existing = {
 }
 
 var isWebSotcketAPI = contains(apiProtocols, 'ws') || contains(apiProtocols, 'wss')
+
+var logSettings = {
+  headers: [ 'Content-type', 'User-agent', 'x-ms-region', 'x-ratelimit-remaining-tokens' , 'x-ratelimit-remaining-requests' ]
+  body: { bytes: 0 }
+}
 
 resource apiDefinition 'Microsoft.ApiManagement/service/apis@2022-08-01' = if(enableAPIDeployment && !isWebSotcketAPI) {
   name: apiName
@@ -131,6 +140,85 @@ resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' = 
   properties: {
     format: 'rawxml'
     value: policyDocument
+  }
+}
+
+resource apiDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2024-06-01-preview' = if(enableAPIDiagnostics && enableAPIDeployment && !isWebSotcketAPI) {
+  parent: apiDefinition
+  name: 'azuremonitor'
+  properties: {
+    alwaysLog: 'allErrors'
+    verbosity: 'Information'
+    logClientIp: true
+    loggerId: resourceId(resourceGroup().name, 'Microsoft.ApiManagement/service/loggers', apimService.name, apimLoggerId)
+    sampling: {
+      samplingType: 'fixed'
+      percentage: json('100')
+    }
+    frontend: {
+      request: {
+        headers: []
+        body: {
+          bytes: 0
+        }
+      }
+      response: {
+        headers: []
+        body: {
+          bytes: 0
+        }
+      }
+    }
+    backend: {
+      request: {
+        headers: []
+        body: {
+          bytes: 0
+        }
+      }
+      response: {
+        headers: []
+        body: {
+          bytes: 0
+        }
+      }
+    }
+    largeLanguageModel: {
+      logs: 'enabled'
+      requests: {
+        messages: 'all'
+        maxSizeInBytes: 262144
+      }
+      responses: {
+        messages: 'all'
+        maxSizeInBytes: 262144
+      }
+    }
+  }
+}
+
+resource apiDiagnosticsAppInsights 'Microsoft.ApiManagement/service/apis/diagnostics@2022-08-01' = if (enableAPIDiagnostics && enableAPIDeployment && !isWebSotcketAPI) {
+  name: 'applicationinsights'
+  parent: apiDefinition
+  properties: {
+    alwaysLog: 'allErrors'
+    httpCorrelationProtocol: 'W3C'
+    logClientIp: true
+    loggerId: resourceId(resourceGroup().name, 'Microsoft.ApiManagement/service/loggers', apimService.name, 'appinsights-logger')
+    metrics: true
+    verbosity: 'Information'
+    sampling: {
+      samplingType: 'fixed'
+      percentage: 100
+    }
+    frontend: {
+      request: logSettings
+      response: logSettings
+    }
+    backend: {
+      request: logSettings
+      response: logSettings
+    }
   }
 }
 

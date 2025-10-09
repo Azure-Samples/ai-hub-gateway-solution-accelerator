@@ -211,6 +211,9 @@ param enableAIGatewayPiiRedaction bool = true
 @description('Enable OpenAI realtime capabilities')
 param enableOpenAIRealtime bool = true
 
+@description('Enable AI Foundry integration.')
+param enableAIFoundry bool = true
+
 @description('Enable Microsoft Entra ID authentication for API Management.')
 param entraAuth bool = false
 
@@ -365,6 +368,41 @@ param aiSearchInstances array = [
   }
 ]
 
+@description('AI Foundry services configuration - configure AI Foundry instances.')
+param aiFoundryInstances array = [
+  {
+    name: 'aif-citadel-governance-hub'
+    location: location
+    customSubDomainName: ''
+    defaultProjectName: 'citadel-governance-project'
+  }
+]
+
+@description('AI Foundry model deployments configuration - configure model deployments for Foundry instances.')
+param aiFoundryModelsConfig array = [
+  {
+    name: 'gpt-4o-mini'
+    publisher: 'OpenAI'
+    version: '2024-07-18'
+    sku: 'GlobalStandard'
+    capacity: 100
+  }
+  {
+    name: 'DeepSeek-R1'
+    publisher: 'DeepSeek'
+    version: '1'
+    sku: 'GlobalStandard'
+    capacity: 1
+  }
+  {
+    name: 'Phi-4'
+    publisher: 'Microsoft'
+    version: '3'
+    sku: 'GlobalStandard'
+    capacity: 1
+  }
+]
+
 @description('Microsoft Entra ID tenant ID for authentication (only used when entraAuth is true).')
 param entraTenantId string = ''
 
@@ -494,6 +532,8 @@ module monitoring './modules/monitor/monitoring.bicep' = {
     apimApplicationInsightsDashboardName: !empty(applicationInsightsDashboardName) ? applicationInsightsDashboardName : '${abbrs.portalDashboards}apim-${resourceToken}'
     functionApplicationInsightsName: !empty(funcApplicationInsightsName) ? funcApplicationInsightsName : '${abbrs.insightsComponents}func-${resourceToken}'
     functionApplicationInsightsDashboardName: !empty(funcAplicationInsightsDashboardName) ? funcAplicationInsightsDashboardName : '${abbrs.portalDashboards}func-${resourceToken}'
+    foundryApplicationInsightsName: !empty(funcApplicationInsightsName) ? funcApplicationInsightsName : '${abbrs.insightsComponents}func-${resourceToken}'
+    foundryApplicationInsightsDashboardName: !empty(funcAplicationInsightsDashboardName) ? funcAplicationInsightsDashboardName : '${abbrs.portalDashboards}func-${resourceToken}'
     vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
@@ -596,6 +636,24 @@ module languageService 'modules/ai/cognitiveservices.bicep' = {
     vnetExisting
     apimManagedIdentity
   ]
+}
+
+module foundry 'modules/foundry/foundry.bicep' = if(enableAIFoundry) {
+  name: 'ai-foundry'
+  scope: resourceGroup
+  params: {
+    aiServicesConfig: aiFoundryInstances
+    modelsConfig: aiFoundryModelsConfig
+    lawId: monitoring.outputs.logAnalyticsWorkspaceId
+    apimPrincipalId: apimManagedIdentity.outputs.managedIdentityPrincipalId
+    foundryProjectName: 'citadel-governance-project'
+    appInsightsInstrumentationKey: monitoring.outputs.foundryApplicationInsightsInstrumentationKey
+    appInsightsId: monitoring.outputs.foundryApplicationInsightsId
+    publicNetworkAccess: 'Enabled'
+    disableKeyAuth: false
+    resourceToken: resourceToken
+    tags: tags
+  }
 }
 
 module eventHub './modules/event-hub/event-hub.bicep' = {
@@ -790,3 +848,4 @@ module logicApp './modules/logicapp/logicapp.bicep' = {
 output APIM_NAME string = apim.outputs.apimName
 output APIM_AOI_PATH string = apim.outputs.apimOpenaiApiPath
 output APIM_GATEWAY_URL string = apim.outputs.apimGatewayUrl
+output AI_FOUNDRY_SERVICES array = enableAIFoundry ? foundry!.outputs.extendedAIServicesConfig : []

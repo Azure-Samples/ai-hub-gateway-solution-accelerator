@@ -3,6 +3,8 @@ param apimApplicationInsightsName string
 param apimApplicationInsightsDashboardName string
 param functionApplicationInsightsName string
 param functionApplicationInsightsDashboardName string
+param foundryApplicationInsightsName string
+param foundryApplicationInsightsDashboardName string
 param location string = resourceGroup().location
 param tags object = {}
 
@@ -80,6 +82,19 @@ module functionApplicationInsights 'applicationinsights.bicep' = {
   }
 }
 
+module foundryApplicationInsights 'applicationinsights.bicep' = {
+  name: 'foundry-application-insights'
+  params: {
+    name: foundryApplicationInsightsName
+    location: location
+    tags: tags
+    dashboardName: foundryApplicationInsightsDashboardName
+    logAnalyticsWorkspaceId: logAnalytics.outputs.id
+    privateLinkScopeName: usePrivateLinkScope ? privateLinkScopeName : ''
+    createDashboard: createDashboard
+  }
+}
+
 module privateEndpoint '../networking/private-endpoint.bicep' = if (usePrivateLinkScope) {
   name: '${privateLinkScopeName}-privateEndpoint'
   params: {
@@ -106,8 +121,13 @@ module privateEndpoint '../networking/private-endpoint.bicep' = if (usePrivateLi
 output applicationInsightsName string = apimApplicationInsights.outputs.name
 output applicationInsightsConnectionString string = apimApplicationInsights.outputs.connectionString
 output applicationInsightsInstrumentationKey string = apimApplicationInsights.outputs.instrumentationKey
+output apimApplicationInsightsId string = apimApplicationInsights.outputs.id
 output funcApplicationInsightsName string = functionApplicationInsights.outputs.name
 output funcApplicationInsightsConnectionString string = functionApplicationInsights.outputs.connectionString
 output funcApplicationInsightsInstrumentationKey string = functionApplicationInsights.outputs.instrumentationKey
+output foundryApplicationInsightsName string = foundryApplicationInsights.outputs.name
+output foundryApplicationInsightsConnectionString string = foundryApplicationInsights.outputs.connectionString
+output foundryApplicationInsightsId string = foundryApplicationInsights.outputs.id
+output foundryApplicationInsightsInstrumentationKey string = foundryApplicationInsights.outputs.instrumentationKey
 output logAnalyticsWorkspaceId string = logAnalytics.outputs.id
 output logAnalyticsWorkspaceName string = logAnalytics.outputs.name

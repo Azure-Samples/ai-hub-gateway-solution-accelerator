@@ -1,0 +1,110 @@
+[
+  {
+    "id": "github-mcp-server",
+    "name": "GitHub",
+    "description": "Access GitHub repositories, issues, and pull requests through secure API integration.",
+    "version": "1.0.0",
+    "x-ms-icon": "https://avatars.githubusercontent.com/github?s=64",
+    "x-ms-partner": true,
+    "remotes": [
+      {
+        "transport_type": "sse",
+        "url": "https://api.githubcopilot.com/mcp"
+      }
+    ],
+    "repository": {
+      "url": "https://github.com/github/github-mcp-server",
+      "source": "partner",
+      "id": ""
+    }
+  },
+  {
+    "id": "msdocs-mcp-server",
+    "name": "Microsoft docs",
+    "description": "AI assistant with real-time access to official Microsoft documentation.",
+    "version": "1.0.0",
+    "x-ms-icon": "https://avatars.githubusercontent.com/microsoft?s=64",
+    "x-ms-partner": true,
+    "remotes": [
+      {
+        "transport_type": "sse",
+        "url": "https://learn.microsoft.com/api/mcp"
+      }
+    ]
+  },
+  {
+    "id": "neon-mcp-server",
+    "name": "Neon",
+    "description": "Manage and query Neon Postgres databases with natural language.",
+    "version": "1.0.0",
+    "x-ms-icon": "https://avatars.githubusercontent.com/u/77690634?s=64",
+    "x-ms-partner": true,
+    "remotes": [
+      {
+        "transport_type": "sse",
+        "url": "https://mcp.neon.tech/sse"
+      }
+    ],
+    "repository": {
+      "url": "https://github.com/neondatabase-labs/mcp-server-neon",
+      "source": "partner",
+      "id": ""
+    }
+  },
+  {
+    "id": "stripe-mcp-server",
+    "name": "Stripe",
+    "description": "Payment processing and financial infrastructure tools.",
+    "version": "1.0.0",
+    "x-ms-icon": "https://avatars.githubusercontent.com/stripe?s=64",
+    "x-ms-partner": true,
+    "remotes": [
+      {
+        "transport_type": "sse",
+        "url": "https://mcp.stripe.com/"
+      }
+    ]
+  },
+  {
+    "id": "box-mcp-server",
+    "name": "Box",
+    "description": "Use Box to securely store, manage and share your photos, videos, and documents in the cloud.",
+    "version": "1.0.0",
+    "x-ms-icon": "https://avatars.githubusercontent.com/box?s=64",
+    "x-ms-partner": true,
+    "remotes": [
+      {
+        "transport_type": "sse",
+        "url": "https://mcp.box.com/"
+      }
+    ]
+  },
+  {
+    "id": "atlassian-mcp-server",
+    "name": "Atlassian",
+    "description": "Connect to Jira and Confluence for issue tracking and documentation.",
+    "version": "1.0.0",
+    "x-ms-icon": "https://avatars.githubusercontent.com/atlassian?s=64",
+    "x-ms-partner": true,
+    "remotes": [
+      {
+        "transport_type": "sse",
+        "url": "https://mcp.atlassian.com/v1/sse"
+      }
+    ]
+  },
+  {
+    "id": "postman-mcp-server",
+    "name": "Postman",
+    "description": "Postman’s remote MCP server connects AI agents, assistants, and chatbots directly to your APIs on Postman.",
+    "version": "1.0.0",
+    "x-ms-icon": "https://cdn.jsdelivr.net/gh/Azure/MCP/community/registry/icons/postman.svg",
+    "x-ms-partner": true,
+    "remotes": [
+      {
+        "transport_type": "sse",
+        "url": "https://mcp.postman.com/mcp"
+      }
+    ]
+  }
+]
