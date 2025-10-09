@@ -64,6 +64,9 @@ param languageServiceName string = ''
 @description('Name of the Azure Content Safety service. Leave blank to use default naming conventions.')
 param aiContentSafetyName string = ''
 
+@description('Name of the API Center service. Leave blank to use default naming conventions.')
+param apicServiceName string = ''
+
 //
 // NETWORKING PARAMETERS - Network configuration and access controls
 //
@@ -217,6 +220,9 @@ param enableAIFoundry bool = true
 @description('Enable Microsoft Entra ID authentication for API Management.')
 param entraAuth bool = false
 
+@description('Enable API Center for API governance and discovery.')
+param enableAPICenter bool = true
+
 //
 // COMPUTE SKU & SIZE - SKUs and capacity settings for services
 //
@@ -247,6 +253,10 @@ param languageServiceSkuName string = 'S'
 
 @description('Azure Content Safety service SKU name.')
 param aiContentSafetySkuName string = 'S0'
+
+@description('SKU for the API Center service.')
+@allowed(['Free', 'Standard'])
+param apicSku string = 'Free'
 
 //
 // ACCELERATOR SPECIFIC PARAMETERS - Additional parameters for the solution (should not be modified without careful consideration)
@@ -843,6 +853,17 @@ module logicApp './modules/logicapp/logicapp.bicep' = {
     eventHub
     cosmosDb
   ]
+}
+
+module apiCenter './modules/apic/apic.bicep' = if(enableAPICenter) {
+  name: 'api-center'
+  scope: resourceGroup
+  params: {
+    apicServiceName: !empty(apicServiceName) ? apicServiceName : '${abbrs.apiCenterService}${resourceToken}'
+    apicsku: apicSku
+    location: 'swedencentral'
+    tags: tags
+  }
 }
 
 output APIM_NAME string = apim.outputs.apimName

@@ -41,6 +41,7 @@ resource apiCenterService 'Microsoft.ApiCenter/services@2024-06-01-preview' = {
     }
     // Configure site profile
     siteProfile: {
+      name: 'Citadel AI Registry'
       companyName: 'Citadel AI Registry'
       companyUrl: 'https://yourcompany.com'
       supportEmail: 'support@yourcompany.com'
