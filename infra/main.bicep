@@ -725,6 +725,9 @@ module apim './modules/apim/apim.bicep' = {
     privateEndpointSubnetId: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetId : vnet.outputs.privateEndpointSubnetId
     dnsZoneRG: !useExistingVnet ? resourceGroup.name : dnsZoneRG
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
+    isMCPSampleDeployed: true
+    apiCenterServiceName: apiCenter.outputs.name
+    apiCenterWorkspaceName: apiCenter.outputs.defaultWorkspaceName
   }
   dependsOn: [
     vnet

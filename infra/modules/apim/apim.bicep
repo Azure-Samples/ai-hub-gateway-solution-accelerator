@@ -50,6 +50,16 @@ param dnsSubscriptionId string = subscription().subscriptionId
 param privateEndpointSubnetId string
 param usePrivateEndpoint bool = false
 param apimV2PublicNetworkAccess bool = true
+
+// API Center Integration
+param apiCenterServiceName string
+param apiCenterWorkspaceName string = 'default'
+param apiCenterMCPEnvironment string = 'mcp-dev'
+param apiCenterAPIEnvironment string = 'api-dev'
+
+// MCP Samples (Weather API, Weather MCP, MS Learn MCP)
+param isMCPSampleDeployed bool = false
+
 var apimPublicNetworkAccess = apimV2PublicNetworkAccess ? 'Enabled' : 'Disabled'
 
 var openAiApiBackendId = 'openai-backend'
@@ -969,6 +979,93 @@ resource apimRetailDevUserSubscription 'Microsoft.ApiManagement/service/subscrip
     scope: '/products/${retailProduct.id}'
   }
 }
+
+// Sample MCP resources
+module weatherAPI './api.bicep' = if (isMCPSampleDeployed) {
+  name: 'weather-api'
+  params: {
+    serviceName: apimService.name
+    apiName: 'weather-api'
+    path: 'weather'
+    apiRevision: '1'
+    apiDispalyName: 'Weather API'
+    subscriptionRequired: false
+    subscriptionKeyName: 'api-key'
+    openApiSpecification: loadTextContent('./sample/weather/openapi.json')
+    apiDescription: 'Weather API for getting dynamic weather information for a given location.'
+    policyDocument: loadTextContent('./sample/weather/policy.xml')
+    enableAPIDeployment: true
+    enableAPIDiagnostics: false
+  }
+  dependsOn: [
+  ]
+}
+
+var weatherMCPCustomProperties = {
+  Visibility: true
+  Categories: ['AI/ML', 'Developer Tools']
+  Vendor: 'Internal'
+  Type: 'AI Gateway'
+  Icon: 'https://cdn-icons-png.flaticon.com/512/1163/1163661.png'
+}
+module weatherMCP './mcp-from-api.bicep' = if (isMCPSampleDeployed) {
+  name: 'weather-mcp'
+  params: {
+    apimServiceName: apimService.name
+    appInsightsLoggerName: 'appinsights-logger'
+    apicServiceName: apiCenterServiceName // Replace with actual API Center service name parameter
+    apicWorkspaceName: apiCenterWorkspaceName // Replace with actual API Center workspace name parameter
+    environmentName: apiCenterMCPEnvironment // Replace with actual API Center environment parameter
+    apiName: 'weather-api'
+    operationNames: ['get-weather']
+    mcpPath: 'weather-mcp'
+    mcpName: 'weather-mcp'
+    mcpDisplayName: 'Weather MCP Development'
+    mcpDescription: 'MCP server for weather data operations for given location (Development)'
+    mcpLifecycleStage: 'Development'
+    mcpVersionName: '1-0-0'
+    mcpVersionDisplayName: '1.0.0'
+    mcpDefinitionName: 'weather-mcp-definition'
+    mcpDefinitionDisplayName: 'Weather MCP Definition'
+    mcpDefinitionDescription: 'Weather MCP Definition for version 1.0.0'
+    mcpDeploymentName: 'weather-mcp-deployment'
+    mcpDeploymentDisplayName: 'Weather MCP Deployment'
+    mcpDeploymentDescription: 'Weather MCP Deployment for version 1.0.0 and environment Development'
+    customProperties: weatherMCPCustomProperties
+  }
+  dependsOn: [
+    weatherAPI
+  ]
+}
+
+var microsoftLearnMCPProperties = {
+  Visibility: true
+  Categories: ['Developer Tools', 'Productivity']
+  Vendor: 'Microsoft'
+  Type: 'Remote'
+  Icon: 'https://learn.microsoft.com/media/logos/logo-ms-social.png'
+}
+module microsoftLearnMCPServer 'mcp-existing.bicep' = if (isMCPSampleDeployed) {
+  name: 'microsoftLearnMCPServer'
+  params: {
+    apimServiceName: apimService.name
+    apicServiceName: apiCenterServiceName // Replace with actual API Center service name parameter
+    apicWorkspaceName: apiCenterWorkspaceName // Replace with actual API Center workspace name parameter
+    environmentName: apiCenterMCPEnvironment // Replace with actual API Center environment parameter
+    backendName: 'ms-learn-mcp-server'
+    backendDescription: 'Microsoft Learn MCP Server'
+    backendURL: 'https://learn.microsoft.com/api/mcp'
+    mcpApiName: 'ms-learn-mcp'
+    mcpDisplayName: 'Microsoft Learn MCP'
+    mcpDescription: 'Microsoft Learn MCP Server'
+    mcpPath: 'ms-learn-mcp'
+    mcpPolicyXml: ''
+    customProperties: microsoftLearnMCPProperties
+  }
+  dependsOn: [
+  ]
+}
+
 
 @description('The name of the deployed API Management service.')
 output apimName string = apimService.name

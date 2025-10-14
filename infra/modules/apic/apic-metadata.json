@@ -1,0 +1,74 @@
+{
+  "metadata": [
+    {
+      "name": "Visibility",
+      "schema": "{\"title\":\"Visibility\",\"description\":\"Flag to indicate if the service is visible in API Center portal\",\"type\":\"boolean\"}",
+      "assignedTo": [
+        {
+          "entity": "api",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "schema": "{\"title\":\"Categories\",\"description\":\"Category classification for the API\",\"type\":\"array\",\"items\":{\"type\":\"string\",\"oneOf\":[{\"const\":\"Productivity\",\"description\":\"Productivity\"},{\"const\":\"Developer Tools\",\"description\":\"Developer Tools\"},{\"const\":\"AI/ML\",\"description\":\"AI/ML\"},{\"const\":\"Data & Analytics\",\"description\":\"Data & Analytics\"},{\"const\":\"Security\",\"description\":\"Security\"},{\"const\":\"Communication\",\"description\":\"Communication\"},{\"const\":\"Business Intelligence\",\"description\":\"Business Intelligence\"},{\"const\":\"Integration\",\"description\":\"Integration\"},{\"const\":\"Other\",\"description\":\"Other\"}]}}",
+      "assignedTo": [
+        {
+          "entity": "api",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Vendor",
+      "schema": "{\"title\":\"Vendor\",\"description\":\"The vendor or provider of the API\",\"type\":\"string\",\"oneOf\":[{\"const\":\"Microsoft\",\"description\":\"Microsoft\"},{\"const\":\"Partner\",\"description\":\"Partner\"},{\"const\":\"Internal\",\"description\":\"Internal\"}]}",
+      "assignedTo": [
+        {
+          "entity": "api",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Endpoint",
+      "schema": "{\"title\":\"Endpoint\",\"description\":\"The endpoint type and location of the API\",\"type\":\"string\",\"oneOf\":[{\"const\":\"Public\",\"description\":\"Public\"},{\"const\":\"Private Azure\",\"description\":\"Private Azure\"},{\"const\":\"Private On-premises\",\"description\":\"Private On-premises\"}]}",
+      "assignedTo": [
+        {
+          "entity": "deployment",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Type",
+      "schema": "{\"title\":\"Type\",\"description\":\"The type of API service\",\"type\":\"string\",\"oneOf\":[{\"const\":\"Remote\",\"description\":\"Remote\"},{\"const\":\"AI Gateway\",\"description\":\"AI Gateway\"}]}",
+      "assignedTo": [
+        {
+          "entity": "api",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Icon",
+      "schema": "{\"title\":\"Icon\",\"description\":\"URL to the icon image for the API\",\"type\":\"string\",\"format\":\"uri\"}",
+      "assignedTo": [
+        {
+          "entity": "api",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "securitySchemes",
+      "schema": "{\"title\":\"securitySchemes\",\"description\":\"API Security Schemes\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"title\":\"name\",\"description\":\"Name of the API Security Scheme\",\"type\":\"string\"},\"type\":{\"type\":\"string\",\"title\":\"type\",\"description\":\"The Type of the API Security Scheme\",\"oneOf\":[{\"const\":\"http\",\"description\":\"Basic, Bearer and other HTTP authentications schemes\"},{\"const\":\"apiKey\",\"description\":\"API keys and cookie authentication\"},{\"const\":\"oauth2\",\"description\":\"OAuth 2.0 is the industry-standard protocol for authorization.\"},{\"const\":\"openIdConnect \",\"description\":\"OpenID Connect Discovery\"}]},\"authorizationurl\":{\"title\":\"authorizationUrl\",\"type\":\"string\",\"format\":\"uri\"}},\"required\":[\"name\",\"type\"]}}",
+      "assignedTo": [
+        {
+          "entity": "deployment",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

@@ -9,6 +9,7 @@ param location string = resourceGroup().location
 param apicServiceName string
 param tags object = {}
 
+param loadSampleMCPs bool = false
 
 // ------------------
 //    VARIABLES
@@ -16,7 +17,7 @@ param tags object = {}
 
 // Load MCP configurations from JSON file
 var mcpConfigs = json(loadTextContent('remote-mcp-servers.json')).mcps
-
+var apicMetadataSchema = json(loadTextContent('./apic-metadata.json')).metadata
 // ------------------
 //    RESOURCES
 // ------------------
@@ -61,35 +62,81 @@ resource apiCenterWorkspace 'Microsoft.ApiCenter/services/workspaces@2024-06-01-
   }
 }
 
-// Add environment resources
-resource apiEnvironment 'Microsoft.ApiCenter/services/workspaces/environments@2024-06-01-preview' = {
-  parent: apiCenterWorkspace
-  name: 'api'
+resource apiCenterMetadata 'Microsoft.ApiCenter/services/metadataSchemas@2024-03-01' = [for metadata in apicMetadataSchema: if(loadSampleMCPs) {
+  name: metadata.name
+  parent: apiCenterService
   properties: {
-    title: 'api'
-    description: 'API default environment'
-    kind: 'rest'
+    schema: metadata.schema
+    assignedTo: [for assignedTo in metadata.assignedTo: {      
+        deprecated: false
+        entity: assignedTo.entity
+        required: assignedTo.required
+      }
+    ]    
+  }
+}]
+
+// Add environment resources
+resource apiEnvironmentDev 'Microsoft.ApiCenter/services/workspaces/environments@2024-06-01-preview' = {
+  parent: apiCenterWorkspace
+  name: 'api-dev'
+  properties: {
+    title: 'API Development'
+    description: 'API default development environment'
+    kind: 'REST'
     server: {
       managementPortalUri: [
         'https://portal.azure.com/'
       ]
-      type: 'other'
+      type: 'Development'
     }
   }
 }
 
-resource mcpEnvironment 'Microsoft.ApiCenter/services/workspaces/environments@2024-06-01-preview' = {
+resource apiEnvironmentProd 'Microsoft.ApiCenter/services/workspaces/environments@2024-06-01-preview' = {
   parent: apiCenterWorkspace
-  name: 'mcp'
+  name: 'api-prod'
   properties: {
-    title: 'mcp'
-    description: 'mcp default environment'
-    kind: 'mcp'
+    title: 'API Production'
+    description: 'API default production environment'
+    kind: 'REST'
     server: {
       managementPortalUri: [
         'https://portal.azure.com/'
       ]
-      type: 'other'
+      type: 'Development'
+    }
+  }
+}
+
+resource mcpEnvironmentDev 'Microsoft.ApiCenter/services/workspaces/environments@2024-06-01-preview' = {
+  parent: apiCenterWorkspace
+  name: 'mcp-dev'
+  properties: {
+    title: 'MCP Development'
+    description: 'mcp default development environment'
+    kind: 'MCP'
+    server: {
+      managementPortalUri: [
+        'https://portal.azure.com/'
+      ]
+      type: 'Development'
+    }
+  }
+}
+
+resource mcpEnvironmentProd 'Microsoft.ApiCenter/services/workspaces/environments@2024-06-01-preview' = {
+  parent: apiCenterWorkspace
+  name: 'mcp-prod'
+  properties: {
+    title: 'MCP Production'
+    description: 'mcp default production environment'
+    kind: 'MCP'
+    server: {
+      managementPortalUri: [
+        'https://portal.azure.com/'
+      ]
+      type: 'Production'
     }
   }
 }
@@ -100,8 +147,8 @@ resource apiCenterAPI 'Microsoft.ApiCenter/services/workspaces/apis@2024-06-01-p
   name: mcp.mcpName
   properties: {
     title: '${toUpper(substring(mcp.mcpName, 0, 1))}${substring(mcp.mcpName, 1)}'
-    kind: 'mcp'
-    lifecycleState: 'Production'
+    kind: 'MCP'
+    lifecycleState: 'Development'
     externalDocumentation: [
       {
         description: 'Install VS Code'
@@ -127,7 +174,7 @@ resource apiVersion 'Microsoft.ApiCenter/services/workspaces/apis/versions@2024-
   name: '1-0-0'
   properties: {
     title: '1-0-0'
-    lifecycleStage: 'Production'
+    lifecycleStage: 'Development'
   }
 }]
 
@@ -148,7 +195,7 @@ resource apiDeployment 'Microsoft.ApiCenter/services/workspaces/apis/deployments
   properties: {
     description: 'mcpdeployment'
     title: 'mcpdeployment'
-    environmentId: '/workspaces/default/environments/${apiEnvironment.name}'
+    environmentId: '/workspaces/default/environments/${apiEnvironmentDev.name}'
     definitionId: '/workspaces/default/apis/${mcp.mcpName}/versions/${apiVersion[i].name}/definitions/${apiDefinition[i].name}'
     state: 'active'
     server: {
@@ -165,6 +212,10 @@ resource apiDeployment 'Microsoft.ApiCenter/services/workspaces/apis/deployments
 
 output id string = apiCenterService.id
 output name string = apiCenterService.name
+output defaultWorkspaceName string = apiCenterWorkspace.name
 
-output apiEnvironmentName string = apiEnvironment.name
-output mcpEnvironmentName string = mcpEnvironment.name
+output apiEnvironmentName string = apiEnvironmentDev.name
+output mcpEnvironmentName string = mcpEnvironmentDev.name
+
+output apiEnvironmentNameProd string = apiEnvironmentProd.name
+output mcpEnvironmentNameProd string = mcpEnvironmentProd.name

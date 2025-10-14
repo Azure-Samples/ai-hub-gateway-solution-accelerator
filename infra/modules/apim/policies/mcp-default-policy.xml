@@ -1,0 +1,18 @@
+<policies>
+	<inbound>
+		<base />
+		<!-- <trace source="Default MCP" severity="information">
+			<message>Default MCP trace info</message>
+			<metadata name="agent-id" value="@(context.Request.Headers.GetValueOrDefault("application", "n/a"))" />
+		</trace> -->
+	</inbound>
+	<backend>
+		<base />
+	</backend>
+	<outbound>
+		<base />
+	</outbound>
+	<on-error>
+		<base />
+	</on-error>
+</policies>
