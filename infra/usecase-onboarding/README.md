@@ -18,7 +18,7 @@ What this delivers
 ## 🗺️ Visual overview
 
 ```mermaid
-flowchart LR
+flowchart TB
   subgraph Input["Inputs (parameters)"]
     P1[APIM: subId, rg, name]
     P2[Key Vault: subId, rg, name]
