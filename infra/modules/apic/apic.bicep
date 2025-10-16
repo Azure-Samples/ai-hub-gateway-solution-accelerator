@@ -62,7 +62,7 @@ resource apiCenterWorkspace 'Microsoft.ApiCenter/services/workspaces@2024-06-01-
   }
 }
 
-resource apiCenterMetadata 'Microsoft.ApiCenter/services/metadataSchemas@2024-03-01' = [for metadata in apicMetadataSchema: if(loadSampleMCPs) {
+resource apiCenterMetadata 'Microsoft.ApiCenter/services/metadataSchemas@2024-03-01' = [for metadata in apicMetadataSchema: {
   name: metadata.name
   parent: apiCenterService
   properties: {

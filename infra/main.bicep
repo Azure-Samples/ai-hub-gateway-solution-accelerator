@@ -37,11 +37,17 @@ param applicationInsightsDashboardName string = ''
 @description('Name of the Application Insights dashboard for Function/Logic App. Leave blank to use default naming conventions.')
 param funcAplicationInsightsDashboardName string = ''
 
+@description('Name of the Application Insights dashboard for Function/Logic App. Leave blank to use default naming conventions.')
+param foundryApplicationInsightsDashboardName string = ''
+
 @description('Name of the Application Insights for APIM resource. Leave blank to use default naming conventions.')
 param applicationInsightsName string = ''
 
 @description('Name of the Application Insights for Function/Logic App resource. Leave blank to use default naming conventions.')
 param funcApplicationInsightsName string = ''
+
+@description('Name of the Application Insights for Function/Logic App resource. Leave blank to use default naming conventions.')
+param foundryApplicationInsightsName string = ''
 
 @description('Name of the Event Hub Namespace resource. Leave blank to use default naming conventions.')
 param eventHubNamespaceName string = ''
@@ -66,6 +72,9 @@ param aiContentSafetyName string = ''
 
 @description('Name of the API Center service. Leave blank to use default naming conventions.')
 param apicServiceName string = ''
+
+@description('Name of the AI Foundry resource. Leave blank to use default naming conventions.')
+param aiFoundryResourceName string = ''
 
 //
 // NETWORKING PARAMETERS - Network configuration and access controls
@@ -268,101 +277,7 @@ param functionContentShareName string = 'usage-function-content'
 param logicContentShareName string = 'usage-logic-content'
 
 @description('OpenAI instances configuration - add more instances by modifying this object.')
-param openAiInstances object = {
-  openAi1: {
-    name: 'openai1'
-    location: 'eastus'
-    deployments: [
-      {
-        name: 'chat'
-        model: {
-          format: 'OpenAI'
-          name: 'gpt-4o-mini'
-          version: '2024-07-18'
-        }
-        sku: {
-          name: 'Standard'
-          capacity: deploymentCapacity
-        }
-        
-      }
-      {
-        name: 'embedding'
-        model: {
-          format: 'OpenAI'
-          name: 'text-embedding-3-large'
-          version: '1'
-        }
-        sku: {
-          name: 'Standard'
-          capacity: deploymentCapacity
-        }
-      }
-      {
-        name: 'gpt-4o'
-        model: {
-          format: 'OpenAI'
-          name: 'gpt-4o'
-          version: '2024-05-13'
-        }
-        sku: {
-          name: 'GlobalStandard'
-          capacity: deploymentCapacity
-        }
-      }
-    ]
-  }
-  openAi2: {
-    name: 'openai2'
-    location: 'northcentralus'
-    deployments: [
-      {
-        name: 'chat'
-        model: {
-          format: 'OpenAI'
-          name: 'gpt-4o-mini'
-          version: '2024-07-18'
-        }
-        sku: {
-          name: 'Standard'
-          capacity: deploymentCapacity
-        }
-        
-      }
-    ]
-  }
-  openAi3: {
-    name: 'openai3'
-    location: 'eastus2'
-    deployments: [
-      {
-        name: 'chat'
-        model: {
-          format: 'OpenAI'
-          name: 'gpt-4o-mini'
-          version: '2024-07-18'
-        }
-        sku: {
-          name: 'Standard'
-          capacity: deploymentCapacity
-        }
-        
-      }
-      {
-        name: 'embedding'
-        model: {
-          format: 'OpenAI'
-          name: 'text-embedding-3-large'
-          version: '1'
-        }
-        sku: {
-          name: 'Standard'
-          capacity: deploymentCapacity
-        }
-      }
-    ]
-  }
-}
+param openAiInstances object = {}
 
 @description('AI Search instances configuration - add more instances by adding to this array.')
 param aiSearchInstances array = [
@@ -381,7 +296,7 @@ param aiSearchInstances array = [
 @description('AI Foundry services configuration - configure AI Foundry instances.')
 param aiFoundryInstances array = [
   {
-    name: 'aif-citadel-governance-hub'
+    name: !empty(aiFoundryResourceName) ? aiFoundryResourceName : ''
     location: location
     customSubDomainName: ''
     defaultProjectName: 'citadel-governance-project'
@@ -410,6 +325,20 @@ param aiFoundryModelsConfig array = [
     version: '3'
     sku: 'GlobalStandard'
     capacity: 1
+  }
+  {
+    name: 'gpt-5'
+    publisher: 'Microsoft'
+    version: '2025-08-07'
+    sku: 'GlobalStandard'
+    capacity: 20
+  }
+  {
+    name: 'model-router'
+    publisher: 'Microsoft'
+    version: '2025-05-19'
+    sku: 'GlobalStandard'
+    capacity: 20
   }
 ]
 
@@ -542,8 +471,8 @@ module monitoring './modules/monitor/monitoring.bicep' = {
     apimApplicationInsightsDashboardName: !empty(applicationInsightsDashboardName) ? applicationInsightsDashboardName : '${abbrs.portalDashboards}apim-${resourceToken}'
     functionApplicationInsightsName: !empty(funcApplicationInsightsName) ? funcApplicationInsightsName : '${abbrs.insightsComponents}func-${resourceToken}'
     functionApplicationInsightsDashboardName: !empty(funcAplicationInsightsDashboardName) ? funcAplicationInsightsDashboardName : '${abbrs.portalDashboards}func-${resourceToken}'
-    foundryApplicationInsightsName: !empty(funcApplicationInsightsName) ? funcApplicationInsightsName : '${abbrs.insightsComponents}aif-${resourceToken}'
-    foundryApplicationInsightsDashboardName: !empty(funcAplicationInsightsDashboardName) ? funcAplicationInsightsDashboardName : '${abbrs.portalDashboards}aif-${resourceToken}'
+    foundryApplicationInsightsName: !empty(foundryApplicationInsightsName) ? foundryApplicationInsightsName : '${abbrs.insightsComponents}aif-${resourceToken}'
+    foundryApplicationInsightsDashboardName: !empty(foundryApplicationInsightsDashboardName) ? foundryApplicationInsightsDashboardName : '${abbrs.portalDashboards}aif-${resourceToken}'
     vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName

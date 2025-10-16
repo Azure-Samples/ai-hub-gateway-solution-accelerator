@@ -15,23 +15,6 @@ param mcpTransportType string = 'streamable'
 
 param appInsightsLoggerName string = 'appinsights-logger'
 
-param apicServiceName string
-param apicWorkspaceName string = 'default'
-param environmentName string
-param mcpLifecycleStage string = 'development'
-
-param mcpVersionName string = '1-0-0'
-param mcpVersionDisplayName string = '1.0.0'
-param mcpDefinitionName string = '${mcpApiName}-definition'
-param mcpDefinitionDisplayName string = '${mcpDisplayName} Definition'
-param mcpDefinitionDescription string = '${mcpDisplayName} Definition for version ${mcpVersionName}'
-
-param mcpDeploymentName string = '${mcpApiName}-deployment'
-param mcpDeploymentDisplayName string = '${mcpDisplayName} Deployment'
-param mcpDeploymentDescription string = '${mcpDisplayName} Deployment for version ${mcpVersionName} and environment ${environmentName}'
-
-param customProperties object = {}
-
 var defaultPolicyXml = loadTextContent('policies/mcp-default-policy.xml')
 var effectivePolicyXml = empty(mcpPolicyXml) ? defaultPolicyXml : mcpPolicyXml
 
@@ -93,81 +76,9 @@ resource policy 'Microsoft.ApiManagement/service/apis/policies@2021-12-01-previe
 }
 
 // ------------------
-//    API Center Onboarding
-// ------------------
-
-resource apiCenterService 'Microsoft.ApiCenter/services@2024-06-01-preview' existing = {
-  name: apicServiceName
-}
-
-resource apiCenterWorkspace 'Microsoft.ApiCenter/services/workspaces@2024-06-01-preview' existing = {
-  parent: apiCenterService
-  name: apicWorkspaceName
-}
-
-// Add MCP to API Center
-resource apiCenterMCP 'Microsoft.ApiCenter/services/workspaces/apis@2024-06-01-preview' = {
-  parent: apiCenterWorkspace
-  name: mcpApiName
-  properties: {
-    title: mcpDisplayName
-    kind: 'mcp'
-    lifecycleState: mcpLifecycleStage
-    externalDocumentation: [
-      {
-        description: mcpDescription
-        title: mcpDisplayName
-        url: 'https://example.com/mcp-docs'
-      }
-    ]
-    contacts: []
-    customProperties: customProperties
-    summary: mcpDescription
-    description: mcpDescription
-  }
-}
-
-// Add API Version resources
-resource mcpVersion 'Microsoft.ApiCenter/services/workspaces/apis/versions@2024-06-01-preview' = {
-  parent: apiCenterMCP
-  name: mcpVersionName
-  properties: {
-    title: mcpVersionDisplayName
-    lifecycleStage: mcpLifecycleStage
-  }
-}
-
-// Add API Definition resource
-resource mcpDefinition 'Microsoft.ApiCenter/services/workspaces/apis/versions/definitions@2024-06-01-preview' = {
-  parent: mcpVersion
-  name: mcpDefinitionName
-  properties: {
-    description: mcpDefinitionDescription
-    title: mcpDefinitionDisplayName
-  }
-}
-
-// Add API Deployment resource
-resource mcpDeployment 'Microsoft.ApiCenter/services/workspaces/apis/deployments@2024-06-01-preview' = {
-  parent: apiCenterMCP
-  name: mcpDeploymentName
-  properties: {
-    description: mcpDeploymentDescription
-    title: mcpDeploymentDisplayName
-    environmentId: '/workspaces/default/environments/${environmentName}'
-    definitionId: '/workspaces/${apiCenterWorkspace.name}/apis/${apiCenterMCP.name}/versions/${mcpVersion.name}/definitions/${mcpDefinition.name}'
-    state: 'active'
-    server: {
-      runtimeUri: [
-        '${apim.properties.gatewayUrl}/${mcpPath}'
-      ]
-    }
-  }
-}
-
-// ------------------
 //    OUTPUTS
 // ------------------
 
 output name string = mcp.name
+output path string = mcpPath
 output endpoint string = '${apim.properties.gatewayUrl}/${mcpPath}/mcp'

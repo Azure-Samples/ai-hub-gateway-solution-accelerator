@@ -12,7 +12,7 @@
     },
     {
       "name": "Categories",
-      "schema": "{\"title\":\"Categories\",\"description\":\"Category classification for the API\",\"type\":\"array\",\"items\":{\"type\":\"string\",\"oneOf\":[{\"const\":\"Productivity\",\"description\":\"Productivity\"},{\"const\":\"Developer Tools\",\"description\":\"Developer Tools\"},{\"const\":\"AI/ML\",\"description\":\"AI/ML\"},{\"const\":\"Data & Analytics\",\"description\":\"Data & Analytics\"},{\"const\":\"Security\",\"description\":\"Security\"},{\"const\":\"Communication\",\"description\":\"Communication\"},{\"const\":\"Business Intelligence\",\"description\":\"Business Intelligence\"},{\"const\":\"Integration\",\"description\":\"Integration\"},{\"const\":\"Other\",\"description\":\"Other\"}]}}",
+      "schema": "{\"title\":\"Categories\",\"description\":\"Category classification for the API\",\"type\":\"array\",\"items\":{\"type\":\"string\",\"oneOf\":[{\"const\":\"Productivity\",\"description\":\"Productivity\"},{\"const\":\"Developer Tools\",\"description\":\"Developer Tools\"},{\"const\":\"AI/ML\",\"description\":\"AI/ML\"},{\"const\":\"OpenAI\",\"description\":\"OpenAI\"},{\"const\":\"Data & Analytics\",\"description\":\"Data & Analytics\"},{\"const\":\"Security\",\"description\":\"Security\"},{\"const\":\"Communication\",\"description\":\"Communication\"},{\"const\":\"Business Intelligence\",\"description\":\"Business Intelligence\"},{\"const\":\"Integration\",\"description\":\"Integration\"},{\"const\":\"Search\",\"description\":\"Search\"},{\"const\":\"Model Inference\",\"description\":\"Model Inference\"},{\"const\":\"LLM\",\"description\":\"LLM\"},{\"const\":\"Multi-Provider\",\"description\":\"Multi-Provider\"},{\"const\":\"Real-time\",\"description\":\"Real-time\"},{\"const\":\"Document Processing\",\"description\":\"Document Processing\"},{\"const\":\"Sample\",\"description\":\"Sample\"},{\"const\":\"Weather\",\"description\":\"Weather\"},{\"const\":\"Other\",\"description\":\"Other\"}]}}",
       "assignedTo": [
         {
           "entity": "api",
@@ -42,7 +42,7 @@
     },
     {
       "name": "Type",
-      "schema": "{\"title\":\"Type\",\"description\":\"The type of API service\",\"type\":\"string\",\"oneOf\":[{\"const\":\"Remote\",\"description\":\"Remote\"},{\"const\":\"AI Gateway\",\"description\":\"AI Gateway\"}]}",
+      "schema": "{\"title\":\"Type\",\"description\":\"Defines the architectural pattern and accessibility model of the API service\",\"type\":\"string\",\"oneOf\":[{\"const\":\"Remote Internal\",\"description\":\"Internal remote backend service\"},{\"const\":\"Remote Public\",\"description\":\"Publicly accessible remote backend service\"},{\"const\":\"Remote\",\"description\":\"Remote backend service\"},{\"const\":\"AI Gateway\",\"description\":\"Service that is governed by AI Gateway\"},{\"const\":\"AI Service\",\"description\":\"Azure AI Service\"},{\"const\":\"Sample API\",\"description\":\"Sample or demonstration API\"}]}",
       "assignedTo": [
         {
           "entity": "api",
