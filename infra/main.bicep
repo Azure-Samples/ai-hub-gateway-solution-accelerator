@@ -326,20 +326,6 @@ param aiFoundryModelsConfig array = [
     sku: 'GlobalStandard'
     capacity: 1
   }
-  {
-    name: 'gpt-5'
-    publisher: 'Microsoft'
-    version: '2025-08-07'
-    sku: 'GlobalStandard'
-    capacity: 20
-  }
-  {
-    name: 'model-router'
-    publisher: 'Microsoft'
-    version: '2025-05-19'
-    sku: 'GlobalStandard'
-    capacity: 20
-  }
 ]
 
 @description('Microsoft Entra ID tenant ID for authentication (only used when entraAuth is true).')
