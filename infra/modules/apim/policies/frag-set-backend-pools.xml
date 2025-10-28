@@ -45,6 +45,9 @@
                 { "supportedModels", new JArray("phi-4", "Phi-4-multimodal-instruct") }
             };
             backendPools.Add(aiFoundryPhiPool);
+
+            // NOTE: Do not remove the placeholder comment below as it is used by automation scripts to insert new backend pool configurations
+            //{{NEW_BACKEND_POOLS_AUTOMATION_PLACEHOLDER}}
         }
         else
         {
