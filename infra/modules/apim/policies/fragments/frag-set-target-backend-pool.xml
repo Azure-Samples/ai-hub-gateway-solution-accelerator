@@ -1,0 +1,167 @@
+<fragment>
+    <!--
+        Fragment: Set Target Backend Pool
+        Purpose: Determines which backend pool to route the request to based on the requested model and access permissions
+        
+        Expected Input Variables:
+        - requestedModel: The model name extracted from the request payload
+        - defaultBackendPool: Default backend pool to use when model is not mapped (empty string = error for unmapped models)
+        - allowedBackendPools: Comma-separated list of allowed backend pool IDs (empty string = all pools allowed)
+        - backendPools: JArray containing all backend pool configurations
+        
+        Output Variables:
+        - targetBackendPool: The selected backend pool name or error code (ERROR_NO_MODEL, ERROR_NO_ALLOWED_POOLS)
+        - targetPoolType: The type of the selected backend pool (e.g., "azure-openai", "ai-foundry")
+    -->
+    
+    <!-- Determine target backend pool based on requested model and RBAC permissions -->
+    <set-variable name="targetBackendPool" value="@{
+        string requestedModel = (string)context.Variables["requestedModel"];
+        string defaultBackendPool = (string)context.Variables["defaultBackendPool"];
+        string allowedBackendPools = (string)context.Variables["allowedBackendPools"];
+        JArray backendPools = (JArray)context.Variables["backendPools"];
+
+        var allowedPools = string.IsNullOrWhiteSpace(allowedBackendPools)
+            ? null
+            : allowedBackendPools.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0).ToArray();
+
+        // Find all backend pools that support the requested model
+        List<JObject> matchingPools = new List<JObject>();
+        foreach (JObject pool in backendPools)
+        {
+            JArray supportedModels = (JArray)pool["supportedModels"];
+            if (supportedModels.Any(model => model.ToString().Equals(requestedModel, StringComparison.OrdinalIgnoreCase)))
+            {
+                matchingPools.Add(pool);
+            }
+        }
+
+        // If we have matching pools, filter by allowed pools if necessary
+        if (matchingPools.Count > 0)
+        {
+            // If there are no restrictions, use the first matching pool
+            if (allowedPools == null || allowedPools.Length == 0)
+            {
+                return matchingPools[0]["poolName"].ToString();
+            }
+            
+            // Otherwise, find the first matching pool that is also in allowed pools
+            foreach (var pool in matchingPools)
+            {
+                string poolName = pool["poolName"].ToString();
+                if (allowedPools.Contains(poolName))
+                {
+                    return poolName;
+                }
+            }
+            
+            // If no allowed pools match, check if default backend pool should be used
+            if (!string.IsNullOrWhiteSpace(defaultBackendPool))
+            {
+                return defaultBackendPool;
+            }
+            
+            // If no default is specified, return error that no allowed pools match
+            return "ERROR_NO_ALLOWED_POOLS";
+        }
+
+        // If no matching pools at all, check for default backend pool
+        if (!string.IsNullOrWhiteSpace(defaultBackendPool))
+        {
+            return defaultBackendPool;
+        }
+        
+        // No matching pools and no default - error
+        return "ERROR_NO_MODEL";
+    }" />
+
+    <!-- Validate target backend pool and return appropriate error response if needed -->
+    <choose>
+        <when condition="@(((string)context.Variables["targetBackendPool"]).StartsWith("ERROR_"))">
+            <choose>
+                <when condition="@(((string)context.Variables["targetBackendPool"]) == "ERROR_NO_MODEL")">
+                    <return-response>
+                        <set-status code="400" reason="Bad Request" />
+                        <set-header name="Content-Type" exists-action="override">
+                            <value>application/json</value>
+                        </set-header>
+                        <set-body>@{
+                            return new JObject(
+                                new JProperty("error", new JObject(
+                                    new JProperty("message", "Model parameter is required in the request payload"),
+                                    new JProperty("type", "invalid_request_error"),
+                                    new JProperty("code", "missing_model_parameter")
+                                ))
+                            ).ToString();
+                        }</set-body>
+                    </return-response>
+                </when>
+                <when condition="@(((string)context.Variables["targetBackendPool"]) == "ERROR_MODEL_NOT_SUPPORTED")">
+                    <return-response>
+                        <set-status code="400" reason="Bad Request" />
+                        <set-header name="Content-Type" exists-action="override">
+                            <value>application/json</value>
+                        </set-header>
+                        <set-body>@{
+                            string requestedModel = (string)context.Variables["requestedModel"];
+                            JObject modelMappings = (JObject)context.Variables["modelMappings"];
+                            JArray supportedModels = new JArray();
+                            
+                            foreach (var kvp in modelMappings)
+                            {
+                                supportedModels.Add(kvp.Key);
+                            }
+                            
+                            return new JObject(
+                                new JProperty("error", new JObject(
+                                    new JProperty("message", $"Model '{requestedModel}' is not supported. Supported models: {string.Join(", ", supportedModels.Select(m => m.ToString()))}"),
+                                    new JProperty("type", "invalid_request_error"),
+                                    new JProperty("code", "unsupported_model"),
+                                    new JProperty("param", "model"),
+                                    new JProperty("supported_models", supportedModels)
+                                ))
+                            ).ToString();
+                        }</set-body>
+                    </return-response>
+                </when>
+                <when condition="@(((string)context.Variables["targetBackendPool"]) == "ERROR_NO_ALLOWED_POOLS")">
+                    <return-response>
+                        <set-status code="403" reason="Forbidden" />
+                        <set-header name="Content-Type" exists-action="override">
+                            <value>application/json</value>
+                        </set-header>
+                        <set-body>@{
+                            string requestedModel = (string)context.Variables["requestedModel"];
+                            string allowedBackendPools = (string)context.Variables["allowedBackendPools"];
+                            
+                            return new JObject(
+                                new JProperty("error", new JObject(
+                                    new JProperty("message", $"Access to model '{requestedModel}' is not allowed for this client. You do not have access to any of the backend pools that support this model."),
+                                    new JProperty("type", "access_error"),
+                                    new JProperty("code", "backend_pool_access_forbidden"),
+                                    new JProperty("allowed_backend_pools", allowedBackendPools)
+                                ))
+                            ).ToString();
+                        }</set-body>
+                    </return-response>
+                </when>
+            </choose>
+        </when>
+    </choose>
+
+    <!-- Set poolType variable based on the target backend pool -->
+    <set-variable name="targetPoolType" value="@{
+        string targetBackendPool = (string)context.Variables["targetBackendPool"];
+        JArray backendPools = (JArray)context.Variables["backendPools"];
+
+        foreach (JObject pool in backendPools)
+        {
+            if (pool["poolName"].ToString() == targetBackendPool)
+            {
+                return pool["poolType"].ToString();
+            }
+        }
+
+        return string.Empty;
+    }" />
+</fragment>

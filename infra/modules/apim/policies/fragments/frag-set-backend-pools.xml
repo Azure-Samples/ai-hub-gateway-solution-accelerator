@@ -1,0 +1,57 @@
+<fragment>
+    <!--
+        Fragment: Set Backend Pools
+        Purpose: Defines backend pool configurations with their supported models and routing settings
+        
+        Expected Input Variables:
+        - requestedModel: The model name extracted from the request payload
+        - defaultBackendPool: Default backend pool to use when model is not mapped (empty string = error for unmapped models)
+        - allowedBackendPools: Comma-separated list of allowed backend pool IDs (empty string = all pools allowed)
+        
+        Output Variables:
+        - backendPools: JArray containing all backend pool configurations
+    -->
+    
+    <!-- Define backend pools with their supported models and routing configurations -->
+    <set-variable name="backendPools" value="@{
+        JArray backendPools = new JArray();
+        
+        // Update the below if condition when using multiple APIM gateway regions/SHGW to get different configurations for each region
+        if(context.Deployment.Region == "All Regions" || true)
+        {
+            // Azure OpenAI Backend Pool
+            var azureOpenAIPool = new JObject()
+            {
+                { "poolName", "azure-openai-backend-pool" },
+                { "poolType", "azure-openai" },
+                { "supportedModels", new JArray("chat", "gpt-4o", "text-embedding-3-large") }
+            };
+            backendPools.Add(azureOpenAIPool);
+            
+            // AI Foundry Llama Backend Pool
+            var aiFoundryLlamaPool = new JObject()
+            {
+                { "poolName", "ai-foundry-llama-pool" },
+                { "poolType", "ai-foundry" },
+                { "supportedModels", new JArray("Llama-3.3-70B-Instruct") }
+            };
+            backendPools.Add(aiFoundryLlamaPool);
+            
+            // AI Foundry Phi Backend Pool
+            var aiFoundryPhiPool = new JObject()
+            {
+                { "poolName", "ai-foundry-phi-pool" },
+                { "poolType", "ai-foundry" },
+                { "supportedModels", new JArray("phi-4", "Phi-4-multimodal-instruct") }
+            };
+            backendPools.Add(aiFoundryPhiPool);
+        }
+        else
+        {
+            // No backend pools found for selected region
+            // Either return error (default behavior) or set default pools in the else section
+        }
+        
+        return backendPools;   
+    }" />
+</fragment>
