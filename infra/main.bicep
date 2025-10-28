@@ -313,6 +313,13 @@ param aiFoundryModelsConfig array = [
     capacity: 100
   }
   {
+    name: 'gpt-4o'
+    publisher: 'OpenAI'
+    version: '2024-11-20'
+    sku: 'GlobalStandard'
+    capacity: 100
+  }
+  {
     name: 'DeepSeek-R1'
     publisher: 'DeepSeek'
     version: '1'
