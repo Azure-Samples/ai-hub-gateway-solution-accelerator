@@ -293,7 +293,7 @@ param aiSearchInstances array = [
   }
 ]
 
-@description('AI Foundry services configuration - configure AI Foundry instances.')
+@description('AI Foundry services configuration - configure AI Foundry resources.')
 param aiFoundryInstances array = [
   {
     name: !empty(aiFoundryResourceName) ? aiFoundryResourceName : ''
@@ -304,6 +304,8 @@ param aiFoundryInstances array = [
 ]
 
 @description('AI Foundry model deployments configuration - configure model deployments for Foundry instances.')
+// Leaving 'aiservice' empty means this model deployment will be created for all AI Foundry resources in 'aiFoundryInstances', 
+// Adding 'aiservice' explicit value, means that the model will be deployed only to that instance (must exist in 'aiFoundryInstances' array)
 param aiFoundryModelsConfig array = [
   {
     name: 'gpt-4o-mini'
@@ -311,6 +313,7 @@ param aiFoundryModelsConfig array = [
     version: '2024-07-18'
     sku: 'GlobalStandard'
     capacity: 100
+    aiservice: ''
   }
   {
     name: 'gpt-4o'
@@ -318,6 +321,7 @@ param aiFoundryModelsConfig array = [
     version: '2024-11-20'
     sku: 'GlobalStandard'
     capacity: 100
+    aiservice: ''
   }
   {
     name: 'DeepSeek-R1'
@@ -325,6 +329,7 @@ param aiFoundryModelsConfig array = [
     version: '1'
     sku: 'GlobalStandard'
     capacity: 1
+    aiservice: ''
   }
   {
     name: 'Phi-4'
@@ -332,6 +337,7 @@ param aiFoundryModelsConfig array = [
     version: '3'
     sku: 'GlobalStandard'
     capacity: 1
+    aiservice: ''
   }
 ]
 

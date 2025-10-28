@@ -180,14 +180,8 @@ module apimOpenaiApi './api.bicep' = {
     enableAPIDiagnostics: true
   }
   dependsOn: [
-    aadAuthPolicyFragment
-    validateRoutesPolicyFragment
-    backendRoutingPolicyFragment
-    openAIUsagePolicyFragment
-    openAIUsageStreamingPolicyFragment
+    policyFragments
     openAiBackends
-    throttlingEventsPolicyFragment
-    dynamicThrottlingAssignmentFragment
   ]
 }
 
@@ -208,11 +202,7 @@ module apimAiSearchIndexApi './api.bicep' = if (enableAzureAISearch) {
     enableAPIDiagnostics: false
   }
   dependsOn: [
-    aadAuthPolicyFragment
-    validateRoutesPolicyFragment
-    backendRoutingPolicyFragment
-    aiUsagePolicyFragment
-    throttlingEventsPolicyFragment
+    policyFragments
   ]
 }
 
@@ -257,11 +247,7 @@ module apimAiModelInferenceApi './api.bicep' = if (enableAIModelInference) {
     enableAPIDiagnostics: true
   }
   dependsOn: [
-    aadAuthPolicyFragment
-    validateRoutesPolicyFragment
-    backendRoutingPolicyFragment
-    aiUsagePolicyFragment
-    throttlingEventsPolicyFragment
+    policyFragments
   ]
 }
 
@@ -285,11 +271,7 @@ module apimOpenAIRealTimetApi './api.bicep' = if (enableOpenAIRealtime) {
     enableAPIDiagnostics: false
   }
   dependsOn: [
-    aadAuthPolicyFragment
-    validateRoutesPolicyFragment
-    backendRoutingPolicyFragment
-    openAIUsagePolicyFragment
-    openAIUsageStreamingPolicyFragment
+    policyFragments
     openAiBackends
   ]
 }
@@ -311,11 +293,7 @@ module apimDocumentIntelligenceLegacy './api.bicep' = if (enableDocumentIntellig
     enableAPIDiagnostics: false
   }
   dependsOn: [
-    aadAuthPolicyFragment
-    validateRoutesPolicyFragment
-    backendRoutingPolicyFragment
-    aiUsagePolicyFragment
-    throttlingEventsPolicyFragment
+    policyFragments
   ]
 }
 
@@ -336,63 +314,79 @@ module apimDocumentIntelligence './api.bicep' = if (enableDocumentIntelligence) 
     enableAPIDiagnostics: false
   }
   dependsOn: [
-    aadAuthPolicyFragment
-    validateRoutesPolicyFragment
-    backendRoutingPolicyFragment
-    aiUsagePolicyFragment
-    throttlingEventsPolicyFragment
+    policyFragments
   ]
 }
 
-module apiUniversalLLM './api.bicep' = {
+// module apiUniversalLLM './api.bicep' = {
+//   name: 'universal-llm-api'
+//   params: {
+//     serviceName: apimService.name
+//     apiName: 'universal-llm-api'
+//     path: 'llm'
+//     apiRevision: '1'
+//     apiDispalyName: 'Universal LLM API'
+//     subscriptionRequired: entraAuth ? false:true
+//     subscriptionKeyName: 'api-key'
+//     openApiSpecification: loadTextContent('./universal-llm-api/Universal-LLM-Basic-API.openapi.yaml')
+//     apiDescription: 'Universal LLM API to route requests to different LLM providers including Azure OpenAI and AI Foundry.'
+//     policyDocument: loadTextContent('./policies/universal-llm-api-policy-v2.xml')
+//     enableAPIDeployment: true
+//     enableAPIDiagnostics: true
+//   }
+//   dependsOn: [
+//     aadAuthPolicyFragment
+//     validateRoutesPolicyFragment
+//     backendRoutingPolicyFragment
+//     aiUsagePolicyFragment
+//     throttlingEventsPolicyFragment
+//     aiFoundryCompatibilityPolicyFragment
+//     aiFoundryDeploymentsPolicyFragment
+//   ]
+// }
+
+module apiUniversalLLM './inference-api.bicep' = {
   name: 'universal-llm-api'
   params: {
-    serviceName: apimService.name
-    apiName: 'universal-llm-api'
-    path: 'llm'
-    apiRevision: '1'
-    apiDispalyName: 'Universal LLM API'
-    subscriptionRequired: entraAuth ? false:true
-    subscriptionKeyName: 'api-key'
-    openApiSpecification: loadTextContent('./universal-llm-api/Universal-LLM-Basic-API.openapi.yaml')
-    apiDescription: 'Universal LLM API to route requests to different LLM providers including Azure OpenAI and AI Foundry.'
-    policyDocument: loadTextContent('./policies/universal-llm-api-policy-v2.xml')
-    enableAPIDeployment: true
-    enableAPIDiagnostics: true
+    apiManagementName: apimService.name
+    inferenceAPIName: 'universal-llm-api'
+    inferenceAPIPath: 'llm'
+    inferenceAPIDisplayName: 'Universal LLM API'
+    inferenceAPIDescription: 'Universal LLM API to route requests to different LLM providers including Azure OpenAI and AI Foundry.'
+    allowSubscriptionKey: entraAuth ? false:true
+    policyXml: loadTextContent('./policies/universal-llm-api-policy-v2.xml')
   }
   dependsOn: [
-    aadAuthPolicyFragment
-    validateRoutesPolicyFragment
-    backendRoutingPolicyFragment
-    aiUsagePolicyFragment
-    throttlingEventsPolicyFragment
-    aiFoundryCompatibilityPolicyFragment
-    aiFoundryDeploymentsPolicyFragment
+    policyFragments
   ]
 }
+
+////// AI Foundry Integration Requirements /////////////
 
 // Typed resource reference for the Universal LLM API (created by module above)
-resource universalLLMApi 'Microsoft.ApiManagement/service/apis@2022-08-01' existing = {
-  name: 'universal-llm-api'
-  parent: apimService
-  dependsOn: [
-    apiUniversalLLM
-  ]
-}
+// resource universalLLMApi 'Microsoft.ApiManagement/service/apis@2022-08-01' existing = {
+//   name: 'universal-llm-api'
+//   parent: apimService
+//   dependsOn: [
+//     apiUniversalLLM
+//   ]
+// }
 
-resource universalLlmDeploymentOperation 'Microsoft.ApiManagement/service/apis/operations@2022-08-01' existing = {
-  name: 'deployments'
-  parent: universalLLMApi
-}
+// resource universalLlmDeploymentOperation 'Microsoft.ApiManagement/service/apis/operations@2022-08-01' existing = {
+//   name: 'deployments'
+//   parent: universalLLMApi
+// }
 
-resource universalLlmDeploymentOperationPolicy 'Microsoft.ApiManagement/service/apis/operations/policies@2022-08-01' = {
-  name: 'policy'
-  parent: universalLlmDeploymentOperation
-  properties: {
-    format: 'rawxml'
-    value: loadTextContent('./policies/universal-llm-api-deployments-policy.xml')
-  }
-}
+// resource universalLlmDeploymentOperationPolicy 'Microsoft.ApiManagement/service/apis/operations/policies@2022-08-01' = {
+//   name: 'policy'
+//   parent: universalLlmDeploymentOperation
+//   properties: {
+//     format: 'rawxml'
+//     value: loadTextContent('./policies/universal-llm-api-deployments-policy.xml')
+//   }
+// }
+
+//////////// End of AI Foundry Integration Requirements /////////////
 
 // Create AI-Retail product
 resource retailProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
@@ -498,9 +492,7 @@ resource hrPIIProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
     terms: 'By subscribing to this product, you agree to the terms and conditions.'
   }
   dependsOn: [
-    piiAnonymizationPolicyFragment
-    piiDenonymizationPolicyFragment
-    piiStateSavingPolicyFragment
+    policyFragments
     ehUsageLogger
     ehPIIUsageLogger
     contentSafetyBackend
@@ -704,143 +696,24 @@ resource contentSafetyServiceUrlNamedValue 'Microsoft.ApiManagement/service/name
   }
 }
 
-// Adding Policy Fragments
-resource aadAuthPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'aad-auth'
-  properties: {
-    value: loadTextContent('./policies/frag-aad-auth.xml')
-    format: 'rawxml'
+// Policy Fragments Module
+module policyFragments './policy-fragments.bicep' = {
+  name: 'apim-policy-fragments'
+  params: {
+    apimServiceName: apimService.name
+    enablePIIAnonymization: enablePIIAnonymization
+    enableAIModelInference: enableAIModelInference
   }
   dependsOn: [
     apiopenAiApiClientNamedValue
     apiopenAiApiEntraNamedValue
     apimOpenaiApiAudienceNamedValue
     apiopenAiApiTenantNamedValue
-  ]
-}
-
-resource validateRoutesPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'validate-routes'
-  properties: {
-    value: loadTextContent('./policies/frag-validate-routes.xml')
-    format: 'rawxml'
-  }
-}
-
-resource backendRoutingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'backend-routing'
-  properties: {
-    value: loadTextContent('./policies/frag-backend-routing.xml')
-    format: 'rawxml'
-  }
-}
-
-resource openAIUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'openai-usage'
-  properties: {
-    value: loadTextContent('./policies/frag-openai-usage.xml')
-    format: 'rawxml'
-  }
-  dependsOn: [
     ehUsageLogger
-  ]
-}
-
-resource openAIUsageStreamingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'openai-usage-streaming'
-  properties: {
-    value: loadTextContent('./policies/frag-openai-usage-streaming.xml')
-    format: 'rawxml'
-  }
-  dependsOn: [
-  ]
-}
-
-resource aiUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'ai-usage'
-  properties: {
-    value: loadTextContent('./policies/frag-ai-usage.xml')
-    format: 'rawxml'
-  }
-  dependsOn: [
-    ehUsageLogger
-  ]
-}
-
-resource throttlingEventsPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'throttling-events'
-  properties: {
-    value: loadTextContent('./policies/frag-throttling-events.xml')
-    format: 'rawxml'
-  }
-}
-
-resource dynamicThrottlingAssignmentFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'dynamic-throttling-assignment'
-  properties: {
-    value: loadTextContent('./policies/frag-dynamic-throttling-assignment.xml')
-    format: 'rawxml'
-  }
-}
-
-resource piiAnonymizationPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'pii-anonymization'
-  properties: {
-    value: loadTextContent('./policies/frag-pii-anonymization.xml')
-    format: 'rawxml'
-  }
-  dependsOn: [
+    ehPIIUsageLogger
     piiServiceUrlNamedValue
     piiServiceKeyNamedValue
   ]
-}
-
-resource piiDenonymizationPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = {
-  parent: apimService
-  name: 'pii-deanonymization'
-  properties: {
-    value: loadTextContent('./policies/frag-pii-deanonymization.xml')
-    format: 'rawxml'
-  }
-}
-
-resource piiStateSavingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = if (enablePIIAnonymization) {
-  parent: apimService
-  name: 'pii-state-saving'
-  properties: {
-    value: loadTextContent('./policies/frag-pii-state-saving.xml')
-    format: 'rawxml'
-  }
-  dependsOn: [
-    ehPIIUsageLogger
-  ]
-}
-
-resource aiFoundryCompatibilityPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = if (enablePIIAnonymization) {
-  parent: apimService
-  name: 'ai-foundry-compatibility'
-  properties: {
-    value: loadTextContent('./policies/frag-ai-foundry-compatibility.xml')
-    format: 'rawxml'
-  }
-}
-
-resource aiFoundryDeploymentsPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = if (enableAIModelInference) {
-  parent: apimService
-  name: 'ai-foundry-deployments'
-  properties: {
-    value: loadTextContent('./policies/frag-ai-foundry-deployments.xml')
-    format: 'rawxml'
-  }
 }
 
 resource apimLogger 'Microsoft.ApiManagement/service/loggers@2024-05-01' = {

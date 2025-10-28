@@ -43,6 +43,9 @@ param inferenceAPIDisplayName string = 'Inference API'
 @description('The name of the Inference backend pool.')
 param inferenceBackendPoolName string = 'inference-backend-pool'
 
+@description('Allow the use subscription key for the inference API (in case of using JWT auth only this can be set to false)')
+param allowSubscriptionKey bool = true
+
 @description('The inference API type')
 @allowed([
   'AzureOpenAI'
@@ -66,7 +69,8 @@ var logSettings = {
   body: { bytes: 0 }
 }
 
-var updatedPolicyXml = replace(policyXml, '{backend-id}', (length(aiServicesConfig) > 1) ? inferenceBackendPoolName : aiServicesConfig[0].name)
+// to allow future modifications to the policy XML if needed
+var updatedPolicyXml = policyXml
 
 // ------------------
 //    RESOURCES
@@ -95,7 +99,7 @@ resource api 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' = {
       header: 'api-key'
       query: 'api-key'
     }
-    subscriptionRequired: true
+    subscriptionRequired: allowSubscriptionKey
     type: 'http'
     value: string((inferenceAPIType == 'AzureOpenAI') ? loadJsonContent('./universal-llm-api/AIFoundryOpenAI.json') : (inferenceAPIType == 'AzureAI') ? loadJsonContent('./universal-llm-api/AIFoundryAzureAI.json') : (inferenceAPIType == 'OpenAI') ? loadJsonContent('./universal-llm-api/AIFoundryAzureAI.json') : loadJsonContent('./universal-llm-api/PassThrough.json'))
   }
@@ -111,61 +115,16 @@ resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01-pre
 }
 
 
-// https://learn.microsoft.com/azure/templates/microsoft.apimanagement/service/backends
-resource inferenceBackend 'Microsoft.ApiManagement/service/backends@2024-06-01-preview' =  [for (config, i) in aiServicesConfig: if(length(aiServicesConfig) > 0) {
-  name: config.name
-  parent: apimService
-  properties: {
-    description: 'Inference backend'
-    url: '${config.endpoint}${endpointPath}'
-    protocol: 'http'
-    circuitBreaker: (configureCircuitBreaker) ? {
-      rules: [
-      {
-        failureCondition: {
-        count: 1
-        errorReasons: [
-          'Server errors'
-        ]
-        interval: 'PT5M'
-        statusCodeRanges: [
-          {
-          min: 429
-          max: 429
-          }
-        ]
-        }
-        name: 'InferenceBreakerRule'
-        tripDuration: 'PT1M'
-        acceptRetryAfter: true
-      }
-      ]
-    }: null
-    credentials: {
-      #disable-next-line BCP037
-      managedIdentity: {
-          resource: 'https://cognitiveservices.azure.com'
-      }
-    }
-  }
-}]
-
-// https://learn.microsoft.com/azure/templates/microsoft.apimanagement/service/backends
-resource backendPoolOpenAI 'Microsoft.ApiManagement/service/backends@2024-06-01-preview' = if(length(aiServicesConfig) > 1) {
-  name: inferenceBackendPoolName
-  parent: apimService
-  // BCP035: protocol and url are not needed in the Pool type. This is an incorrect error.
-  #disable-next-line BCP035
-  properties: {
-    description: 'Load balancer for multiple inference endpoints'
-    type: 'Pool'
-    pool: {
-      services: [for (config, i) in aiServicesConfig: {
-        id: '/backends/${inferenceBackend[i].name}'
-        priority: config.?priority
-        weight: config.?weight
-      }]
-    }
+// Reference the backend module
+module inferenceBackends './inference-backend.bicep' = {
+  name: 'inferenceBackends-${inferenceAPIName}'
+  params: {
+    resourceSuffix: resourceSuffix
+    apiManagementName: apiManagementName
+    aiServicesConfig: aiServicesConfig
+    inferenceBackendPoolName: inferenceBackendPoolName
+    configureCircuitBreaker: configureCircuitBreaker
+    inferenceAPIType: inferenceAPIType
   }
 }
 
@@ -221,7 +180,7 @@ resource apiDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2024-0
       }
     }
   }
-} 
+}
 
 resource apiDiagnosticsAppInsights 'Microsoft.ApiManagement/service/apis/diagnostics@2022-08-01' = if (!empty(appInsightsId) && !empty(appInsightsInstrumentationKey)) {
   name: 'applicationinsights'
@@ -253,3 +212,6 @@ resource apiDiagnosticsAppInsights 'Microsoft.ApiManagement/service/apis/diagnos
 // ------------------
 
 output apiId string = api.id
+output backendNames array = inferenceBackends.outputs.backendNames
+output backendPoolName string = inferenceBackends.outputs.backendPoolName
+output backendPoolId string = inferenceBackends.outputs.backendPoolId

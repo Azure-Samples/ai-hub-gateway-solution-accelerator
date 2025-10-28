@@ -47,7 +47,7 @@
             backendPools.Add(aiFoundryPhiPool);
 
             // NOTE: Do not remove the placeholder comment below as it is used by automation scripts to insert new backend pool configurations
-            //{{NEW_BACKEND_POOLS_AUTOMATION_PLACEHOLDER}}
+            //{NEW_BACKEND_POOLS_AUTOMATION_PLACEHOLDER}
         }
         else
         {

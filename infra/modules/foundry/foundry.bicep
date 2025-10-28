@@ -74,8 +74,8 @@ var cognitiveServicesUserRoleDefinitionID = resourceId('Microsoft.Authorization/
 // ------------------
 //    RESOURCES
 // ------------------
-resource foundryResources 'Microsoft.CognitiveServices/accounts@2025-06-01' = [for config in aiServicesConfig: {
-  name: !empty(config.name) ? config.name : 'aif-${resourceToken}'
+resource foundryResources 'Microsoft.CognitiveServices/accounts@2025-06-01' = [for (config, i) in aiServicesConfig: {
+  name: !empty(config.name) ? config.name : 'aif-${resourceToken}-${i}'
   location: config.location
   tags: tags
   identity: {
@@ -89,7 +89,7 @@ resource foundryResources 'Microsoft.CognitiveServices/accounts@2025-06-01' = [f
     // required to work in AI Foundry
     allowProjectManagement: true 
 //!empty(languageServiceName) ? languageServiceName : '${abbrs.cognitiveServicesAccounts}language-${resourceToken}'
-    customSubDomainName: toLower(!empty(config.customSubDomainName) ? config.customSubDomainName : (!empty(config.name) ? config.name : 'aif-${resourceToken}'))
+    customSubDomainName: toLower(!empty(config.customSubDomainName) ? config.customSubDomainName : (!empty(config.name) ? config.name : 'aif-${resourceToken}-${i}'))
 
     disableLocalAuth: disableKeyAuth
 
@@ -107,7 +107,7 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-pre
     type: 'SystemAssigned'
   }
   properties: {
-    description: 'Citadel Governance Hub central for AI Evaluation default LLMs project'
+    description: 'Citadel Governance Hub default project for AI Evaluation default LLMs'
   }
 }]
 

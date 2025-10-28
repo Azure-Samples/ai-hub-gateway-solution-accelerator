@@ -84,7 +84,7 @@
         <include-fragment fragment-id="set-target-backend-pool" />
 
         <!-- Step 6: Configure authentication and route to selected backend -->
-        <include-fragment fragment-id="set-target-authorization" />
+        <include-fragment fragment-id="set-backend-authorization" />
     </inbound>
     <backend>
         <!--
