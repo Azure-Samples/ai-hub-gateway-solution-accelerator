@@ -300,6 +300,36 @@ param aiFoundryInstances array = [
     location: location
     customSubDomainName: ''
     defaultProjectName: 'citadel-governance-project'
+    modelDeployments: [
+      {
+        name: 'gpt-4o-mini'
+        publisher: 'OpenAI'
+        version: '2024-07-18'
+        sku: 'GlobalStandard'
+        capacity: 100
+      }
+      {
+        name: 'gpt-4o'
+        publisher: 'OpenAI'
+        version: '2024-11-20'
+        sku: 'GlobalStandard'
+        capacity: 100
+      }
+      {
+        name: 'DeepSeek-R1'
+        publisher: 'DeepSeek'
+        version: '1'
+        sku: 'GlobalStandard'
+        capacity: 1
+      }
+      {
+        name: 'Phi-4'
+        publisher: 'Microsoft'
+        version: '3'
+        sku: 'GlobalStandard'
+        capacity: 1
+      }
+    ]
   }
 ]
 

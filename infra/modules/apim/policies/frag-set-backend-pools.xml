@@ -19,6 +19,11 @@
         // Update the below if condition when using multiple APIM gateway regions/SHGW to get different configurations for each region
         if(context.Deployment.Region == "All Regions" || true)
         {
+            // NOTE: Do not remove the placeholder comment below as it is used by automation scripts to insert new backend pool configurations
+            //{NEW_BACKEND_POOLS_AUTOMATION_PLACEHOLDER}
+        
+            /*
+            // Example of adding backend pools:
             // Azure OpenAI Backend Pool
             var azureOpenAIPool = new JObject()
             {
@@ -45,9 +50,7 @@
                 { "supportedModels", new JArray("phi-4", "Phi-4-multimodal-instruct") }
             };
             backendPools.Add(aiFoundryPhiPool);
-
-            // NOTE: Do not remove the placeholder comment below as it is used by automation scripts to insert new backend pool configurations
-            //{NEW_BACKEND_POOLS_AUTOMATION_PLACEHOLDER}
+            */
         }
         else
         {
