@@ -19,38 +19,8 @@
         // Update the below if condition when using multiple APIM gateway regions/SHGW to get different configurations for each region
         if(context.Deployment.Region == "All Regions" || true)
         {
-            // NOTE: Do not remove the placeholder comment below as it is used by automation scripts to insert new backend pool configurations
-            //{NEW_BACKEND_POOLS_AUTOMATION_PLACEHOLDER}
-        
-            /*
-            // Example of adding backend pools:
-            // Azure OpenAI Backend Pool
-            var azureOpenAIPool = new JObject()
-            {
-                { "poolName", "azure-openai-backend-pool" },
-                { "poolType", "azure-openai" },
-                { "supportedModels", new JArray("chat", "gpt-4o", "text-embedding-3-large") }
-            };
-            backendPools.Add(azureOpenAIPool);
-            
-            // AI Foundry Llama Backend Pool
-            var aiFoundryLlamaPool = new JObject()
-            {
-                { "poolName", "ai-foundry-llama-pool" },
-                { "poolType", "ai-foundry" },
-                { "supportedModels", new JArray("Llama-3.3-70B-Instruct") }
-            };
-            backendPools.Add(aiFoundryLlamaPool);
-            
-            // AI Foundry Phi Backend Pool
-            var aiFoundryPhiPool = new JObject()
-            {
-                { "poolName", "ai-foundry-phi-pool" },
-                { "poolType", "ai-foundry" },
-                { "supportedModels", new JArray("phi-4", "Phi-4-multimodal-instruct") }
-            };
-            backendPools.Add(aiFoundryPhiPool);
-            */
+            // Backend Pools Configuration (Auto-generated from Bicep deployment)
+            {backendPoolsCode}
         }
         else
         {

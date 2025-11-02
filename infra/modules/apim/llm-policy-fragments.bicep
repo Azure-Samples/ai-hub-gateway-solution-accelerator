@@ -47,104 +47,14 @@ var backendPoolsCode = join(backendPoolsArray, '\n')
 /**
  * Complete policy fragment XML with backend pools configuration
  */
-var setBackendPoolsFragmentXml = '''<fragment>
-    <!--
-        Fragment: Set Backend Pools
-        Purpose: Defines backend pool configurations with their supported models and routing settings
-        
-        Expected Input Variables:
-        - requestedModel: The model name extracted from the request payload
-        - defaultBackendPool: Default backend pool to use when model is not mapped (empty string = error for unmapped models)
-        - allowedBackendPools: Comma-separated list of allowed backend pool IDs (empty string = all pools allowed)
-        
-        Output Variables:
-        - backendPools: JArray containing all backend pool configurations
-    -->
-    
-    <!-- Define backend pools with their supported models and routing configurations -->
-    <set-variable name="backendPools" value="@{
-        JArray backendPools = new JArray();
-        
-        // Update the below if condition when using multiple APIM gateway regions/SHGW to get different configurations for each region
-        if(context.Deployment.Region == "All Regions" || true)
-        {
-            // Backend Pools Configuration (Auto-generated from Bicep deployment)
-            {backendPoolsCode}
-        }
-        else
-        {
-            // No backend pools found for selected region
-            // Either return error (default behavior) or set default pools in the else section
-        }
-        
-        return backendPools;   
-    }" />
-</fragment>'''
+var setBackendPoolsFragmentXml = loadTextContent('./policies/frag-set-backend-pools.xml')
 
 var updatedSetBackendPoolsFragmentXml = replace(setBackendPoolsFragmentXml, '{backendPoolsCode}', backendPoolsCode)
 
 /**
  * Enhanced authorization fragment that supports multiple backend types
  */
-var setBackendAuthorizationFragmentXml = '''<fragment>
-    <!--
-        Fragment: Set Target Authorization
-        Purpose: Configures authentication headers and URL rewriting based on backend pool type
-        
-        Expected Input Variables:
-        - targetPoolType: The type of the target backend pool (e.g., "azure-openai", "ai-foundry")
-        - targetBackendPool: The selected backend pool name
-        - requestedModel: The model name extracted from the request payload
-        
-        Expected Named Values:
-        - uami-client-id: User-assigned managed identity client ID for authentication
-        
-        Side Effects:
-        - Sets Authorization header with managed identity token
-        - Rewrites request URL for Azure OpenAI to include deployment path
-        - Sets backend service to the target backend pool
-    -->
-    
-    <!-- Configure authentication and URL rewriting based on backend pool type -->
-    <choose>
-        <when condition="@(((string)context.Variables["targetPoolType"]) == "azure-openai")">
-            <!-- Azure OpenAI: Use managed identity authentication with Cognitive Services resource -->
-            <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="msi-access-token" client-id="{{uami-client-id}}" ignore-error="false" />
-            <set-header name="Authorization" exists-action="override">
-                <value>@("Bearer " + (string)context.Variables["msi-access-token"])</value>
-            </set-header>
-            
-            <!-- Rewrite URL to inject /deployments/{model}/ path for Azure OpenAI API format -->
-            <set-variable name="rewriteTemplate" value="@{
-                string requestedModel = (string)context.Variables[&quot;requestedModel&quot;];
-                return string.Format(&quot;/deployments/{0}/chat/completions&quot;, requestedModel);
-            }" />
-            <rewrite-uri template="@((string)context.Variables["rewriteTemplate"])" copy-unmatched-params="true" />
-        </when>
-        <when condition="@(((string)context.Variables["targetPoolType"]) == "ai-foundry")">
-            <!-- AI Foundry: Use managed identity authentication with Cognitive Services resource -->
-            <!-- No URL rewriting needed - AI Foundry uses standard OpenAI-compatible paths -->
-            <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="msi-access-token" client-id="{{uami-client-id}}" ignore-error="false" />
-            <set-header name="Authorization" exists-action="override">
-                <value>@("Bearer " + (string)context.Variables["msi-access-token"])</value>
-            </set-header>
-        </when>
-        <when condition="@(((string)context.Variables["targetPoolType"]) == "external")">
-            <!-- External LLM Provider: Authentication handled by backend credentials configuration -->
-            <!-- No URL rewriting or additional headers needed -->
-        </when>
-        <otherwise>
-            <!-- Default case: Use managed identity authentication -->
-            <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="msi-access-token" client-id="{{uami-client-id}}" ignore-error="false" />
-            <set-header name="Authorization" exists-action="override">
-                <value>@("Bearer " + (string)context.Variables["msi-access-token"])</value>
-            </set-header>
-        </otherwise>
-    </choose>
-    
-    <!-- Route request to the selected backend pool -->
-    <set-backend-service backend-id="@((string)context.Variables["targetBackendPool"])" />
-</fragment>'''
+var setBackendAuthorizationFragmentXml = loadTextContent('./policies/frag-set-backend-authorization.xml')
 
 // ------------------
 //    RESOURCES

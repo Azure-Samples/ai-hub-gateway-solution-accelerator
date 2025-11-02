@@ -339,7 +339,7 @@ param llmBackendConfig array = [
   {
     backendId: 'aif-idewp76ybcruw-0'
     backendType: 'ai-foundry'
-    endpoint: 'https://aif-hxjzilqdapyk4-0.services.ai.azure.com/openai'
+    endpoint: 'https://aif-hxjzilqdapyk4-0.services.ai.azure.com/models'
     authScheme: 'managedIdentity'
     supportedModels: ['gpt-4o-mini', 'gpt-4o', 'DeepSeek-R1', 'Phi-4']
     priority: 1
@@ -350,7 +350,7 @@ param llmBackendConfig array = [
   {
     backendId: 'aif-idewp76ybcruw-1'
     backendType: 'ai-foundry'
-    endpoint: 'https://aif-hxjzilqdapyk4-1.services.ai.azure.com/openai'
+    endpoint: 'https://aif-hxjzilqdapyk4-1.services.ai.azure.com/models'
     authScheme: 'managedIdentity'
     supportedModels: ['gpt-5', 'DeepSeek-R1']
     priority: 1

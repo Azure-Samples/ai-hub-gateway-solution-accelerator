@@ -29,13 +29,24 @@
             <!-- Rewrite URL to inject /deployments/{model}/ path for Azure OpenAI API format -->
             <set-variable name="rewriteTemplate" value="@{
                 string requestedModel = (string)context.Variables["requestedModel"];
-                return $"/deployments/{requestedModel}/chat/completions";
+                return string.Format("/deployments/{0}/chat/completions", requestedModel);
             }" />
             <rewrite-uri template="@((string)context.Variables["rewriteTemplate"])" copy-unmatched-params="true" />
         </when>
-        <otherwise>
+        <when condition="@(((string)context.Variables["targetPoolType"]) == "ai-foundry")">
             <!-- AI Foundry: Use managed identity authentication with Cognitive Services resource -->
             <!-- No URL rewriting needed - AI Foundry uses standard OpenAI-compatible paths -->
+            <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="msi-access-token" client-id="{{uami-client-id}}" ignore-error="false" />
+            <set-header name="Authorization" exists-action="override">
+                <value>@("Bearer " + (string)context.Variables["msi-access-token"])</value>
+            </set-header>
+        </when>
+        <when condition="@(((string)context.Variables["targetPoolType"]) == "external")">
+            <!-- External LLM Provider: Authentication handled by backend credentials configuration -->
+            <!-- No URL rewriting or additional headers needed -->
+        </when>
+        <otherwise>
+            <!-- Default case: Use managed identity authentication -->
             <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="msi-access-token" client-id="{{uami-client-id}}" ignore-error="false" />
             <set-header name="Authorization" exists-action="override">
                 <value>@("Bearer " + (string)context.Variables["msi-access-token"])</value>

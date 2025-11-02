@@ -415,8 +415,9 @@ module apiUniversalLLM './inference-api.bicep' = {
     apiManagementName: apimService.name
     inferenceAPIName: 'universal-llm-api'
     inferenceAPIPath: 'llm'
+    inferenceAPIType: 'AzureAI'
     inferenceAPIDisplayName: 'Universal LLM API'
-    inferenceAPIDescription: 'Universal LLM API to route requests to different LLM providers including Azure OpenAI and AI Foundry.'
+    inferenceAPIDescription: 'Universal LLM API to route requests to different LLM providers including Azure OpenAI, AI Foundry and 3rd party models.'
     allowSubscriptionKey: entraAuth ? false:true
     policyXml: loadTextContent('./policies/universal-llm-api-policy-v2.xml')
   }
