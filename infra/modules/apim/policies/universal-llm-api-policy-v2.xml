@@ -26,7 +26,7 @@
         <set-variable name="requestedModel" value="@{
             try
             {
-                var bodyText = context.Request.Body.As&lt;string&gt;(preserveContent: true);
+                var bodyText = context.Request.Body.As<string>(preserveContent: true);
                 if (string.IsNullOrEmpty(bodyText))
                 {
                     return string.Empty;

@@ -142,32 +142,23 @@ resource aiFoundryDeploymentsPolicyFragment 'Microsoft.ApiManagement/service/pol
   }
 }
 
-resource setBackendPoolsPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = if (enableAIModelInference) {
-  parent: apimService
-  name: 'set-backend-pools'
-  properties: {
-    value: loadTextContent('./policies/frag-set-backend-pools.xml')
-    format: 'rawxml'
-  }
-}
+// resource setBackendPoolsPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = if (enableAIModelInference) {
+//   parent: apimService
+//   name: 'set-backend-pools'
+//   properties: {
+//     value: loadTextContent('./policies/frag-set-backend-pools.xml')
+//     format: 'rawxml'
+//   }
+// }
 
-resource setTargetBackendPoolPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = if (enableAIModelInference) {
-  parent: apimService
-  name: 'set-target-backend-pool'
-  properties: {
-    value: loadTextContent('./policies/frag-set-target-backend-pool.xml')
-    format: 'rawxml'
-  }
-}
-
-resource setBackendAuthorization 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = if (enableAIModelInference) {
-  parent: apimService
-  name: 'set-backend-authorization'
-  properties: {
-    value: loadTextContent('./policies/frag-set-backend-authorization.xml')
-    format: 'rawxml'
-  }
-}
+// resource setBackendAuthorization 'Microsoft.ApiManagement/service/policyFragments@2022-08-01' = if (enableAIModelInference) {
+//   parent: apimService
+//   name: 'set-backend-authorization'
+//   properties: {
+//     value: loadTextContent('./policies/frag-set-backend-authorization.xml')
+//     format: 'rawxml'
+//   }
+// }
 
 // ------------------
 //    OUTPUTS

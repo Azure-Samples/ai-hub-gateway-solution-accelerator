@@ -115,7 +115,7 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-pre
 var aiProjectManagerRoleDefinitionID = 'eadc314b-1a2d-4efa-be10-5d325db5065e' 
 resource aiProjectManagerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for (config, i) in aiServicesConfig: {
     scope: foundryResources[i]
-    name: guid(subscription().id, resourceGroup().id, config.name, aiProjectManagerRoleDefinitionID)
+    name: guid(subscription().id, resourceGroup().id, foundryResources[i].name, aiProjectManagerRoleDefinitionID)
     properties: {
       roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', aiProjectManagerRoleDefinitionID)
       principalId: deployer().objectId
@@ -163,7 +163,7 @@ resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/connections
 
 resource roleAssignmentCognitiveServicesUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for (config, i) in aiServicesConfig: {
   scope: foundryResources[i]
-  name: guid(subscription().id, resourceGroup().id, config.name, cognitiveServicesUserRoleDefinitionID)
+  name: guid(subscription().id, resourceGroup().id, foundryResources[i].name, cognitiveServicesUserRoleDefinitionID, apimPrincipalId)
     properties: {
         roleDefinitionId: cognitiveServicesUserRoleDefinitionID
         principalId: apimPrincipalId
@@ -175,7 +175,7 @@ module modelDeployments 'deployments.bicep' = [for (config, i) in aiServicesConf
   name: take('models-${foundryResources[i].name}', 64)
   params: {
     cognitiveServiceName: foundryResources[i].name
-    modelsConfig: modelsConfig
+    modelsConfig: filter(modelsConfig, model => !contains(model, 'aiservice') || model.aiservice == foundryResources[i].name )
   }
 }]
 

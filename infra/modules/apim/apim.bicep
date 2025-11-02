@@ -60,6 +60,26 @@ param apiCenterAPIEnvironment string = 'api-dev'
 // MCP Samples (Weather API, Weather MCP, MS Learn MCP)
 param isMCPSampleDeployed bool = false
 
+/**
+ * LLM Backend Configuration
+ * This parameter defines all LLM backends and their supported models for dynamic routing.
+ * Each backend can be:
+ * - AI Foundry: Deployed Azure AI Foundry project with model deployments
+ * - Azure OpenAI: Azure OpenAI service endpoints
+ * - Other LLM providers: External LLM endpoints with appropriate authentication
+ * 
+ * Structure:
+ * - backendId: Unique identifier for the backend (used in APIM backend resource name)
+ * - backendType: Type of backend ('ai-foundry', 'azure-openai', 'external')
+ * - endpoint: Base URL for the backend service
+ * - authScheme: Authentication method ('managedIdentity', 'apiKey', 'token')
+ * - supportedModels: Array of model names this backend can serve
+ * - priority: (Optional) Priority for load balancing (1-5, default 1)
+ * - weight: (Optional) Weight for load balancing (1-1000, default 1)
+ */
+@description('Configuration array for LLM backends supporting multiple providers and models')
+param llmBackendConfig array = []
+
 var apimPublicNetworkAccess = apimV2PublicNetworkAccess ? 'Enabled' : 'Disabled'
 
 var openAiApiBackendId = 'openai-backend'
@@ -345,6 +365,50 @@ module apimDocumentIntelligence './api.bicep' = if (enableDocumentIntelligence) 
 //   ]
 // }
 
+/**
+ * Dynamic LLM Backend Creation
+ * Creates individual backends for each LLM endpoint defined in llmBackendConfig
+ * Supports AI Foundry, Azure OpenAI, and external LLM providers
+ */
+module llmBackends './llm-backends.bicep' = if (length(llmBackendConfig) > 0) {
+  name: 'llm-backends'
+  params: {
+    apimServiceName: apimService.name
+    managedIdentityClientId: managedIdentity.properties.clientId
+    llmBackendConfig: llmBackendConfig
+    configureCircuitBreaker: true
+    tags: tags
+  }
+}
+
+/**
+ * Dynamic Backend Pool Creation
+ * Groups backends by supported models to enable load balancing and failover
+ * Only creates pools for models supported by multiple backends
+ */
+module llmBackendPools './llm-backend-pools.bicep' = if (length(llmBackendConfig) > 0) {
+  name: 'llm-backend-pools'
+  params: {
+    apimServiceName: apimService.name
+    backendDetails: llmBackends.outputs.backendDetails
+    tags: tags
+  }
+}
+
+/**
+ * Dynamic LLM Policy Fragments
+ * Generates policy fragments with backend pool configurations for routing logic
+ * Updates set-backend-pools and set-backend-authorization fragments dynamically
+ */
+module llmPolicyFragments './llm-policy-fragments.bicep' = if (length(llmBackendConfig) > 0) {
+  name: 'llm-policy-fragments'
+  params: {
+    apimServiceName: apimService.name
+    policyFragmentConfig: llmBackendPools.outputs.policyFragmentConfig
+    managedIdentityClientId: managedIdentity.properties.clientId
+  }
+}
+
 module apiUniversalLLM './inference-api.bicep' = {
   name: 'universal-llm-api'
   params: {
@@ -358,6 +422,9 @@ module apiUniversalLLM './inference-api.bicep' = {
   }
   dependsOn: [
     policyFragments
+    llmBackends
+    llmBackendPools
+    llmPolicyFragments
   ]
 }
 

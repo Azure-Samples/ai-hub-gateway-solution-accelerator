@@ -1,5 +1,3 @@
-
-
 @description('Configuration array for the model deployments')
 param modelsConfig array = []
 
@@ -10,7 +8,7 @@ resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-06-01' exis
 }
 
 @batchSize(1)
-resource modelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = [for (model, i) in modelsConfig: if(contains(cognitiveService.name, modelsConfig[i].?aiservice != null ? modelsConfig[i].aiservice : '' )) {
+resource modelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = [for (model, i) in modelsConfig: {
   name: model.name
   parent: cognitiveService
   sku: {

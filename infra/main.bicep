@@ -293,43 +293,84 @@ param aiSearchInstances array = [
   }
 ]
 
-@description('AI Foundry services configuration - configure AI Foundry resources.')
+/**
+ * LLM Backend Configuration Array
+ * 
+ * Defines all LLM backends that APIM will route requests to. This enables:
+ * - Multi-model support across different LLM providers
+ * - Load balancing and failover for the same model across multiple backends
+ * - Flexible authentication schemes per backend
+ * 
+ * Each backend object should have:
+ * - backendId: Unique identifier (used in APIM backend resource name)
+ * - backendType: 'ai-foundry' | 'azure-openai' | 'external'
+ * - endpoint: Base URL of the LLM service
+ * - authScheme: 'managedIdentity' | 'apiKey' | 'token'
+ * - supportedModels: Array of model names (e.g., ['gpt-4', 'gpt-4-turbo'])
+ * - priority: (Optional) 1-5, default 1 (lower = higher priority)
+ * - weight: (Optional) 1-1000, default 100 (higher = more traffic)
+ * 
+ * Example configuration:
+ * [
+ *   {
+ *     backendId: 'ai-foundry-eastus-gpt4'
+ *     backendType: 'ai-foundry'
+ *     endpoint: 'https://my-project.eastus.inference.ml.azure.com'
+ *     authScheme: 'managedIdentity'
+ *     supportedModels: ['gpt-4', 'gpt-4-turbo']
+ *     priority: 1
+ *     weight: 100
+ *   },
+ *   {
+ *     backendId: 'azure-openai-westus'
+ *     backendType: 'azure-openai'
+ *     endpoint: 'https://my-openai-westus.openai.azure.com'
+ *     authScheme: 'managedIdentity'
+ *     supportedModels: ['gpt-35-turbo', 'gpt-4']
+ *     priority: 2
+ *     weight: 50
+ *   }
+ * ]
+ */
+@description('LLM backend configuration array for dynamic routing and load balancing')
+param llmBackendConfig array = [
+  // AI Foundry Instance 0 - Location: location (parameter)
+  // Models: gpt-4o-mini, gpt-4o, DeepSeek-R1, Phi-4
+  {
+    backendId: 'aif-idewp76ybcruw-0'
+    backendType: 'ai-foundry'
+    endpoint: 'https://aif-hxjzilqdapyk4-0.services.ai.azure.com/openai'
+    authScheme: 'managedIdentity'
+    supportedModels: ['gpt-4o-mini', 'gpt-4o', 'DeepSeek-R1', 'Phi-4']
+    priority: 1
+    weight: 100
+  }
+  // AI Foundry Instance 1 - Location: eastus2
+  // Models: gpt-5, DeepSeek-R1
+  {
+    backendId: 'aif-idewp76ybcruw-1'
+    backendType: 'ai-foundry'
+    endpoint: 'https://aif-hxjzilqdapyk4-1.services.ai.azure.com/openai'
+    authScheme: 'managedIdentity'
+    supportedModels: ['gpt-5', 'DeepSeek-R1']
+    priority: 1
+    weight: 100
+  }
+]
+
+@description('Enable Entra ID authentication for the solution.')
 param aiFoundryInstances array = [
   {
     name: !empty(aiFoundryResourceName) ? aiFoundryResourceName : ''
     location: location
     customSubDomainName: ''
     defaultProjectName: 'citadel-governance-project'
-    modelDeployments: [
-      {
-        name: 'gpt-4o-mini'
-        publisher: 'OpenAI'
-        version: '2024-07-18'
-        sku: 'GlobalStandard'
-        capacity: 100
-      }
-      {
-        name: 'gpt-4o'
-        publisher: 'OpenAI'
-        version: '2024-11-20'
-        sku: 'GlobalStandard'
-        capacity: 100
-      }
-      {
-        name: 'DeepSeek-R1'
-        publisher: 'DeepSeek'
-        version: '1'
-        sku: 'GlobalStandard'
-        capacity: 1
-      }
-      {
-        name: 'Phi-4'
-        publisher: 'Microsoft'
-        version: '3'
-        sku: 'GlobalStandard'
-        capacity: 1
-      }
-    ]
+  }
+  {
+    name: !empty(aiFoundryResourceName) ? aiFoundryResourceName : ''
+    location: 'eastus2'
+    customSubDomainName: ''
+    defaultProjectName: 'citadel-governance-project'
   }
 ]
 
@@ -343,7 +384,7 @@ param aiFoundryModelsConfig array = [
     version: '2024-07-18'
     sku: 'GlobalStandard'
     capacity: 100
-    aiservice: ''
+    aiservice: 'aif-hxjzilqdapyk4-0'
   }
   {
     name: 'gpt-4o'
@@ -351,7 +392,7 @@ param aiFoundryModelsConfig array = [
     version: '2024-11-20'
     sku: 'GlobalStandard'
     capacity: 100
-    aiservice: ''
+    aiservice: 'aif-hxjzilqdapyk4-0'
   }
   {
     name: 'DeepSeek-R1'
@@ -359,7 +400,7 @@ param aiFoundryModelsConfig array = [
     version: '1'
     sku: 'GlobalStandard'
     capacity: 1
-    aiservice: ''
+    aiservice: 'aif-hxjzilqdapyk4-0'
   }
   {
     name: 'Phi-4'
@@ -367,7 +408,23 @@ param aiFoundryModelsConfig array = [
     version: '3'
     sku: 'GlobalStandard'
     capacity: 1
-    aiservice: ''
+    aiservice: 'aif-hxjzilqdapyk4-0'
+  }
+  {
+    name: 'gpt-5'
+    publisher: 'OpenAI'
+    version: '2025-08-07'
+    sku: 'GlobalStandard'
+    capacity: 100
+    aiservice: 'aif-hxjzilqdapyk4-1'
+  }
+  {
+    name: 'DeepSeek-R1'
+    publisher: 'DeepSeek'
+    version: '1'
+    sku: 'GlobalStandard'
+    capacity: 1
+    aiservice: 'aif-hxjzilqdapyk4-1'
   }
 ]
 
@@ -675,6 +732,7 @@ module apim './modules/apim/apim.bicep' = {
     enableOpenAIRealtime: enableOpenAIRealtime
     enableAzureAISearch: enableAzureAISearch
     aiSearchInstances: aiSearchInstances
+    llmBackendConfig: llmBackendConfig
     sku: apimSku
     skuCount: apimSkuUnits
     usePrivateEndpoint: apimV2UsePrivateEndpoint
