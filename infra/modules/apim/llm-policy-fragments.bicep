@@ -49,7 +49,7 @@ var backendPoolsCode = join(backendPoolsArray, '\n')
  */
 var setBackendPoolsFragmentXml = loadTextContent('./policies/frag-set-backend-pools.xml')
 
-var updatedSetBackendPoolsFragmentXml = replace(setBackendPoolsFragmentXml, '{backendPoolsCode}', backendPoolsCode)
+var updatedSetBackendPoolsFragmentXml = replace(setBackendPoolsFragmentXml, '//{backendPoolsCode}', backendPoolsCode)
 
 /**
  * Enhanced authorization fragment that supports multiple backend types

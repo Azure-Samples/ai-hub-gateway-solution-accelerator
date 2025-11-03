@@ -1,0 +1,14 @@
+<fragment>
+    <!-- NOTE: emit-tokens has limited support to custom dimensions -->
+    <llm-emit-token-metric namespace="llm-usage">
+        <dimension name="SubscriptionId" value="@(context.Subscription?.Id ?? "Portal-Admin-Sub")" />
+        <dimension name="productName" value="@(context.Product?.Name?.ToString() ?? "Portal-Admin")" />
+        <dimension name="requestedModel" value="@((string)context.Variables.GetValueOrDefault<string>("targetModel", "DefaultModel"))" />
+        <dimension name="Backend ID" />
+        <!-- <dimension name="operationName" value="@(context.Operation?.Id ?? "Streaming")" /> -->
+        <!-- <dimension name="sessionId" value="@((string)context.Variables.GetValueOrDefault<string>("sessionId", "NA"))" /> -->
+        <!-- <dimension name="endUserId" value="@((string)context.Variables.GetValueOrDefault<string>("endUserId", "NA"))" /> -->
+        <!-- <dimension name="appId" value="@((string)context.Variables.GetValueOrDefault<string>("appId", "NA"))" /> -->
+        <!-- <dimension name="gatewayName" value="@(context.Deployment?.ServiceName ?? "NA")" /> -->
+    </llm-emit-token-metric>
+</fragment>

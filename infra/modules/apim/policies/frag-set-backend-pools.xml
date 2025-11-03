@@ -20,7 +20,7 @@
         if(context.Deployment.Region == "All Regions" || true)
         {
             // Backend Pools Configuration (Auto-generated from Bicep deployment)
-            {backendPoolsCode}
+            //{backendPoolsCode}
         }
         else
         {

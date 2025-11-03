@@ -96,7 +96,7 @@
             - Condition: Retries on 429 (throttling) or 503 (except when backend pool is unavailable)
             - Strategy: First fast retry with zero interval, buffer request body for replay
         -->
-        <retry count="2" interval="0" first-fast-retry="true" condition="@(context.Response.StatusCode == 429 || (context.Response.StatusCode == 503 &amp;&amp; !context.Response.StatusReason.Contains("Backend pool") &amp;&amp; !context.Response.StatusReason.Contains("is temporarily unavailable")))">
+        <retry count="2" interval="0" first-fast-retry="true" condition="@(context.Response.StatusCode == 429 || (context.Response.StatusCode == 503 && !context.Response.StatusReason.Contains("Backend pool") && !context.Response.StatusReason.Contains("is temporarily unavailable")))">
             <forward-request buffer-request-body="true" />
         </retry>
     </backend>
