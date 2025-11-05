@@ -60,7 +60,7 @@
                         ).ToString();
                     }</set-body>
                 </return-response>
-                <!-- Alternatively you can set default model-->
+                <!-- Alternatively you can set default model -->
                 <!-- 
                     <set-variable name="requestedModel" value="default-model-name" />
                 -->
@@ -85,6 +85,9 @@
 
         <!-- Step 6: Configure authentication and route to selected backend -->
         <include-fragment fragment-id="set-backend-authorization" />
+
+        <!-- Step 7: Configure collecting usage metrics -->
+        <include-fragment fragment-id="set-llm-usage" />
     </inbound>
     <backend>
         <!--

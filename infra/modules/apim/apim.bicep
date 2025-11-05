@@ -183,27 +183,27 @@ module privateEndpoint '../networking/private-endpoint.bicep' = if (isV2SKU && u
   }
 }
 
-module apimOpenaiApi './api.bicep' = {
-  name: 'azure-openai-service-api'
-  params: {
-    serviceName: apimService.name
-    apiName: 'azure-openai-service-api'
-    path: 'openai'
-    apiRevision: '1'
-    apiDispalyName: 'Azure OpenAI API'
-    subscriptionRequired: entraAuth ? false:true
-    subscriptionKeyName: 'api-key'
-    openApiSpecification: string(loadYamlContent('./openai-api/oai-api-spec-2024-10-21.yaml'))
-    apiDescription: 'Azure OpenAI API'
-    policyDocument: loadTextContent('./policies/openai_api_policy.xml')
-    enableAPIDeployment: true
-    enableAPIDiagnostics: true
-  }
-  dependsOn: [
-    policyFragments
-    openAiBackends
-  ]
-}
+// module apimOpenaiApi './api.bicep' = {
+//   name: 'azure-openai-service-api'
+//   params: {
+//     serviceName: apimService.name
+//     apiName: 'azure-openai-service-api'
+//     path: 'openai'
+//     apiRevision: '1'
+//     apiDispalyName: 'Azure OpenAI API'
+//     subscriptionRequired: entraAuth ? false:true
+//     subscriptionKeyName: 'api-key'
+//     openApiSpecification: string(loadYamlContent('./openai-api/oai-api-spec-2024-10-21.yaml'))
+//     apiDescription: 'Azure OpenAI API'
+//     policyDocument: loadTextContent('./policies/openai_api_policy.xml')
+//     enableAPIDeployment: true
+//     enableAPIDiagnostics: true
+//   }
+//   dependsOn: [
+//     policyFragments
+//     openAiBackends
+//   ]
+// }
 
 module apimAiSearchIndexApi './api.bicep' = if (enableAzureAISearch) {
   name: 'azure-ai-search-index-api'
@@ -430,6 +430,27 @@ module apiUniversalLLM './inference-api.bicep' = {
   ]
 }
 
+module apimOpenaiApi './inference-api.bicep' = {
+  name: 'azure-openai-api'
+  params: {
+    apiManagementName: apimService.name
+    inferenceAPIName: 'azure-openai-api'
+    inferenceAPIPath: 'openai'
+    inferenceAPIType: 'AzureOpenAI'
+    inferenceAPIDisplayName: 'Azure OpenAI API'
+    inferenceAPIDescription: 'Azure OpenAI API to route requests to different LLM providers including Azure OpenAI, AI Foundry and 3rd party models.'
+    allowSubscriptionKey: entraAuth ? false:true
+    apimLoggerId: apimAzMonitorLogger.id
+    policyXml: loadTextContent('./policies/universal-llm-api-policy-v2.xml')
+  }
+  dependsOn: [
+    policyFragments
+    llmBackends
+    llmBackendPools
+    llmPolicyFragments
+  ]
+}
+
 ////// AI Foundry Integration Requirements /////////////
 
 // Typed resource reference for the Universal LLM API (created by module above)
@@ -476,7 +497,7 @@ resource retailProductOpenAIApi 'Microsoft.ApiManagement/service/products/apiLin
   name: 'retail-product-openai-api'
   parent: retailProduct
   properties: {
-    apiId: apimOpenaiApi.outputs.id
+    apiId: apimOpenaiApi.outputs.apiId
   }
 }
 
@@ -521,7 +542,7 @@ resource hrProductOpenAIApi 'Microsoft.ApiManagement/service/products/apiLinks@2
   name: 'hr-product-openai-api'
   parent: hrProduct
   properties: {
-    apiId: apimOpenaiApi.outputs.id
+    apiId: apimOpenaiApi.outputs.apiId
   }
 }
 
@@ -572,7 +593,7 @@ resource hrPIIProductOpenAIApi 'Microsoft.ApiManagement/service/products/apiLink
   name: 'hr-pii-product-openai-api'
   parent: hrPIIProduct
   properties: {
-    apiId: apimOpenaiApi.outputs.id
+    apiId: apimOpenaiApi.outputs.apiId
   }
 }
 

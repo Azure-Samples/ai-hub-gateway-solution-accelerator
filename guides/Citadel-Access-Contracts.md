@@ -79,8 +79,7 @@ sequenceDiagram
 | Name | Type | Required | Description | Example |
 |------|------|----------|-------------|---------|
 | `apim` | object | ✅ | Target APIM instance identifiers | `{ subscriptionId, resourceGroupName, name }` |
-| `keyVault` | object | ✅ | Key Vault for secret storage (required even if not used) | `{ subscriptionId, resourceGroupName, name }` |
-| `useTargetAzureKeyVault` | bool | ❌ | Whether to store secrets in Key Vault (default: `true`) | `true` or `false` |
+| `keyVault` | object | ✅ | Key Vault for secret storage | `{ subscriptionId, resourceGroupName, name }` |
 | `useCase` | object | ✅ | Naming context for the product | `{ businessUnit, useCaseName, environment }` |
 | `existingServices` | object | ✅ | Map of service codes to APIM API resource IDs | `{ OAI: { apiResourceIds: ["/subscriptions/.../apis/azure-openai-service-api"] }, ... }` |
 | `services` | array | ✅ | Which services to onboard and how to name their secrets | `[ { code: "OAI", endpointSecretName: "OAI-ENDPOINT", apiKeySecretName: "OAI-KEY", policyXml?: "<policies>...</policies>" } ]` |
@@ -88,7 +87,6 @@ sequenceDiagram
 
 Notes
 - Endpoint secret value format: `${apimGatewayUrl}/${apiPath}`. The `apiPath` comes from the first API listed for that service code in `existingServices`.
-- When `useTargetAzureKeyVault` is `false`, the `keyVault` parameter is still required but won't be used. Set it to placeholder values.
 
 ---
 
@@ -145,64 +143,15 @@ az deployment sub what-if \
 | Output | Description |
 |--------|-------------|
 | `apimGatewayUrl` | APIM gateway base URL |
-| `useKeyVault` | Boolean indicating whether Key Vault was used |
 | `products[]` | List of created products |
-| `subscriptions[]` | For each service, the resolved Key Vault secret names for endpoint + API key (populated when `useTargetAzureKeyVault=true`) |
-| `endpoints[]` | For each service, the endpoint URL and API key (populated when `useTargetAzureKeyVault=false`) |
-
-> ⚠️ **Security Note**: When `useTargetAzureKeyVault=false`, the `endpoints` output contains sensitive API keys. Handle these values securely by storing them in CI/CD pipeline secrets, environment variables, or other secure storage.
-
----
-
-## 🔑 Optional Key Vault Usage
-
-By default, this deployment stores endpoints and API keys in Azure Key Vault (`useTargetAzureKeyVault=true`). However, you can choose to output the credentials directly instead.
-
-### When to disable Key Vault storage
-
-Use `useTargetAzureKeyVault=false` when:
-- You want to store credentials in a different secret management system
-- You're deploying in a CI/CD pipeline and want to capture outputs directly
-- You don't have access to an Azure Key Vault
-- You prefer to manage secrets through environment variables or pipeline variables
-
-### Example: Deployment without Key Vault
-
-```bash
-az deployment sub create \
-  --name usecase-without-kv \
-  --location <region> \
-  --template-file infra/usecase-onboarding/main.bicep \
-  --parameters @infra/usecase-onboarding/samples/usecase-without-keyvault.parameters.json
-```
-
-In this mode:
-- ✅ The `endpoints[]` output will contain the endpoint URLs and API keys
-- ✅ The `subscriptions[]` output will be empty
-- ✅ No Key Vault permissions are required
-- ⚠️ **Important**: The outputs contain sensitive data - handle them securely!
-
-### Retrieving outputs
-
-```bash
-# Capture deployment output
-deployment=$(az deployment sub show --name usecase-without-kv --query properties.outputs)
-
-# Extract endpoint for a specific service (e.g., OAI)
-endpoint=$(echo $deployment | jq -r '.endpoints.value[] | select(.code=="OAI") | .endpoint')
-apiKey=$(echo $deployment | jq -r '.endpoints.value[] | select(.code=="OAI") | .apiKey')
-
-# Store in pipeline variables or environment
-export OAI_ENDPOINT=$endpoint
-export OAI_KEY=$apiKey
-```
+| `subscriptions[]` | For each service, the resolved Key Vault secret names for endpoint + API key |
 
 ---
 
 ## 🧩 Customization tips
 - Per-product policy overrides: set `policyXml` on a service item in `services[]`.
 - Add/remove services by adjusting `services[]` and ensuring `existingServices` contains the matching API resource IDs.
-- For app workloads (e.g., Azure Container Apps), wire env vars to the Key Vault secrets created here or use the direct outputs when not using Key Vault.
+- For app workloads (e.g., Azure Container Apps), wire env vars to the Key Vault secrets created here.
 
 ---
 

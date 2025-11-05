@@ -212,6 +212,7 @@ resource apiDiagnosticsAppInsights 'Microsoft.ApiManagement/service/apis/diagnos
 // ------------------
 
 output apiId string = api.id
+output path string = api.properties.path
 output backendNames array = inferenceBackends.outputs.backendNames
 output backendPoolName string = inferenceBackends.outputs.backendPoolName
 output backendPoolId string = inferenceBackends.outputs.backendPoolId

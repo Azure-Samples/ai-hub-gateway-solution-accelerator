@@ -100,7 +100,18 @@ resource setTargetBackendPoolPolicyFragment 'Microsoft.ApiManagement/service/pol
   parent: apimService
   name: 'set-target-backend-pool'
   properties: {
+    description: 'Determines the target backend pool for LLM requests'
     value: loadTextContent('./policies/frag-set-target-backend-pool.xml')
+    format: 'rawxml'
+  }
+}
+
+resource setLLMUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2024-06-01-preview' = {
+  parent: apimService
+  name: 'set-llm-usage'
+  properties: {
+    description: 'Collects usage metrics for LLM requests'
+    value: loadTextContent('./policies/frag-set-llm-usage.xml')
     format: 'rawxml'
   }
 }

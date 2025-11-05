@@ -1,12 +1,15 @@
 <fragment>
-    <!-- NOTE: emit-tokens has limited support to custom dimensions -->
+    <!-- NOTE: emit-tokens has limited support for up to 6 custom dimensions -->
+    <!-- Using of optional dimensions require setting up variables before executing the policy fragment -->
     <llm-emit-token-metric namespace="llm-usage">
-        <dimension name="Subscription Id" value="@(context.Subscription?.Id ?? "Portal-Admin-Sub")" />
         <dimension name="Product Name" value="@(context.Product?.Name?.ToString() ?? "Portal-Admin")" />
         <dimension name="Requested Model" value="@((string)context.Variables.GetValueOrDefault<string>("targetModel", "DefaultModel"))" />
         <dimension name="Backend ID" />
-        <!-- <dimension name="Session Id" value="@((string)context.Variables.GetValueOrDefault<string>("sessionId", "NA"))" /> -->
-        <!-- <dimension name="End User Id" value="@((string)context.Variables.GetValueOrDefault<string>("endUserId", "NA"))" /> -->
-        <!-- <dimension name="App Id" value="@((string)context.Variables.GetValueOrDefault<string>("appId", "NA"))" /> -->
+        <dimension name="App Id" value="@((string)context.Variables.GetValueOrDefault<string>("appId", context.Subscription?.Id ?? "Portal-Admin-Sub"))" />
+        
+        <!-- OPTIONAL DIMENSIONS -->
+        <dimension name="Session Id" value="@((string)context.Variables.GetValueOrDefault<string>("sessionId", "NA"))" />
+        <dimension name="End User Id" value="@((string)context.Variables.GetValueOrDefault<string>("endUserId", "NA"))" />
+
     </llm-emit-token-metric>
 </fragment>

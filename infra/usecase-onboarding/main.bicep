@@ -6,6 +6,9 @@ param apim object
 @description('Target Key Vault for storing endpoint and API key secrets')
 param keyVault object
 
+@description('Whether to use Azure Key Vault for storing secrets. If false, secrets will be output instead.')
+param useTargetAzureKeyVault bool = true
+
 @description('Use case descriptor used in naming: <code>-<businessUnit>-<useCaseName>-<environment>')
 param useCase object
 
@@ -36,12 +39,12 @@ resource apimSvc 'Microsoft.ApiManagement/service@2024-05-01' existing = {
   name: apim.name
 }
 
-resource kvRg 'Microsoft.Resources/resourceGroups@2022-09-01' existing = {
+resource kvRg 'Microsoft.Resources/resourceGroups@2022-09-01' existing = if (useTargetAzureKeyVault) {
   scope: subscription(keyVault.subscriptionId)
   name: keyVault.resourceGroupName
 }
 
-resource kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = if (useTargetAzureKeyVault) {
   scope: kvRg
   name: keyVault.name
 }
@@ -64,9 +67,9 @@ module onboard 'modules/apimOnboardService.bicep' = [for s in services: {
   }
 }]
 
-// Write Key Vault secrets per service
+// Write Key Vault secrets per service (only if useTargetAzureKeyVault is true)
 // Create/update KV secrets; normalize names (Key Vault does not allow underscores)
-module kvWrites 'modules/kvSecrets.bicep' = [for (s, i) in services: {
+module kvWrites 'modules/kvSecrets.bicep' = [for (s, i) in services: if (useTargetAzureKeyVault) {
   name: 'kv-${s.code}-${productPostfix}'
   scope: kvRg
   params: {
@@ -80,15 +83,33 @@ module kvWrites 'modules/kvSecrets.bicep' = [for (s, i) in services: {
 }]
 
 output apimGatewayUrl string = apimSvc.properties.gatewayUrl
+output useKeyVault bool = useTargetAzureKeyVault
+
 output products array = [for s in services: {
   productId: '${s.code}-${productPostfix}'
   displayName: '${s.code} ${useCase.businessUnit} ${useCase.useCaseName} ${useCase.environment}'
 }]
+
+// When using Key Vault, output references to the secret names in Key Vault
 output subscriptions array = [for s in services: {
   name: '${s.code}-${productPostfix}-SUB-01'
   productId: '${s.code}-${productPostfix}'
-  keyVaultApiKeySecretName: toLower(replace(s.apiKeySecretName, '_', '-'))
-  keyVaultEndpointSecretName: toLower(replace(s.endpointSecretName, '_', '-'))
+  keyVaultApiKeySecretName: useTargetAzureKeyVault ? toLower(replace(s.apiKeySecretName, '_', '-')) : ''
+  keyVaultEndpointSecretName: useTargetAzureKeyVault ? toLower(replace(s.endpointSecretName, '_', '-')) : ''
 }]
 
-// Intentionally omit emitting keys at runtime to keep template start-time evaluable. Keys are stored in Key Vault.
+// When NOT using Key Vault, output the actual endpoints and keys
+// These outputs contain runtime values from the onboarding modules
+// Note: When useTargetAzureKeyVault=false, the 'endpoints' output will contain sensitive API keys.
+// Consumers should handle these values securely (e.g., store in environment variables, CI/CD secrets, etc.)
+// The linter warning about secrets in outputs is intentional when Key Vault is disabled
+#disable-next-line outputs-should-not-contain-secrets
+output endpoints array = [for (s, i) in services: {
+  code: s.code
+  productId: '${s.code}-${productPostfix}'
+  subscriptionName: '${s.code}-${productPostfix}-SUB-01'
+  endpoint: useTargetAzureKeyVault ? '' : '${apimSvc.properties.gatewayUrl}/${onboard[i].outputs.apiPath}'
+  // API key is marked secure in the module output, consumers should treat this as sensitive when not using Key Vault
+  #disable-next-line outputs-should-not-contain-secrets
+  apiKey: useTargetAzureKeyVault ? '' : string(onboard[i].outputs.subscriptionPrimaryKey)
+}]
