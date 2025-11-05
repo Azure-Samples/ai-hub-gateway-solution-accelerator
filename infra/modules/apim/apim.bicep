@@ -370,7 +370,7 @@ module apimDocumentIntelligence './api.bicep' = if (enableDocumentIntelligence) 
  * Creates individual backends for each LLM endpoint defined in llmBackendConfig
  * Supports AI Foundry, Azure OpenAI, and external LLM providers
  */
-module llmBackends './llm-backends.bicep' = if (length(llmBackendConfig) > 0) {
+module llmBackends './llm-backends.bicep' = {
   name: 'llm-backends'
   params: {
     apimServiceName: apimService.name
@@ -386,7 +386,7 @@ module llmBackends './llm-backends.bicep' = if (length(llmBackendConfig) > 0) {
  * Groups backends by supported models to enable load balancing and failover
  * Only creates pools for models supported by multiple backends
  */
-module llmBackendPools './llm-backend-pools.bicep' = if (length(llmBackendConfig) > 0) {
+module llmBackendPools './llm-backend-pools.bicep' = {
   name: 'llm-backend-pools'
   params: {
     apimServiceName: apimService.name
@@ -400,7 +400,7 @@ module llmBackendPools './llm-backend-pools.bicep' = if (length(llmBackendConfig
  * Generates policy fragments with backend pool configurations for routing logic
  * Updates set-backend-pools and set-backend-authorization fragments dynamically
  */
-module llmPolicyFragments './llm-policy-fragments.bicep' = if (length(llmBackendConfig) > 0) {
+module llmPolicyFragments './llm-policy-fragments.bicep' =  {
   name: 'llm-policy-fragments'
   params: {
     apimServiceName: apimService.name
