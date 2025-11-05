@@ -281,16 +281,87 @@ param openAiInstances object = {}
 
 @description('AI Search instances configuration - add more instances by adding to this array.')
 param aiSearchInstances array = [
+  // {
+  //   name: 'ai-search-01'
+  //   url: 'https://REPLACE1.search.windows.net/'
+  //   description: 'AI Search Instance 1'
+  // }
+  // {
+  //   name: 'ai-search-02'
+  //   url: 'https://REPLACE2.search.windows.net/'
+  //   description: 'AI Search Instance 2'
+  // }
+]
+
+@description('AI Foundry instances configuration array.')
+param aiFoundryInstances array = [
   {
-    name: 'ai-search-01'
-    url: 'https://REPLACE1.search.windows.net/'
-    description: 'AI Search Instance 1'
+    name: !empty(aiFoundryResourceName) ? aiFoundryResourceName : ''
+    location: location
+    customSubDomainName: ''
+    defaultProjectName: 'citadel-governance-project'
   }
-  {
-    name: 'ai-search-02'
-    url: 'https://REPLACE2.search.windows.net/'
-    description: 'AI Search Instance 2'
-  }
+  // {
+  //   name: !empty(aiFoundryResourceName) ? aiFoundryResourceName : ''
+  //   location: 'eastus2'
+  //   customSubDomainName: ''
+  //   defaultProjectName: 'citadel-governance-project'
+  // }
+]
+
+@description('AI Foundry model deployments configuration - configure model deployments for Foundry instances.')
+// Leaving 'aiserviceIndex' empty or omitted means this model deployment will be created for all AI Foundry resources in 'aiFoundryInstances', 
+// Adding 'aiserviceIndex' with a numeric value (0, 1, etc.) means that the model will be deployed only to that specific instance by index
+// The aiservice field will be automatically populated based on aiserviceIndex and the generated foundry resource names
+param aiFoundryModelsConfig array = [
+  // {
+  //   name: 'gpt-4o-mini'
+  //   publisher: 'OpenAI'
+  //   version: '2024-07-18'
+  //   sku: 'GlobalStandard'
+  //   capacity: 100
+  //   aiserviceIndex: 0
+  // }
+  // {
+  //   name: 'gpt-4o'
+  //   publisher: 'OpenAI'
+  //   version: '2024-11-20'
+  //   sku: 'GlobalStandard'
+  //   capacity: 100
+  //   aiserviceIndex: 0
+  // }
+  // {
+  //   name: 'DeepSeek-R1'
+  //   publisher: 'DeepSeek'
+  //   version: '1'
+  //   sku: 'GlobalStandard'
+  //   capacity: 1
+  //   aiserviceIndex: 0
+  // }
+  // {
+  //   name: 'Phi-4'
+  //   publisher: 'Microsoft'
+  //   version: '3'
+  //   sku: 'GlobalStandard'
+  //   capacity: 1
+  //   aiserviceIndex: 0
+  // }
+  // {
+  //   name: 'gpt-5'
+  //   publisher: 'OpenAI'
+  //   version: '2025-08-07'
+  //   sku: 'GlobalStandard'
+  //   capacity: 100
+  //   aiserviceIndex: 1
+  // }
+  // {
+  //   name: 'DeepSeek-R1'
+  //   publisher: 'DeepSeek'
+  //   version: '1'
+  //   sku: 'GlobalStandard'
+  //   capacity: 1
+  //   aiserviceIndex: 1
+  // }
 ]
 
 /**
@@ -311,122 +382,33 @@ param aiSearchInstances array = [
  * - weight: (Optional) 1-1000, default 100 (higher = more traffic)
  * 
  * Example configuration:
- * [
- *   {
- *     backendId: 'ai-foundry-eastus-gpt4'
- *     backendType: 'ai-foundry'
- *     endpoint: 'https://my-project.eastus.inference.ml.azure.com'
- *     authScheme: 'managedIdentity'
- *     supportedModels: ['gpt-4', 'gpt-4-turbo']
- *     priority: 1
- *     weight: 100
- *   },
- *   {
- *     backendId: 'azure-openai-westus'
- *     backendType: 'azure-openai'
- *     endpoint: 'https://my-openai-westus.openai.azure.com'
- *     authScheme: 'managedIdentity'
- *     supportedModels: ['gpt-35-turbo', 'gpt-4']
- *     priority: 2
- *     weight: 50
- *   }
- * ]
+  [
+    // AI Foundry Instance 0 - Location: location (parameter)
+    // Models: gpt-4o-mini, gpt-4o, DeepSeek-R1, Phi-4
+    {
+      backendId: 'aif-idewp76ybcruw-0'
+      backendType: 'ai-foundry'
+      endpoint: 'https://aif-REPLACE-0.services.ai.azure.com/models'
+      authScheme: 'managedIdentity'
+      supportedModels: ['gpt-4o-mini', 'gpt-4o', 'DeepSeek-R1', 'Phi-4']
+      priority: 1
+      weight: 100
+    }
+    // AI Foundry Instance 1 - Location: eastus2
+    // Models: gpt-5, DeepSeek-R1
+    {
+      backendId: 'aif-idewp76ybcruw-1'
+      backendType: 'ai-foundry'
+      endpoint: 'https://aif-REPLACE-1.services.ai.azure.com/models'
+      authScheme: 'managedIdentity'
+      supportedModels: ['gpt-5', 'DeepSeek-R1']
+      priority: 1
+      weight: 100
+    }
+  ]
  */
 @description('LLM backend configuration array for dynamic routing and load balancing')
-param llmBackendConfig array = [
-  // AI Foundry Instance 0 - Location: location (parameter)
-  // Models: gpt-4o-mini, gpt-4o, DeepSeek-R1, Phi-4
-  {
-    backendId: 'aif-idewp76ybcruw-0'
-    backendType: 'ai-foundry'
-    endpoint: 'https://aif-hxjzilqdapyk4-0.services.ai.azure.com/models'
-    authScheme: 'managedIdentity'
-    supportedModels: ['gpt-4o-mini', 'gpt-4o', 'DeepSeek-R1', 'Phi-4']
-    priority: 1
-    weight: 100
-  }
-  // AI Foundry Instance 1 - Location: eastus2
-  // Models: gpt-5, DeepSeek-R1
-  {
-    backendId: 'aif-idewp76ybcruw-1'
-    backendType: 'ai-foundry'
-    endpoint: 'https://aif-hxjzilqdapyk4-1.services.ai.azure.com/models'
-    authScheme: 'managedIdentity'
-    supportedModels: ['gpt-5', 'DeepSeek-R1']
-    priority: 1
-    weight: 100
-  }
-]
-
-@description('Enable Entra ID authentication for the solution.')
-param aiFoundryInstances array = [
-  {
-    name: !empty(aiFoundryResourceName) ? aiFoundryResourceName : ''
-    location: location
-    customSubDomainName: ''
-    defaultProjectName: 'citadel-governance-project'
-  }
-  {
-    name: !empty(aiFoundryResourceName) ? aiFoundryResourceName : ''
-    location: 'eastus2'
-    customSubDomainName: ''
-    defaultProjectName: 'citadel-governance-project'
-  }
-]
-
-@description('AI Foundry model deployments configuration - configure model deployments for Foundry instances.')
-// Leaving 'aiservice' empty means this model deployment will be created for all AI Foundry resources in 'aiFoundryInstances', 
-// Adding 'aiservice' explicit value, means that the model will be deployed only to that instance (must exist in 'aiFoundryInstances' array)
-param aiFoundryModelsConfig array = [
-  {
-    name: 'gpt-4o-mini'
-    publisher: 'OpenAI'
-    version: '2024-07-18'
-    sku: 'GlobalStandard'
-    capacity: 100
-    aiservice: 'aif-hxjzilqdapyk4-0'
-  }
-  {
-    name: 'gpt-4o'
-    publisher: 'OpenAI'
-    version: '2024-11-20'
-    sku: 'GlobalStandard'
-    capacity: 100
-    aiservice: 'aif-hxjzilqdapyk4-0'
-  }
-  {
-    name: 'DeepSeek-R1'
-    publisher: 'DeepSeek'
-    version: '1'
-    sku: 'GlobalStandard'
-    capacity: 1
-    aiservice: 'aif-hxjzilqdapyk4-0'
-  }
-  {
-    name: 'Phi-4'
-    publisher: 'Microsoft'
-    version: '3'
-    sku: 'GlobalStandard'
-    capacity: 1
-    aiservice: 'aif-hxjzilqdapyk4-0'
-  }
-  {
-    name: 'gpt-5'
-    publisher: 'OpenAI'
-    version: '2025-08-07'
-    sku: 'GlobalStandard'
-    capacity: 100
-    aiservice: 'aif-hxjzilqdapyk4-1'
-  }
-  {
-    name: 'DeepSeek-R1'
-    publisher: 'DeepSeek'
-    version: '1'
-    sku: 'GlobalStandard'
-    capacity: 1
-    aiservice: 'aif-hxjzilqdapyk4-1'
-  }
-]
+param llmBackendConfig array = []
 
 @description('Microsoft Entra ID tenant ID for authentication (only used when entraAuth is true).')
 param entraTenantId string = ''
@@ -441,6 +423,15 @@ param entraAudience string = ''
 var abbrs = loadJsonContent('./abbreviations.json')
 // Generate a unique token for resources
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
+
+// Transform aiFoundryModelsConfig to include the actual aiservice names based on aiserviceIndex
+var transformedAiFoundryModelsConfig = [for model in aiFoundryModelsConfig: union(model, {
+  aiservice: contains(model, 'aiserviceIndex') 
+    ? (!empty(aiFoundryInstances[model.aiserviceIndex].name) 
+        ? aiFoundryInstances[model.aiserviceIndex].name 
+        : 'aif-${resourceToken}-${model.aiserviceIndex}')
+    : ''
+})]
 
 var openAiPrivateDnsZoneName = 'privatelink.openai.azure.com'
 var keyVaultPrivateDnsZoneName = 'privatelink.vaultcore.azure.net'
@@ -668,7 +659,7 @@ module foundry 'modules/foundry/foundry.bicep' = if(enableAIFoundry) {
   scope: resourceGroup
   params: {
     aiServicesConfig: aiFoundryInstances
-    modelsConfig: aiFoundryModelsConfig
+    modelsConfig: transformedAiFoundryModelsConfig
     lawId: monitoring.outputs.logAnalyticsWorkspaceId
     apimPrincipalId: apimManagedIdentity.outputs.managedIdentityPrincipalId
     foundryProjectName: 'citadel-governance-project'

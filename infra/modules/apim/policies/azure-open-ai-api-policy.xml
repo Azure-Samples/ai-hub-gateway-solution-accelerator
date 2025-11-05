@@ -24,22 +24,7 @@
         <include-fragment fragment-id="aad-auth" />
         
         <!-- Step 2: Extract model parameter from request payload -->
-        <set-variable name="requestedModel" value="@{
-            try
-            {
-                var bodyText = context.Request.Body.As<string>(preserveContent: true);
-                if (string.IsNullOrEmpty(bodyText))
-                {
-                    return string.Empty;
-                }
-                var body = JObject.Parse(bodyText);
-                return body["model"] != null ? body["model"].ToString() : string.Empty;
-            }
-            catch
-            {
-                return string.Empty;
-            }
-        }" />
+        <set-variable name="requestedModel" value="@((string)context.Request.MatchedParameters["deployment-id"])" />
 
         <!-- Step 3: Validate that model parameter is present -->
         <choose>
@@ -67,6 +52,23 @@
                 -->
             </when>
         </choose>
+        
+        <!-- Step 3.1: Inject model parameter into request body if not present -->
+        <set-body>@{
+            var body = context.Request.Body.As<JObject>(preserveContent: true);
+            string requestedModel = (string)context.Variables["requestedModel"];
+            
+            // Only inject model if it doesn't already exist in the body
+            if (body["model"] == null)
+            {
+                body["model"] = requestedModel;
+            }
+            
+            return body.ToString();
+        }</set-body>
+
+        <!-- Step 3.2: Rewrite URL to remove /deployments/{deployment-id} path -->
+        <rewrite-uri template="/chat/completions" copy-unmatched-params="true" />
         
         <!-- Remove api-key header to prevent it from being passed to backend endpoints -->
         <set-header name="api-key" exists-action="delete" />

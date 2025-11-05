@@ -250,26 +250,26 @@ module apimAiSearchIndexApi './api.bicep' = if (enableAzureAISearch) {
 //   ]
 // }
 
-module apimAiModelInferenceApi './api.bicep' = if (enableAIModelInference) {
-  name: 'ai-model-inference-api'
-  params: {
-    serviceName: apimService.name
-    apiName: 'ai-model-inference-api'
-    path: 'models'
-    apiRevision: '1'
-    apiDispalyName: 'AI Model Inference API'
-    subscriptionRequired: entraAuth ? false:true
-    subscriptionKeyName: 'api-key'
-    openApiSpecification: loadTextContent('./ai-model-inference/ai-model-inference-api-spec.yaml')
-    apiDescription: 'Access to AI inference models published through Azure AI Foundry'
-    policyDocument: loadTextContent('./policies/ai-model-inference-api-policy.xml')
-    enableAPIDeployment: true
-    enableAPIDiagnostics: true
-  }
-  dependsOn: [
-    policyFragments
-  ]
-}
+// module apimAiModelInferenceApi './api.bicep' = if (enableAIModelInference) {
+//   name: 'ai-model-inference-api'
+//   params: {
+//     serviceName: apimService.name
+//     apiName: 'ai-model-inference-api'
+//     path: 'models'
+//     apiRevision: '1'
+//     apiDispalyName: 'AI Model Inference API'
+//     subscriptionRequired: entraAuth ? false:true
+//     subscriptionKeyName: 'api-key'
+//     openApiSpecification: loadTextContent('./ai-model-inference/ai-model-inference-api-spec.yaml')
+//     apiDescription: 'Access to AI inference models published through Azure AI Foundry'
+//     policyDocument: loadTextContent('./policies/ai-model-inference-api-policy.xml')
+//     enableAPIDeployment: true
+//     enableAPIDiagnostics: true
+//   }
+//   dependsOn: [
+//     policyFragments
+//   ]
+// }
 
 module apimOpenAIRealTimetApi './api.bicep' = if (enableOpenAIRealtime) {
   name: 'openai-realtime-ws-api'
@@ -414,7 +414,7 @@ module apiUniversalLLM './inference-api.bicep' = {
   params: {
     apiManagementName: apimService.name
     inferenceAPIName: 'universal-llm-api'
-    inferenceAPIPath: 'llm'
+    inferenceAPIPath: ''
     inferenceAPIType: 'AzureAI'
     inferenceAPIDisplayName: 'Universal LLM API'
     inferenceAPIDescription: 'Universal LLM API to route requests to different LLM providers including Azure OpenAI, AI Foundry and 3rd party models.'
@@ -435,7 +435,7 @@ module apimOpenaiApi './inference-api.bicep' = {
   params: {
     apiManagementName: apimService.name
     inferenceAPIName: 'azure-openai-api'
-    inferenceAPIPath: 'openai'
+    inferenceAPIPath: ''
     inferenceAPIType: 'AzureOpenAI'
     inferenceAPIDisplayName: 'Azure OpenAI API'
     inferenceAPIDescription: 'Azure OpenAI API to route requests to different LLM providers including Azure OpenAI, AI Foundry and 3rd party models.'
