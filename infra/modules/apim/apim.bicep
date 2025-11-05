@@ -1337,3 +1337,5 @@ output apimOpenaiApiPath string = apimOpenaiApi.outputs.path
 
 @description('Gateway URL for the deployed API Management resource.')
 output apimGatewayUrl string = apimService.properties.gatewayUrl
+
+output apimIdentityClientId string = apimService.identity.principalId
