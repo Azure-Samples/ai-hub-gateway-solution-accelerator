@@ -441,7 +441,7 @@ module apimOpenaiApi './inference-api.bicep' = {
     inferenceAPIDescription: 'Azure OpenAI API to route requests to different LLM providers including Azure OpenAI, AI Foundry and 3rd party models.'
     allowSubscriptionKey: entraAuth ? false:true
     apimLoggerId: apimAzMonitorLogger.id
-    policyXml: loadTextContent('./policies/universal-llm-api-policy-v2.xml')
+    policyXml: loadTextContent('./policies/azure-open-ai-api-policy.xml')
   }
   dependsOn: [
     policyFragments
