@@ -301,12 +301,12 @@ param aiFoundryInstances array = [
     customSubDomainName: ''
     defaultProjectName: 'citadel-governance-project'
   }
-  // {
-  //   name: !empty(aiFoundryResourceName) ? aiFoundryResourceName : ''
-  //   location: 'eastus2'
-  //   customSubDomainName: ''
-  //   defaultProjectName: 'citadel-governance-project'
-  // }
+  {
+    name: !empty(aiFoundryResourceName) ? aiFoundryResourceName : ''
+    location: 'eastus2'
+    customSubDomainName: ''
+    defaultProjectName: 'citadel-governance-project'
+  }
 ]
 
 @description('AI Foundry model deployments configuration - configure model deployments for Foundry instances.')
@@ -314,54 +314,54 @@ param aiFoundryInstances array = [
 // Adding 'aiserviceIndex' with a numeric value (0, 1, etc.) means that the model will be deployed only to that specific instance by index
 // The aiservice field will be automatically populated based on aiserviceIndex and the generated foundry resource names
 param aiFoundryModelsConfig array = [
-  // {
-  //   name: 'gpt-4o-mini'
-  //   publisher: 'OpenAI'
-  //   version: '2024-07-18'
-  //   sku: 'GlobalStandard'
-  //   capacity: 100
-  //   aiserviceIndex: 0
-  // }
-  // {
-  //   name: 'gpt-4o'
-  //   publisher: 'OpenAI'
-  //   version: '2024-11-20'
-  //   sku: 'GlobalStandard'
-  //   capacity: 100
-  //   aiserviceIndex: 0
-  // }
-  // {
-  //   name: 'DeepSeek-R1'
-  //   publisher: 'DeepSeek'
-  //   version: '1'
-  //   sku: 'GlobalStandard'
-  //   capacity: 1
-  //   aiserviceIndex: 0
-  // }
-  // {
-  //   name: 'Phi-4'
-  //   publisher: 'Microsoft'
-  //   version: '3'
-  //   sku: 'GlobalStandard'
-  //   capacity: 1
-  //   aiserviceIndex: 0
-  // }
-  // {
-  //   name: 'gpt-5'
-  //   publisher: 'OpenAI'
-  //   version: '2025-08-07'
-  //   sku: 'GlobalStandard'
-  //   capacity: 100
-  //   aiserviceIndex: 1
-  // }
-  // {
-  //   name: 'DeepSeek-R1'
-  //   publisher: 'DeepSeek'
-  //   version: '1'
-  //   sku: 'GlobalStandard'
-  //   capacity: 1
-  //   aiserviceIndex: 1
-  // }
+  {
+    name: 'gpt-4o-mini'
+    publisher: 'OpenAI'
+    version: '2024-07-18'
+    sku: 'GlobalStandard'
+    capacity: 100
+    aiserviceIndex: 0
+  }
+  {
+    name: 'gpt-4o'
+    publisher: 'OpenAI'
+    version: '2024-11-20'
+    sku: 'GlobalStandard'
+    capacity: 100
+    aiserviceIndex: 0
+  }
+  {
+    name: 'DeepSeek-R1'
+    publisher: 'DeepSeek'
+    version: '1'
+    sku: 'GlobalStandard'
+    capacity: 1
+    aiserviceIndex: 0
+  }
+  {
+    name: 'Phi-4'
+    publisher: 'Microsoft'
+    version: '3'
+    sku: 'GlobalStandard'
+    capacity: 1
+    aiserviceIndex: 0
+  }
+  {
+    name: 'gpt-5'
+    publisher: 'OpenAI'
+    version: '2025-08-07'
+    sku: 'GlobalStandard'
+    capacity: 100
+    aiserviceIndex: 1
+  }
+  {
+    name: 'DeepSeek-R1'
+    publisher: 'DeepSeek'
+    version: '1'
+    sku: 'GlobalStandard'
+    capacity: 1
+    aiserviceIndex: 1
+  }
 ]
 
 /**
@@ -381,34 +381,8 @@ param aiFoundryModelsConfig array = [
  * - priority: (Optional) 1-5, default 1 (lower = higher priority)
  * - weight: (Optional) 1-1000, default 100 (higher = more traffic)
  * 
- * Example configuration:
-  [
-    // AI Foundry Instance 0 - Location: location (parameter)
-    // Models: gpt-4o-mini, gpt-4o, DeepSeek-R1, Phi-4
-    {
-      backendId: 'aif-idewp76ybcruw-0'
-      backendType: 'ai-foundry'
-      endpoint: 'https://aif-REPLACE-0.services.ai.azure.com/models'
-      authScheme: 'managedIdentity'
-      supportedModels: ['gpt-4o-mini', 'gpt-4o', 'DeepSeek-R1', 'Phi-4']
-      priority: 1
-      weight: 100
-    }
-    // AI Foundry Instance 1 - Location: eastus2
-    // Models: gpt-5, DeepSeek-R1
-    {
-      backendId: 'aif-idewp76ybcruw-1'
-      backendType: 'ai-foundry'
-      endpoint: 'https://aif-REPLACE-1.services.ai.azure.com/models'
-      authScheme: 'managedIdentity'
-      supportedModels: ['gpt-5', 'DeepSeek-R1']
-      priority: 1
-      weight: 100
-    }
-  ]
+ * This configuration is now dynamically generated from aiFoundryInstances and aiFoundryModelsConfig
  */
-@description('LLM backend configuration array for dynamic routing and load balancing')
-param llmBackendConfig array = []
 
 @description('Microsoft Entra ID tenant ID for authentication (only used when entraAuth is true).')
 param entraTenantId string = ''
@@ -433,6 +407,23 @@ var transformedAiFoundryModelsConfig = [for model in aiFoundryModelsConfig: unio
     : ''
 })]
 
+// Group models by aiserviceIndex for backend configuration
+var modelsGroupedByInstance = [for (instance, i) in aiFoundryInstances: {
+  instanceIndex: i
+  models: filter(map(aiFoundryModelsConfig, model => contains(model, 'aiserviceIndex') && model.aiserviceIndex == i ? model.name : ''), modelName => !empty(modelName))
+}]
+
+// Dynamically generate LLM backend configuration from AI Foundry instances and models
+var llmBackendConfig = [for (instance, i) in aiFoundryInstances: {
+  backendId: !empty(instance.name) ? '${instance.name}-${i}' : 'aif-${resourceToken}-${i}'
+  backendType: 'ai-foundry'
+  endpoint: 'https://${!empty(instance.name) ? instance.name : 'aif-${resourceToken}-${i}'}.services.ai.azure.com/models'
+  authScheme: 'managedIdentity'
+  supportedModels: modelsGroupedByInstance[i].models
+  priority: 1
+  weight: 100
+}]
+
 var openAiPrivateDnsZoneName = 'privatelink.openai.azure.com'
 var keyVaultPrivateDnsZoneName = 'privatelink.vaultcore.azure.net'
 var monitorPrivateDnsZoneName = 'privatelink.monitor.azure.com'
@@ -444,6 +435,7 @@ var storageTablePrivateDnsZoneName = 'privatelink.table.core.windows.net'
 var storageQueuePrivateDnsZoneName = 'privatelink.queue.core.windows.net'
 var aiCogntiveServicesDnsZoneName = 'privatelink.cognitiveservices.azure.com'
 var apimV2SkuDnsZoneName = 'privatelink.azure-api.net'
+var aiServicesDnsZoneName = 'privatelink.services.ai.azure.com'
 
 var privateDnsZoneNames = [
   openAiPrivateDnsZoneName
@@ -457,6 +449,7 @@ var privateDnsZoneNames = [
   storageTablePrivateDnsZoneName
   storageQueuePrivateDnsZoneName
   apimV2SkuDnsZoneName
+  aiServicesDnsZoneName
 ]
 
 // Organize resources in a resource group
@@ -880,3 +873,4 @@ output APIM_NAME string = apim.outputs.apimName
 output APIM_AOI_PATH string = apim.outputs.apimOpenaiApiPath
 output APIM_GATEWAY_URL string = apim.outputs.apimGatewayUrl
 output AI_FOUNDRY_SERVICES array = enableAIFoundry ? foundry!.outputs.extendedAIServicesConfig : []
+output LLM_BACKEND_CONFIG array = llmBackendConfig
