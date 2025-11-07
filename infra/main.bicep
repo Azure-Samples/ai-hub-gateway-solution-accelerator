@@ -364,26 +364,6 @@ param aiFoundryModelsConfig array = [
   }
 ]
 
-/**
- * LLM Backend Configuration Array
- * 
- * Defines all LLM backends that APIM will route requests to. This enables:
- * - Multi-model support across different LLM providers
- * - Load balancing and failover for the same model across multiple backends
- * - Flexible authentication schemes per backend
- * 
- * Each backend object should have:
- * - backendId: Unique identifier (used in APIM backend resource name)
- * - backendType: 'ai-foundry' | 'azure-openai' | 'external'
- * - endpoint: Base URL of the LLM service
- * - authScheme: 'managedIdentity' | 'apiKey' | 'token'
- * - supportedModels: Array of model names (e.g., ['gpt-4', 'gpt-4-turbo'])
- * - priority: (Optional) 1-5, default 1 (lower = higher priority)
- * - weight: (Optional) 1-1000, default 100 (higher = more traffic)
- * 
- * This configuration is now dynamically generated from aiFoundryInstances and aiFoundryModelsConfig
- */
-
 @description('Microsoft Entra ID tenant ID for authentication (only used when entraAuth is true).')
 param entraTenantId string = ''
 
@@ -412,6 +392,53 @@ var modelsGroupedByInstance = [for (instance, i) in aiFoundryInstances: {
   instanceIndex: i
   models: filter(map(aiFoundryModelsConfig, model => contains(model, 'aiserviceIndex') && model.aiserviceIndex == i ? model.name : ''), modelName => !empty(modelName))
 }]
+
+/**
+ * LLM Backend Configuration Array
+ * 
+ * Defines all LLM backends that APIM will route requests to. This enables:
+ * - Multi-model support across different LLM providers
+ * - Load balancing and failover for the same model across multiple backends
+ * - Flexible authentication schemes per backend
+ * 
+ * Each backend object should have:
+ * - backendId: Unique identifier (used in APIM backend resource name)
+ * - backendType: 'ai-foundry' | 'azure-openai' | 'external'
+ * - endpoint: Base URL of the LLM service
+ * - authScheme: 'managedIdentity' | 'apiKey' | 'token'
+ * - supportedModels: Array of model names (e.g., ['gpt-4', 'gpt-4-turbo'])
+ * - priority: (Optional) 1-5, default 1 (lower = higher priority)
+ * - weight: (Optional) 1-1000, default 100 (higher = more traffic)
+ * 
+ * This configuration is now dynamically generated from aiFoundryInstances and aiFoundryModelsConfig as part of the deployment.
+ * If you wish to onboard existing LLM backends, you can extend the llmBackendConfig variable with additional backend objects.
+
+ var llmBackendConfig array = [
+  // AI Foundry Instance 0 - Location: location (parameter)
+  // Models: gpt-4o-mini, gpt-4o, DeepSeek-R1, Phi-4
+  {
+    backendId: 'aif-REPLACE-0'
+    backendType: 'ai-foundry'
+    endpoint: 'https://aif-REPLACE-0.services.ai.azure.com/models'
+    authScheme: 'managedIdentity'
+    supportedModels: ['gpt-4o-mini', 'gpt-4o', 'DeepSeek-R1', 'Phi-4']
+    priority: 1
+    weight: 100
+  }
+  // AI Foundry Instance 1 - Location: eastus2
+  // Models: gpt-5, DeepSeek-R1
+  {
+    backendId: 'aif-REPLACE-1'
+    backendType: 'ai-foundry'
+    endpoint: 'https://aif-REPLACE-1.services.ai.azure.com/models'
+    authScheme: 'managedIdentity'
+    supportedModels: ['gpt-5', 'DeepSeek-R1']
+    priority: 1
+    weight: 100
+  }
+]
+
+ */
 
 // Dynamically generate LLM backend configuration from AI Foundry instances and models
 var llmBackendConfig = [for (instance, i) in aiFoundryInstances: {
