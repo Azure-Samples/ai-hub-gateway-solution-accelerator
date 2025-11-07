@@ -89,6 +89,9 @@
 
         <!-- Step 7: Configure collecting usage metrics -->
         <include-fragment fragment-id="set-llm-usage" />
+
+        <!-- CORS Configuration for AI Foundry Compatibility -->
+        <include-fragment fragment-id="ai-foundry-compatibility" />
     </inbound>
     <backend>
         <!--

@@ -11,9 +11,9 @@
             return new JArray(
                 new JObject 
                 {
-                    ["AOAIAccountName"] = "default",
-                    ["RGName"] = "default-rg", 
-                    ["SubId"] = "default-subscription-id"
+                    ["AOAIAccountName"] = "aif-ievfs4hk3j6ku-0",
+                    ["RGName"] = "rg-ai-hub-citadel-18", 
+                    ["SubId"] = "d2e7f84f-2790-4baa-9520-59ae8169ed0d"
                 }
             );
         }
@@ -21,12 +21,12 @@
     }" />
     
     <!-- Set variables for dynamic backend selection -->
-    <set-variable name="targetAccountName" value="@((string)context.Variables.GetValueOrDefault("AOAIAccountName", "default"))" />
+    <set-variable name="targetAccountName" value="@((string)context.Variables.GetValueOrDefault("AOAIAccountName", "aif-ievfs4hk3j6ku-0"))" />
     
     <set-variable name="selectedAccount" value="@{
         JArray accountsArray = (JArray)context.Variables.GetValueOrDefault("AOAIAccounts", new JArray());
-        string targetAccount = (string)context.Variables.GetValueOrDefault("targetAccountName", "default");
-        
+        string targetAccount = (string)context.Variables.GetValueOrDefault("targetAccountName", "aif-ievfs4hk3j6ku-0");
+
         foreach (var account in accountsArray)
         {
             if (account["AOAIAccountName"]?.ToString() == targetAccount)

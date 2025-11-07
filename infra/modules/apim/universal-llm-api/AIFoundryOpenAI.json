@@ -26,57 +26,6 @@
     }
   ],
   "paths": {
-    "/deployments": {
-      "get": {
-        "operationId": "deployments",
-        "description": "Get deployments for Azure OpenAI resource for AI Foundry Integration",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Azure.Core.Foundations.ApiVersionParameter"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "AI Foundry integration operations for retrieving available deployments",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "headers": {
-              "x-ms-error-code": {
-                "required": false,
-                "description": "String error code indicating what went wrong.",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Azure.Core.Foundations.ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Deployments"
-      }
-    },
     "/deployments/{deployment-id}/completions": {
       "post": {
         "description": "Creates a completion for the provided prompt, parameters and chosen model.",

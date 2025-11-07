@@ -183,28 +183,6 @@ module privateEndpoint '../networking/private-endpoint.bicep' = if (isV2SKU && u
   }
 }
 
-// module apimOpenaiApi './api.bicep' = {
-//   name: 'azure-openai-service-api'
-//   params: {
-//     serviceName: apimService.name
-//     apiName: 'azure-openai-service-api'
-//     path: 'openai'
-//     apiRevision: '1'
-//     apiDispalyName: 'Azure OpenAI API'
-//     subscriptionRequired: entraAuth ? false:true
-//     subscriptionKeyName: 'api-key'
-//     openApiSpecification: string(loadYamlContent('./openai-api/oai-api-spec-2024-10-21.yaml'))
-//     apiDescription: 'Azure OpenAI API'
-//     policyDocument: loadTextContent('./policies/openai_api_policy.xml')
-//     enableAPIDeployment: true
-//     enableAPIDiagnostics: true
-//   }
-//   dependsOn: [
-//     policyFragments
-//     openAiBackends
-//   ]
-// }
-
 module apimAiSearchIndexApi './api.bicep' = if (enableAzureAISearch) {
   name: 'azure-ai-search-index-api'
   params: {
@@ -247,27 +225,6 @@ module apimAiSearchIndexApi './api.bicep' = if (enableAzureAISearch) {
 //     backendRoutingPolicyFragment
 //     aiUsagePolicyFragment
 //     throttlingEventsPolicyFragment
-//   ]
-// }
-
-// module apimAiModelInferenceApi './api.bicep' = if (enableAIModelInference) {
-//   name: 'ai-model-inference-api'
-//   params: {
-//     serviceName: apimService.name
-//     apiName: 'ai-model-inference-api'
-//     path: 'models'
-//     apiRevision: '1'
-//     apiDispalyName: 'AI Model Inference API'
-//     subscriptionRequired: entraAuth ? false:true
-//     subscriptionKeyName: 'api-key'
-//     openApiSpecification: loadTextContent('./ai-model-inference/ai-model-inference-api-spec.yaml')
-//     apiDescription: 'Access to AI inference models published through Azure AI Foundry'
-//     policyDocument: loadTextContent('./policies/ai-model-inference-api-policy.xml')
-//     enableAPIDeployment: true
-//     enableAPIDiagnostics: true
-//   }
-//   dependsOn: [
-//     policyFragments
 //   ]
 // }
 
@@ -337,33 +294,6 @@ module apimDocumentIntelligence './api.bicep' = if (enableDocumentIntelligence) 
     policyFragments
   ]
 }
-
-// module apiUniversalLLM './api.bicep' = {
-//   name: 'universal-llm-api'
-//   params: {
-//     serviceName: apimService.name
-//     apiName: 'universal-llm-api'
-//     path: 'llm'
-//     apiRevision: '1'
-//     apiDispalyName: 'Universal LLM API'
-//     subscriptionRequired: entraAuth ? false:true
-//     subscriptionKeyName: 'api-key'
-//     openApiSpecification: loadTextContent('./universal-llm-api/Universal-LLM-Basic-API.openapi.yaml')
-//     apiDescription: 'Universal LLM API to route requests to different LLM providers including Azure OpenAI and AI Foundry.'
-//     policyDocument: loadTextContent('./policies/universal-llm-api-policy-v2.xml')
-//     enableAPIDeployment: true
-//     enableAPIDiagnostics: true
-//   }
-//   dependsOn: [
-//     aadAuthPolicyFragment
-//     validateRoutesPolicyFragment
-//     backendRoutingPolicyFragment
-//     aiUsagePolicyFragment
-//     throttlingEventsPolicyFragment
-//     aiFoundryCompatibilityPolicyFragment
-//     aiFoundryDeploymentsPolicyFragment
-//   ]
-// }
 
 /**
  * Dynamic LLM Backend Creation
@@ -454,27 +384,27 @@ module apimOpenaiApi './inference-api.bicep' = {
 ////// AI Foundry Integration Requirements /////////////
 
 // Typed resource reference for the Universal LLM API (created by module above)
-// resource universalLLMApi 'Microsoft.ApiManagement/service/apis@2022-08-01' existing = {
-//   name: 'universal-llm-api'
-//   parent: apimService
-//   dependsOn: [
-//     apiUniversalLLM
-//   ]
-// }
+resource universalLLMApi 'Microsoft.ApiManagement/service/apis@2022-08-01' existing = {
+  name: 'universal-llm-api'
+  parent: apimService
+  dependsOn: [
+    apiUniversalLLM
+  ]
+}
 
-// resource universalLlmDeploymentOperation 'Microsoft.ApiManagement/service/apis/operations@2022-08-01' existing = {
-//   name: 'deployments'
-//   parent: universalLLMApi
-// }
+resource universalLlmDeploymentOperation 'Microsoft.ApiManagement/service/apis/operations@2022-08-01' existing = {
+  name: 'deployments'
+  parent: universalLLMApi
+}
 
-// resource universalLlmDeploymentOperationPolicy 'Microsoft.ApiManagement/service/apis/operations/policies@2022-08-01' = {
-//   name: 'policy'
-//   parent: universalLlmDeploymentOperation
-//   properties: {
-//     format: 'rawxml'
-//     value: loadTextContent('./policies/universal-llm-api-deployments-policy.xml')
-//   }
-// }
+resource universalLlmDeploymentOperationPolicy 'Microsoft.ApiManagement/service/apis/operations/policies@2022-08-01' = {
+  name: 'policy'
+  parent: universalLlmDeploymentOperation
+  properties: {
+    format: 'rawxml'
+    value: loadTextContent('./policies/universal-llm-api-deployments-policy.xml')
+  }
+}
 
 //////////// End of AI Foundry Integration Requirements /////////////
 
