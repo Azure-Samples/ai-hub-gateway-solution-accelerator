@@ -271,6 +271,7 @@ output cosmosDbAccountName string = account.name
 output cosmosDbDatabaseName string = database.name
 output cosmosDbContainerName string = container.name
 output cosmosDbPiiUsageContainerName string = piiUsageContainer.name
+output cosmosDbLLMUsageContainerName string = llmUsageContainer.name
 output cosmosDbPricingContainerName string = modelPricingContainer.name
 output cosmosDbStreamingExportConfigContainerName string = streamingExportConfigContainer.name
 output resourceId string = database.id

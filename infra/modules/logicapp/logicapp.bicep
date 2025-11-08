@@ -35,6 +35,7 @@ param cosmosDBDatabaseName string
 param cosmosDBContainerConfigName string
 param cosmosDBContainerUsageName string
 param cosmosDBContainerPIIName string
+param cosmosDBContainerLLMUsageName string
 
 param apimAppInsightsName string
 
@@ -143,6 +144,7 @@ resource functionAppSettings 'Microsoft.Web/sites/config@2024-04-01' = {
       CosmosDBContainerConfig: cosmosDBContainerConfigName
       CosmosDBContainerUsage: cosmosDBContainerUsageName
       CosmosDBContainerPII: cosmosDBContainerPIIName
+      CosmosDBContainerLLMUsage: cosmosDBContainerLLMUsageName
       AzureCosmosDB_connectionString: cosmosDbAccount.listConnectionStrings().connectionStrings[0].connectionString
       AppInsights_SubscriptionId: subscription().subscriptionId
       AppInsights_ResourceGroup: resourceGroup().name
