@@ -71,7 +71,7 @@ resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01
 }]
 
 module privateEndpoint '../networking/private-endpoint.bicep' = {
-  name: '${account.name}-privateEndpoint'
+  name: '${account.name}-pe'
   params: {
     groupIds: [
       'account'
