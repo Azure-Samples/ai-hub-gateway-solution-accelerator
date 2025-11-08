@@ -1,5 +1,5 @@
 <fragment>
-    <authentication-managed-identity resource="https://management.azure.com/" />
+    <authentication-managed-identity resource="https://management.azure.com/" client-id="{{uami-client-id}}" />
     <rewrite-uri template="/deployments?api-version=2023-05-01" copy-unmatched-params="false" />
     
     <!-- Initialize variables with default values if not already set -->
