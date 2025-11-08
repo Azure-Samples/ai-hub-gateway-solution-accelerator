@@ -168,7 +168,7 @@ resource apimService 'Microsoft.ApiManagement/service@2024-05-01' = {
 }
 
 module privateEndpoint '../networking/private-endpoint.bicep' = if (isV2SKU && usePrivateEndpoint) {
-  name: '${name}-privateEndpoint'
+  name: '${name}-pe'
   params: {
     groupIds: [
       'Gateway'

@@ -97,7 +97,7 @@ resource storageAccountFunctionAppRoleAssignment 'Microsoft.Authorization/roleAs
 }
 
 module privateEndpointBlob '../networking/private-endpoint.bicep' = {
-  name: '${storageAccountName}-blob-privateEndpoint'
+  name: '${storageAccountName}-blob-pe'
   params: {
     groupIds: [
       'blob'
@@ -113,7 +113,7 @@ module privateEndpointBlob '../networking/private-endpoint.bicep' = {
 }
 
 module privateEndpointFile '../networking/private-endpoint.bicep' = {
-  name: '${storageAccountName}-file-privateEndpoint'
+  name: '${storageAccountName}-file-pe'
   params: {
     groupIds: [
       'file'
@@ -129,7 +129,7 @@ module privateEndpointFile '../networking/private-endpoint.bicep' = {
 }
 
 module privateEndpointTable '../networking/private-endpoint.bicep' = {
-  name: '${storageAccountName}-table-privateEndpoint'
+  name: '${storageAccountName}-table-pe'
   params: {
     groupIds: [
       'table'
@@ -145,7 +145,7 @@ module privateEndpointTable '../networking/private-endpoint.bicep' = {
 }
 
 module privateEndpointQueue '../networking/private-endpoint.bicep' = {
-  name: '${storageAccountName}-queue-privateEndpoint'
+  name: '${storageAccountName}-queue-pe'
   params: {
     groupIds: [
       'queue'

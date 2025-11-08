@@ -250,7 +250,7 @@ resource llmUsageContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/c
 }
 
 module privateEndpoint '../networking/private-endpoint.bicep' = {
-  name: '${accountName}-privateEndpoint'
+  name: '${accountName}-pe'
   params: {
     groupIds: [
       'sql'

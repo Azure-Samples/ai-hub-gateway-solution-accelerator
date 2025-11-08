@@ -106,7 +106,7 @@ resource piiUsageConsumerGroup 'Microsoft.EventHub/namespaces/eventhubs/consumer
 
 // Private endpoint for secure connectivity
 module privateEndpoint '../networking/private-endpoint.bicep' = {
-  name: '${eventHubName}-privateEndpoint'
+  name: '${eventHubName}-pe'
   params: {
     groupIds: [
       'namespace'

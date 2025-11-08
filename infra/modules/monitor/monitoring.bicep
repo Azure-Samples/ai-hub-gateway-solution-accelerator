@@ -96,7 +96,7 @@ module foundryApplicationInsights 'applicationinsights.bicep' = {
 }
 
 module privateEndpoint '../networking/private-endpoint.bicep' = if (usePrivateLinkScope) {
-  name: '${privateLinkScopeName}-privateEndpoint'
+  name: '${privateLinkScopeName}-pe'
   params: {
     groupIds: [
       'azuremonitor'
