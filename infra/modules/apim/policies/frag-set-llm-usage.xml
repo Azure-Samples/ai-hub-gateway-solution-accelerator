@@ -6,17 +6,17 @@
         <dimension name="productName" value="@(context.Product?.Name?.ToString() ?? "Portal-Admin")" />
         
         <!-- Target model or deployment name -->
-        <dimension name="deploymentName" value="@((string)context.Variables.GetValueOrDefault<string>("targetModel", "DefaultModel"))" />
+        <dimension name="deploymentName" value="@((string)context.Variables.GetValueOrDefault<string>("requestedModel", "DefaultModel"))" />
         
         <!-- This is the backend processed the request-->
         <dimension name="Backend ID" />
         
         <!-- This can be your agent Id or APIM subscription id-->
         <dimension name="appId" value="@((string)context.Variables.GetValueOrDefault<string>("appId", context.Subscription?.Id ?? "Portal-Admin-Sub"))" />
-        
-        <!-- OPTIONAL DIMENSIONS -->
-        <!-- <dimension name="sessionId" value="@((string)context.Variables.GetValueOrDefault<string>("sessionId", "NA"))" /> -->
-        <!-- <dimension name="endUserId" value="@((string)context.Variables.GetValueOrDefault<string>("endUserId", "NA"))" /> -->
+
+        <!-- CUSTOM DIMENSIONS: Allows defining additional context for LLM usage -->
+        <dimension name="customDimension1" value="@((string)context.Variables.GetValueOrDefault<string>("customDimension1", "NA"))" />
+        <dimension name="customDimension2" value="@((string)context.Variables.GetValueOrDefault<string>("customDimension2", "NA"))" />
 
     </llm-emit-token-metric>
 </fragment>

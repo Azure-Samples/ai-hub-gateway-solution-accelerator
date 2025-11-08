@@ -49,6 +49,9 @@ param pricingContainerName string = 'model-pricing'
 param piiUsageContainerName string = 'pii-usage-container'
 
 @description('The name for the container')
+param llmUsageContainerName string = 'llm-usage-container'
+
+@description('The name for the container')
 param streamingExportConfigContainerName string = 'streaming-export-config'
 
 @minValue(400)
@@ -209,6 +212,29 @@ resource piiUsageContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/c
       partitionKey: {
         paths: [
           '/type'
+        ]
+        kind: 'Hash'
+      }
+      indexingPolicy: {
+        indexingMode: 'consistent'
+        automatic: true
+      }
+    }
+    options: {
+      throughput: throughput
+    }
+  }
+}
+
+resource llmUsageContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-02-15-preview' = {
+  parent: database
+  name: llmUsageContainerName
+  properties: {
+    resource: {
+      id: llmUsageContainerName
+      partitionKey: {
+        paths: [
+          '/productName'
         ]
         kind: 'Hash'
       }
