@@ -8,7 +8,7 @@
                     "parameters": {
                         "databaseId": "@appsetting('CosmosDBDatabase')",
                         "containerId": "@appsetting('CosmosDBContainerConfig')",
-                        "item": "{ \"id\": \"001\", \"type\": \"default\", \"lastExportDate\": \"@{formatDateTime(utcNow(), 'yyyy-MM-ddTHH:mm:00')}\", \"totalExportedRecords\": 0 }",
+                        "item": "{ \"id\": \"002\", \"type\": \"default\", \"lastExportDate\": \"@{formatDateTime(utcNow(), 'yyyy-MM-ddTHH:mm:00')}\", \"totalExportedRecords\": 0 }",
                         "isUpsert": true
                     },
                     "serviceProviderConfiguration": {
@@ -182,7 +182,7 @@
                     "parameters": {
                         "databaseId": "@appsetting('CosmosDBDatabase')",
                         "containerId": "@appsetting('CosmosDBContainerConfig')",
-                        "itemId": "001",
+                        "itemId": "002",
                         "partitionKey": "default"
                     },
                     "serviceProviderConfiguration": {
