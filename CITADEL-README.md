@@ -1,8 +1,16 @@
-# 🏰 Citadel Governance Hub (CGH)
+# 🏰 Citadel Governance Hub
 
-**Enterprise AI Landing Zone** - A comprehensive solution accelerator for governing, observing, and accelerating AI deployments at scale with unified security, compliance, and intelligent orchestration.
+<div align="center">
+    <img src="./assets/citadel-logo-v2.PNG" alt="Citadel Logo" width="120" style="margin-bottom: 10px;">
+    <br>
+    <strong>Enterprise AI Landing Zone</strong>
+    <br>
+    <em>A comprehensive solution accelerator for governing, observing, and accelerating AI deployments at scale with unified security, compliance, and intelligent orchestration.</em>
+</div>
 
-![Citadel Governance Hub](./assets/architecture-1-0-6.png)
+---
+
+![Citadel Governance Hub](./assets/citadel-governance-hub-v1.png)
 
 ---
 
