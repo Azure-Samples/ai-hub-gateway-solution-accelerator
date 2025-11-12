@@ -70,6 +70,11 @@
         <!-- Step 3.2: Rewrite URL to remove /deployments/{deployment-id} path -->
         <rewrite-uri template="/chat/completions" copy-unmatched-params="true" />
         
+        <!-- Override api-version query parameter if clients are getting 404 due to mismatched api-version -->
+        <!-- <set-query-parameter name="api-version" exists-action="override">
+            <value>2024-05-01-preview</value>
+        </set-query-parameter> -->
+        
         <!-- Remove api-key header to prevent it from being passed to backend endpoints -->
         <set-header name="api-key" exists-action="delete" />
         
