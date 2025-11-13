@@ -32,7 +32,9 @@
                         new JProperty("deploymentName", (string)context.Variables.GetValueOrDefault<string>("deploymentName", "NA")),
                         new JProperty("promptTokens", responseBody?["usage"]?["prompt_tokens"]?.Value<int>() ?? 1),
                         new JProperty("responseTokens", responseBody?["usage"]?["completion_tokens"]?.Value<int>() ?? 0),
-                        new JProperty("totalTokens", responseBody?["usage"]?["total_tokens"]?.Value<int>() ?? 1)
+                        new JProperty("totalTokens", responseBody?["usage"]?["total_tokens"]?.Value<int>() ?? 1),
+                        new JProperty("audioTokens", responseBody?["usage"]?["prompt_tokens_details"]?["audio_tokens"]?.Value<int>() ?? 0),
+                        new JProperty("cachedTokens", responseBody?["usage"]?["prompt_tokens_details"]?["cached_tokens"]?.Value<int>() ?? 0)
                 ).ToString();
                 }</log-to-eventhub>
 				</when>

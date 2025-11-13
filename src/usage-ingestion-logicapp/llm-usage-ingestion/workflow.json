@@ -55,8 +55,7 @@
                             "schema": {
                                 "properties": {
                                     "timestamp": {
-                                        "type": "string",
-                                        "format": "date-time"
+                                        "type": "string"
                                     },
                                     "appId": {
                                         "type": "string"
@@ -113,8 +112,7 @@
                                 "items": {
                                     "properties": {
                                         "timestamp": {
-                                            "type": "string",
-                                            "format": "date-time"
+                                            "type": "string"
                                         },
                                         "appId": {
                                             "type": "string"
@@ -273,8 +271,10 @@
                     "interval": 1,
                     "schedule": {
                         "hours": [
+                            "6",
                             "12",
-                            "20"
+                            "18",
+                            "23"
                         ]
                     },
                     "timeZone": "GMT Standard Time"
