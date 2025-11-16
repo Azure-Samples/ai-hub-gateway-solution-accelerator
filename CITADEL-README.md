@@ -100,6 +100,85 @@ AI Citadel Governance Hub follows a **hub-spoke architecture** that integrates s
 
 ![Citadel Governance Hub](./assets/citadel-governance-hub-v1.png)
 
+### Networking approach
+
+#### Part of the hub network
+
+In this approach, the Citadel Governance Hub is deployed within the existing hub virtual network (VNet) of your Azure Landing Zone.
+
+This allows for direct communication between the unified AI gateway and connected agentic spokes, leveraging existing security and networking configurations.
+
+```mermaid
+%%{init: {'theme': 'base','themeVariables': {'primaryColor': '#1d4ed8','primaryBorderColor': '#1e3a8a','primaryTextColor': '#ffffff','secondaryColor': '#0f766e','secondaryBorderColor': '#134e4a','secondaryTextColor': '#ffffff','tertiaryColor': '#9333ea','tertiaryBorderColor': '#6b21a8','tertiaryTextColor': '#ffffff'}}}%%
+sequenceDiagram
+    autonumber
+    participant Agent as Spoke Agent (Spoke network)
+    participant Gateway as AI Gateway (Hub network)
+    participant Backends as AI Backends (Hub|Spoke network)
+
+    rect rgba(29,78,216,0.14)
+        Agent->>Gateway: Routed requests
+    end
+    rect rgba(15,118,110,0.14)
+        Gateway->>Backends: Governed traffic & routing
+        Backends-->>Gateway: Responses / telemetry
+    end
+    rect rgba(147,51,234,0.14)
+        Gateway-->>Agent: Enforced & observed replies
+    end
+```
+
+#### Traffic Flow
+
+
+- Routed requests originate from spoke-hosted agents.
+- Traffic is directly forwarded to AI Gateway for governance, security, and observability enforcement.
+- Traffic intelligently routed out to managed LLMs, tools, or downstream agents (gateway-spoke-network).
+
+#### Part of spoke network
+
+In this approach, the Citadel Governance Hub is deployed within a dedicated spoke VNet that connects to the hub VNet via VNet peering. 
+
+Agentic workloads in other spokes are routed first to the hub network firewall through direct peering, then forwarded to the Citadel Governance Hub gateway network.
+
+This provides an additional layer of isolation for AI workloads while still enabling secure communication with other enterprise resources in the hub.
+
+```mermaid
+%%{init: {'theme': 'base','themeVariables': {'primaryColor': '#1d4ed8','primaryBorderColor': '#1e3a8a','primaryTextColor': '#ffffff','secondaryColor': '#dc2626','secondaryBorderColor': '#991b1b','secondaryTextColor': '#ffffff','tertiaryColor': '#0f766e','tertiaryBorderColor': '#134e4a','tertiaryTextColor': '#ffffff','quaternaryColor': '#9333ea','quaternaryBorderColor': '#6b21a8','quaternaryTextColor': '#ffffff'}}}%%
+sequenceDiagram
+    autonumber
+    participant Agent as Spoke Agent (Spoke network)
+    participant Firewall as Hub Firewall (Hub network)
+    participant Gateway as AI Gateway (Spoke network)
+    participant Backends as AI Backends (Spoke network)
+
+    rect rgba(29,78,216,0.14)
+        Agent->>Firewall: Routed requests (inspection)
+    end
+    rect rgba(220,38,38,0.14)
+        Firewall->>Gateway: Forward approved traffic
+    end
+    rect rgba(15,118,110,0.14)
+        Gateway->>Backends: Governed dispatch to LLMs/tools
+        Backends-->>Gateway: Responses / telemetry
+    end
+    Note over Firewall,Backends: AI Backends may traverse the hub firewall for ingress or egress based on policy.
+    rect rgba(220,38,38,0.14)
+        Gateway-->>Firewall: Optional egress via firewall
+        Firewall-->>Agent: Secured responses
+    end
+```
+
+*Note: Even when AI Backends reside in spoke networks, their traffic can be forced through the hub firewall for additional inspection before returning to agents.*
+
+#### Traffic isolation flow
+
+- Routed requests originate from spoke-hosted agents (agent-spoke-network).
+- Traffic first routed to hub network firewall for inspection (hub-network).
+- Hub Firewall forwards to AI Gateway for governance, security, and observability enforcement (gateway-spoke-network).
+- Traffic intelligently routed out to managed LLMs, tools, or downstream agents (through the hub firewall or directly).
+- AI Backend responses may still be routed through the hub firewall for final inspection before reaching spoke agents, depending on governance policy.
+
 ### 🎯 **Citadel Governance Hub (Citadel Governance Hub)** - Central Control Plane
 
 The central governance layer that all AI workloads route through.
