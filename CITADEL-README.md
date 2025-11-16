@@ -152,23 +152,16 @@ sequenceDiagram
     
     rect rgba(80, 230, 255, 0.1)
         Note over Gateway: Step 2: Governance & Security Enforcement
-        Gateway->>Gateway: ✓ Validate Authentication
-        Gateway->>Gateway: ✓ Apply Rate Limits & Quotas
-        Gateway->>Gateway: ✓ Content Safety Check
-        Gateway->>Gateway: ✓ Select Optimal Backend
-        Gateway->>+Backends: Routed Request to LLM/Tool
+        Gateway->>+Backends: Routed Request to LLM/Agent/Tool
     end
     
     rect rgba(16, 124, 16, 0.1)
         Note over Backends: Step 3: AI Processing & Response
-        Backends->>Backends: Process AI Request
         Backends-->>-Gateway: AI Response + Telemetry
     end
     
     rect rgba(147, 51, 234, 0.1)
         Note over Gateway: Step 4: Response Validation & Logging
-        Gateway->>Gateway: ✓ Safety Scan Response
-        Gateway->>Gateway: 📊 Log Usage & Metrics
         Gateway-->>-Agent: Governed AI Response
     end
     
@@ -235,36 +228,26 @@ sequenceDiagram
     
     rect rgba(209, 52, 56, 0.1)
         Note over Firewall: Step 2: Network Security Inspection
-        Firewall->>Firewall: 🔍 Inspect Traffic
-        Firewall->>Firewall: ✓ Apply Firewall Rules
         Firewall->>+Gateway: Forward Approved Traffic
     end
     
     rect rgba(80, 230, 255, 0.1)
         Note over Gateway: Step 3: AI Governance Layer
-        Gateway->>Gateway: ✓ Validate Authentication
-        Gateway->>Gateway: ✓ Apply Rate Limits & Quotas
-        Gateway->>Gateway: ✓ Content Safety Check
-        Gateway->>Gateway: ✓ Select Optimal Backend
-        Gateway->>+Backends: Governed Request to LLM/Tool
+        Gateway->>+Backends: Governed Request to LLM/Agent/Tool
     end
     
     rect rgba(16, 124, 16, 0.1)
         Note over Backends: Step 4: AI Processing
-        Backends->>Backends: Process AI Request
         Backends-->>-Gateway: AI Response + Telemetry
     end
     
     rect rgba(147, 51, 234, 0.1)
         Note over Gateway: Step 5: Response Validation
-        Gateway->>Gateway: ✓ Safety Scan Response
-        Gateway->>Gateway: 📊 Log Usage & Metrics
         Gateway-->>-Firewall: Validated Response
     end
     
     rect rgba(209, 52, 56, 0.1)
         Note over Firewall: Step 6: Egress Inspection
-        Firewall->>Firewall: 🔍 Final Security Check
         Firewall-->>-Agent: Secured AI Response
     end
     
