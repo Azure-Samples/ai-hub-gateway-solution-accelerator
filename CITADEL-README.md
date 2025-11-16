@@ -27,9 +27,9 @@
 
 ## 🚀 What is Citadel Governance Hub?
 
-Citadel Governance Hub (CGH) is an **enterprise-grade AI landing zone** that establishes a centralized, governable, and observable control plane for all AI service consumption across multiple teams, use cases, and environments. 
+Citadel Governance Hub is an **enterprise-grade AI landing zone** that establishes a centralized, governable, and observable control plane for all AI service consumption across multiple teams, use cases, and environments. 
 
-Instead of fragmented, unmonitored, key-based model access, CGH provides a **unified AI gateway pattern** built on Azure API Management (APIM), adding:
+Instead of fragmented, unmonitored, key-based model access, Citadel Governance Hub provides a **unified AI gateway pattern** built on Azure API Management (APIM), adding:
 - ✅ Intelligent routing and load balancing
 - ✅ Security enforcement and compliance guardrails  
 - ✅ Usage analytics and cost attribution
@@ -131,15 +131,17 @@ Citadel implements a **hub-spoke architecture** that integrates seamlessly with 
 
 ![Citadel Architecture](./assets/azure-resources-diagram.svg)
 
-### 🎯 **Citadel Governance Hub (CGH)** - Central Control Plane
+### 🎯 **Citadel Governance Hub (Citadel Governance Hub)** - Central Control Plane
 
-The central governance layer that all AI workloads route through:
+The central governance layer that all AI workloads route through.
+
+#### Core Components:
 
 | Component | Purpose | Enterprise Features |
 |-----------|---------|---------------------|
 | **🚪 API Management** | Unified AI gateway | LLM governance, AI resiliency, AI registry gateway |
 | **📘 API Center** | Universal AI Registry | Discovery of available AI tools, agents and AI services |
-| **🔍 AI Foundry** | Platform Observability | Platform AI Evaluations & Compliance reports |
+| **🔍 Microsoft Foundry** | Platform Observability | Platform AI Evaluations & Compliance reports |
 | **📊 Log Analytics** | Logs, metrics & audits | Scalable enterprise telemetry ingestion and storage |
 | **📊 Application Insights** | Platform monitoring | Performance dashboards, automated alerts |
 | **📨 Event Hub** | Usage data streaming | Real-time usage streaming, custom logging |
@@ -149,7 +151,31 @@ The central governance layer that all AI workloads route through:
 | **⚡ Logic App** | Event processing | Workflow-based processing of usage/logs & AI Eval |
 | **🔐 Managed Identity** | Zero-credential auth | Secure service-to-service communication |
 | **🔗 Virtual Network** | Private connectivity | BYO-VNET support, private endpoints |
-| **🤖 Azure OpenAI** | Multi-region AI (optional) | GPT-models, Realtime API, fully private |
+
+#### Security & Compliance
+
+Supported by subscription wide security services:
+
+| Service | Purpose |Enterprise Features |
+|---------|---------|---------------------|
+|**Defender for Cloud**|Threat protection|AI workload security posture management|
+|**Purview**|Data governance|Sensitivity labeling, data classification|
+|**Entra ID**|Identity & access management|Zero Trust architecture, conditional access|
+
+#### AI Services
+
+Optionally you can deploy one or more generative AI services in the hub:
+
+| Service | Purpose | Enterprise Features |
+|---------|---------|---------------------|
+| **Microsoft Foundry** | LLM model hosting | Private endpoints, dedicated capacity, enterprise SLAs |
+
+#### Optional Components
+
+| Component | Purpose |
+|-----------|---------|
+| **Azure Managed Redis** | Caching layer for high-throughput AI workloads |
+
 
 ### 🌐 **Citadel Agent Spoke (CAS)** - AI Development Environments
 
@@ -165,7 +191,7 @@ Dedicated, secure environments for building and hosting AI agents:
 | **📊 Container Apps** | Containerized AI applications and microservices |
 | **📦 Container Registry** | Container image registry for AI workloads |
 
-> **Note:** CAS deployment is optional and represents the AI development velocity pillar. Multiple spokes can connect to a single CGH.
+> **Note:** CAS deployment is optional and represents the AI development velocity pillar. Multiple spokes can connect to a single Citadel Governance Hub.
 
 ---
 
