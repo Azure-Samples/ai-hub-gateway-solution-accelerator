@@ -109,23 +109,70 @@ In this approach, the Citadel Governance Hub is deployed within the existing hub
 This allows for direct communication between the unified AI gateway and connected agentic spokes, leveraging existing security and networking configurations.
 
 ```mermaid
-%%{init: {'theme': 'base','themeVariables': {'primaryColor': '#1d4ed8','primaryBorderColor': '#1e3a8a','primaryTextColor': '#ffffff','secondaryColor': '#0f766e','secondaryBorderColor': '#134e4a','secondaryTextColor': '#ffffff','tertiaryColor': '#9333ea','tertiaryBorderColor': '#6b21a8','tertiaryTextColor': '#ffffff'}}}%%
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#0078d4',
+    'primaryTextColor': '#000',
+    'primaryBorderColor': '#0078d4',
+    'lineColor': '#605e5c',
+    'secondaryColor': '#50e6ff',
+    'tertiaryColor': '#f3f2f1',
+    'noteBkgColor': '#fff4ce',
+    'noteTextColor': '#000',
+    'noteBorderColor': '#d4a300',
+    'actorBkg': '#0078d4',
+    'actorBorder': '#005a9e',
+    'actorTextColor': '#fff',
+    'actorLineColor': '#005a9e',
+    'signalColor': '#323130',
+    'signalTextColor': '#000',
+    'labelBoxBkgColor': '#edebe9',
+    'labelBoxBorderColor': '#8a8886',
+    'labelTextColor': '#000',
+    'loopTextColor': '#000',
+    'activationBorderColor': '#0078d4',
+    'activationBkgColor': '#deecf9',
+    'sequenceNumberColor': '#fff'
+  }
+}}%%
 sequenceDiagram
     autonumber
-    participant Agent as Spoke Agent (Spoke network)
-    participant Gateway as AI Gateway (Hub network)
-    participant Backends as AI Backends (Hub|Spoke network)
+    
+    participant Agent as 🤖 Spoke Agent<br/>(Spoke Network)
+    participant Gateway as 🚪 AI Gateway<br/>(Hub Network)
+    participant Backends as ⚡ AI Backends<br/>(Hub/Spoke Network)
 
-    rect rgba(29,78,216,0.14)
-        Agent->>Gateway: Routed requests
+    Note over Agent,Backends: 🔷 Hub-Based Governance Architecture
+    
+    rect rgba(0, 120, 212, 0.1)
+        Note right of Agent: Step 1: Request Initiation
+        Agent->>+Gateway: AI Request with Auth Token
     end
-    rect rgba(15,118,110,0.14)
-        Gateway->>Backends: Governed traffic & routing
-        Backends-->>Gateway: Responses / telemetry
+    
+    rect rgba(80, 230, 255, 0.1)
+        Note over Gateway: Step 2: Governance & Security Enforcement
+        Gateway->>Gateway: ✓ Validate Authentication
+        Gateway->>Gateway: ✓ Apply Rate Limits & Quotas
+        Gateway->>Gateway: ✓ Content Safety Check
+        Gateway->>Gateway: ✓ Select Optimal Backend
+        Gateway->>+Backends: Routed Request to LLM/Tool
     end
-    rect rgba(147,51,234,0.14)
-        Gateway-->>Agent: Enforced & observed replies
+    
+    rect rgba(16, 124, 16, 0.1)
+        Note over Backends: Step 3: AI Processing & Response
+        Backends->>Backends: Process AI Request
+        Backends-->>-Gateway: AI Response + Telemetry
     end
+    
+    rect rgba(147, 51, 234, 0.1)
+        Note over Gateway: Step 4: Response Validation & Logging
+        Gateway->>Gateway: ✓ Safety Scan Response
+        Gateway->>Gateway: 📊 Log Usage & Metrics
+        Gateway-->>-Agent: Governed AI Response
+    end
+    
+    Note over Agent,Backends: ✅ Complete observability with zero agent-side instrumentation
 ```
 
 #### Traffic Flow
@@ -144,29 +191,84 @@ Agentic workloads in other spokes are routed first to the hub network firewall t
 This provides an additional layer of isolation for AI workloads while still enabling secure communication with other enterprise resources in the hub.
 
 ```mermaid
-%%{init: {'theme': 'base','themeVariables': {'primaryColor': '#1d4ed8','primaryBorderColor': '#1e3a8a','primaryTextColor': '#ffffff','secondaryColor': '#dc2626','secondaryBorderColor': '#991b1b','secondaryTextColor': '#ffffff','tertiaryColor': '#0f766e','tertiaryBorderColor': '#134e4a','tertiaryTextColor': '#ffffff','quaternaryColor': '#9333ea','quaternaryBorderColor': '#6b21a8','quaternaryTextColor': '#ffffff'}}}%%
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#0078d4',
+    'primaryTextColor': '#000',
+    'primaryBorderColor': '#0078d4',
+    'lineColor': '#605e5c',
+    'secondaryColor': '#d13438',
+    'tertiaryColor': '#f3f2f1',
+    'noteBkgColor': '#fff4ce',
+    'noteTextColor': '#000',
+    'noteBorderColor': '#d4a300',
+    'actorBkg': '#0078d4',
+    'actorBorder': '#005a9e',
+    'actorTextColor': '#fff',
+    'actorLineColor': '#005a9e',
+    'signalColor': '#323130',
+    'signalTextColor': '#000',
+    'labelBoxBkgColor': '#edebe9',
+    'labelBoxBorderColor': '#8a8886',
+    'labelTextColor': '#000',
+    'loopTextColor': '#000',
+    'activationBorderColor': '#0078d4',
+    'activationBkgColor': '#deecf9',
+    'sequenceNumberColor': '#fff'
+  }
+}}%%
 sequenceDiagram
     autonumber
-    participant Agent as Spoke Agent (Spoke network)
-    participant Firewall as Hub Firewall (Hub network)
-    participant Gateway as AI Gateway (Spoke network)
-    participant Backends as AI Backends (Spoke network)
+    
+    participant Agent as 🤖 Spoke Agent<br/>(Agent Spoke Network)
+    participant Firewall as 🛡️ Hub Firewall<br/>(Hub Network)
+    participant Gateway as 🚪 AI Gateway<br/>(Gateway Spoke Network)
+    participant Backends as ⚡ AI Backends<br/>(Backend Network)
 
-    rect rgba(29,78,216,0.14)
-        Agent->>Firewall: Routed requests (inspection)
+    Note over Agent,Backends: 🔷 Spoke-Based Governance with Firewall Isolation
+    
+    rect rgba(0, 120, 212, 0.1)
+        Note right of Agent: Step 1: Request Initiation
+        Agent->>+Firewall: AI Request via Peering
     end
-    rect rgba(220,38,38,0.14)
-        Firewall->>Gateway: Forward approved traffic
+    
+    rect rgba(209, 52, 56, 0.1)
+        Note over Firewall: Step 2: Network Security Inspection
+        Firewall->>Firewall: 🔍 Inspect Traffic
+        Firewall->>Firewall: ✓ Apply Firewall Rules
+        Firewall->>+Gateway: Forward Approved Traffic
     end
-    rect rgba(15,118,110,0.14)
-        Gateway->>Backends: Governed dispatch to LLMs/tools
-        Backends-->>Gateway: Responses / telemetry
+    
+    rect rgba(80, 230, 255, 0.1)
+        Note over Gateway: Step 3: AI Governance Layer
+        Gateway->>Gateway: ✓ Validate Authentication
+        Gateway->>Gateway: ✓ Apply Rate Limits & Quotas
+        Gateway->>Gateway: ✓ Content Safety Check
+        Gateway->>Gateway: ✓ Select Optimal Backend
+        Gateway->>+Backends: Governed Request to LLM/Tool
     end
-    Note over Firewall,Backends: AI Backends may traverse the hub firewall for ingress or egress based on policy.
-    rect rgba(220,38,38,0.14)
-        Gateway-->>Firewall: Optional egress via firewall
-        Firewall-->>Agent: Secured responses
+    
+    rect rgba(16, 124, 16, 0.1)
+        Note over Backends: Step 4: AI Processing
+        Backends->>Backends: Process AI Request
+        Backends-->>-Gateway: AI Response + Telemetry
     end
+    
+    rect rgba(147, 51, 234, 0.1)
+        Note over Gateway: Step 5: Response Validation
+        Gateway->>Gateway: ✓ Safety Scan Response
+        Gateway->>Gateway: 📊 Log Usage & Metrics
+        Gateway-->>-Firewall: Validated Response
+    end
+    
+    rect rgba(209, 52, 56, 0.1)
+        Note over Firewall: Step 6: Egress Inspection
+        Firewall->>Firewall: 🔍 Final Security Check
+        Firewall-->>-Agent: Secured AI Response
+    end
+    
+    Note over Agent,Backends: 🔒 Defense-in-depth with dual security layers<br/>✅ Network isolation + AI governance
 ```
 
 *Note: Even when AI Backends reside in spoke networks, their traffic can be forced through the hub firewall for additional inspection before returning to agents.*
