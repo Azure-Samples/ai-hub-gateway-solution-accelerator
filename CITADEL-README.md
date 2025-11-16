@@ -113,24 +113,24 @@ This allows for direct communication between the unified AI gateway and connecte
   'theme': 'base',
   'themeVariables': {
     'primaryColor': '#0078d4',
-    'primaryTextColor': '#000',
+    'primaryTextColor': '#fff',
     'primaryBorderColor': '#0078d4',
-    'lineColor': '#605e5c',
+    'lineColor': '#8a8886',
     'secondaryColor': '#50e6ff',
     'tertiaryColor': '#f3f2f1',
-    'noteBkgColor': '#fff4ce',
-    'noteTextColor': '#000',
+    'noteBkgColor': '#fef9e7',
+    'noteTextColor': '#323130',
     'noteBorderColor': '#d4a300',
     'actorBkg': '#0078d4',
     'actorBorder': '#005a9e',
     'actorTextColor': '#fff',
-    'actorLineColor': '#005a9e',
+    'actorLineColor': '#8a8886',
     'signalColor': '#323130',
-    'signalTextColor': '#000',
-    'labelBoxBkgColor': '#edebe9',
-    'labelBoxBorderColor': '#8a8886',
-    'labelTextColor': '#000',
-    'loopTextColor': '#000',
+    'signalTextColor': '#323130',
+    'labelBoxBkgColor': '#e1dfdd',
+    'labelBoxBorderColor': '#605e5c',
+    'labelTextColor': '#323130',
+    'loopTextColor': '#323130',
     'activationBorderColor': '#0078d4',
     'activationBkgColor': '#deecf9',
     'sequenceNumberColor': '#fff'
@@ -141,7 +141,7 @@ sequenceDiagram
     
     participant Agent as 🤖 Spoke Agent<br/>(Spoke Network)
     participant Gateway as 🚪 AI Gateway<br/>(Hub Network)
-    participant Backends as ⚡ AI Backends<br/>(Hub/Spoke Network)
+    participant Backends as ⚡ AI Backends<br/>(Hub/Spoke Network*)
 
     Note over Agent,Backends: 🔷 Hub-Based Governance Architecture
     
@@ -168,6 +168,8 @@ sequenceDiagram
     Note over Agent,Backends: ✅ Complete observability with zero agent-side instrumentation
 ```
 
+>**Note:** When AI Backends reside in a different spoke networks, their traffic should be forced through the hub firewall to maintain integrity of the network traffic flow.*
+
 #### Traffic Flow
 
 
@@ -188,24 +190,24 @@ This provides an additional layer of isolation for AI workloads while still enab
   'theme': 'base',
   'themeVariables': {
     'primaryColor': '#0078d4',
-    'primaryTextColor': '#000',
+    'primaryTextColor': '#fff',
     'primaryBorderColor': '#0078d4',
-    'lineColor': '#605e5c',
+    'lineColor': '#8a8886',
     'secondaryColor': '#d13438',
     'tertiaryColor': '#f3f2f1',
-    'noteBkgColor': '#fff4ce',
-    'noteTextColor': '#000',
+    'noteBkgColor': '#fef9e7',
+    'noteTextColor': '#323130',
     'noteBorderColor': '#d4a300',
     'actorBkg': '#0078d4',
     'actorBorder': '#005a9e',
     'actorTextColor': '#fff',
-    'actorLineColor': '#005a9e',
+    'actorLineColor': '#8a8886',
     'signalColor': '#323130',
-    'signalTextColor': '#000',
-    'labelBoxBkgColor': '#edebe9',
-    'labelBoxBorderColor': '#8a8886',
-    'labelTextColor': '#000',
-    'loopTextColor': '#000',
+    'signalTextColor': '#323130',
+    'labelBoxBkgColor': '#e1dfdd',
+    'labelBoxBorderColor': '#605e5c',
+    'labelTextColor': '#323130',
+    'loopTextColor': '#323130',
     'activationBorderColor': '#0078d4',
     'activationBkgColor': '#deecf9',
     'sequenceNumberColor': '#fff'
@@ -217,7 +219,7 @@ sequenceDiagram
     participant Agent as 🤖 Spoke Agent<br/>(Agent Spoke Network)
     participant Firewall as 🛡️ Hub Firewall<br/>(Hub Network)
     participant Gateway as 🚪 AI Gateway<br/>(Gateway Spoke Network)
-    participant Backends as ⚡ AI Backends<br/>(Backend Network)
+    participant Backends as ⚡ AI Backends<br/>(Spoke Network*)
 
     Note over Agent,Backends: 🔷 Spoke-Based Governance with Firewall Isolation
     
@@ -254,7 +256,7 @@ sequenceDiagram
     Note over Agent,Backends: 🔒 Defense-in-depth with dual security layers<br/>✅ Network isolation + AI governance
 ```
 
-*Note: Even when AI Backends reside in spoke networks, their traffic can be forced through the hub firewall for additional inspection before returning to agents.*
+>**Note:** * When AI Backends reside in a different spoke networks, their traffic should be forced through the hub firewall to maintain integrity of the network traffic flow.*
 
 #### Traffic isolation flow
 
