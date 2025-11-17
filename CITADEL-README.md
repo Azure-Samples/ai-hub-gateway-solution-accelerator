@@ -172,7 +172,6 @@ sequenceDiagram
 
 #### Traffic Flow
 
-
 - Routed requests originate from spoke-hosted agents.
 - Traffic is directly forwarded to AI Gateway for governance, security, and observability enforcement.
 - Traffic intelligently routed out to managed LLMs, tools, or downstream agents (gateway-spoke-network).
@@ -266,11 +265,11 @@ sequenceDiagram
 - Traffic intelligently routed out to managed LLMs, tools, or downstream agents (through the hub firewall or directly).
 - AI Backend responses may still be routed through the hub firewall for final inspection before reaching spoke agents, depending on governance policy.
 
-### 🎯 **Citadel Governance Hub (Citadel Governance Hub)** - Central Control Plane
+### 🎯 **Citadel Governance Hub** - Central Control Plane
 
-The central governance layer that all AI workloads route through.
+The central governance layer with unified AI Gateway that all AI workloads route through.
 
-#### Core Components:
+#### Core Components
 
 | Component | Purpose | Enterprise Features |
 |-----------|---------|---------------------|
@@ -309,37 +308,63 @@ Optionally you can deploy one or more generative AI services in the hub:
 
 | Component | Purpose |
 |-----------|---------|
-| **Azure Managed Redis** | Caching layer for high-throughput AI workloads |
+| **Azure Managed Redis** | Semantic caching layer for high-throughput AI workloads |
 
+### 🌐 **Citadel Agent Spoke** - AI Development Environments
 
-### 🌐 **Citadel Agent Spoke (CAS)** - AI Development Environments
+To govern AI agents through AI Citadel Governance Hub, agents must communicate with AI backends (central LLMs, tools and agents) through the unified AI gateway.
 
-Dedicated, secure environments for building and hosting AI agents:
+#### Existing agents
+
+Guidance to bring existing agents is through updating endpoint and credentials to access central LLMs, tools and agents through the unified gateway.
+
+Recommendation is to use Azure Key Vault to store these information due to its sensitivity when the agent is running on Azure.
+
+Leverage Citadel Access Contracts to declare the required access to LLMs, tools and agents through the gateway along with precise governance policies.
+
+#### New agents
+
+Building new agents is accelerated through the **Citadel Agent Spoke** landing zone guidance, which provides isolated, secure environments designed specifically for AI agent development and deployment. Each spoke serves a single business unit or major use case, ensuring clear boundaries, simplified management, and integration with the Citadel Governance Hub for centralized governance.
+
+**Deployment Approach:**
+- **One spoke per business unit or use case** - Dedicated environments for insurance claims processing, customer support automation, or other agentic scenarios
+- **Flexible runtime options** - Choose between AI Foundry Agents (fully managed) or Azure Container Apps (bring-your-own-agent)
+- **Pre-configured infrastructure** - Automated deployment via Bicep or Terraform with all networking, security, and monitoring built-in
+- **Hub integration** - Seamless connection to Citadel Governance Hub through Citadel Access & Publish Contracts
+
+**Core Infrastructure Components:**
 
 | Component | Purpose |
 |-----------|---------|
-| **🤖 Azure AI Foundry** | AI agent development platform with Standard Agent Services |
-| **🔍 Azure AI Search** | Vector and hybrid search for RAG patterns |
-| **🗄️ Azure Cosmos DB** | Distributed database for agent state and conversations |
-| **💾 Azure Storage** | Blob storage for documents and model artifacts |
-| **🔐 Azure Key Vault** | Secrets and certificate management |
-| **📊 Container Apps** | Containerized AI applications and microservices |
-| **📦 Container Registry** | Container image registry for AI workloads |
+| **🤖 Azure AI Foundry** | Managed agent runtime with rich SDK, prompt flow orchestration, and native AI Evaluations |
+| **📦 Azure Container Apps** | Serverless container hosting for custom-built agents with auto-scaling and simplified deployment |
+| **🔍 Azure AI Search** | Vector and hybrid search for RAG patterns and document indexing |
+| **🗄️ Azure Cosmos DB** | Distributed NoSQL database for agent state, threads, and multi-agent coordination |
+| **💾 Azure Storage** | Blob storage for AI Foundry datasets, agent assets, and shared files |
+| **🔐 Azure Key Vault** | Secure secrets, keys, and certificates with automated rotation |
+| **📊 Application Insights** | Detailed monitoring, diagnostics, and alerts integrated with platform-level observability |
+| **🔒 Virtual Network** | Private connectivity with subnets for compute, agents, data, and management |
 
-> **Note:** CAS deployment is optional and represents the AI development velocity pillar. Multiple spokes can connect to a single Citadel Governance Hub.
+**Deployment Patterns:**
+- **Greenfield (Standalone with New Resources)** - Creates all infrastructure from scratch with new VNet and Log Analytics workspace
+- **Brownfield (Standalone with Existing Resources)** - Integrates with existing enterprise landing zones, reusing VNets and centralized monitoring
+
+> **Note:** Citadel Agent Spoke deployment supports the AI development velocity pillar and is designed to work in conjunction with Citadel Governance Hub. Multiple spokes can connect to a single hub for unified governance and observability.
 
 ---
 
 ## 📋 Prerequisites
 
 **Azure Requirements:**
-- Azure Account with [OpenAI access approved](https://aka.ms/oaiapply)
-- Subscription with `Microsoft.Authorization/roleAssignments/write` permissions  
-- Sufficient OpenAI capacity in target regions (East US, North Central US, East US 2)
+- **Azure CLI** and **Azure Developer CLI** installed and signed in
+- A **resource group** in your target subscription  
+- **Owner** or **Contributor + User Access Administrator** permissions on the subscription
+- All required subscription resource providers registered.
 
 **Development Tools:**
+Although it is recommended to have the below tools installed on a local machine or through DevOps agents to conduct the provisioning, you still can leverage Azure Cloud Shell (mounted to storage account) as an alternative which has all the tools pre-installed.
 - [Azure Developer CLI (azd)](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd)
-- [Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli)
+- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
 - [VS Code](https://code.visualstudio.com/Download) (optional)
 
 ---
@@ -351,7 +376,7 @@ Deploy your Citadel Governance Hub in minutes with Azure Developer CLI:
 ```bash
 # Authenticate and setup environment
 azd auth login
-azd env new citadel-governance-hub
+azd env new citadel-governance-hub-nonprod
 
 # Deploy Citadel Governance Hub
 azd up
@@ -456,7 +481,7 @@ Citadel Governance Hub enables secure, scalable AI deployment across diverse ent
 
 ### 📊 **AI Operations at Scale**
 - Support thousands of concurrent AI applications
-- Real-time usage monitoring and alerts
+- Near real-time usage monitoring and alerts
 - Capacity planning and quota management
 - Performance optimization and troubleshooting
 
@@ -573,41 +598,12 @@ Please see our [Contributing Guide](./CONTRIBUTING.md) for details.
 
 - **🐛 Issues**: [GitHub Issues](https://github.com/Azure-Samples/ai-hub-gateway-solution-accelerator/issues)
 - **💬 Discussions**: [GitHub Discussions](https://github.com/Azure-Samples/ai-hub-gateway-solution-accelerator/discussions)
-- **📧 Email**: [Azure AI Customer Success Team](mailto:azureaipartner@microsoft.com)
-- **📚 Documentation**: [Microsoft Learn](https://learn.microsoft.com/azure/ai-services/)
 
 ---
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-Citadel Governance Hub is built on best practices from:
-- **Azure Cloud Adoption Framework** - Enterprise-scale landing zones
-- **Azure Well-Architected Framework** - Security, reliability, and operational excellence
-- **Azure Verified Modules** - Production-ready infrastructure components
-- **Model Context Protocol (MCP)** - Standardized AI tool and agent registry
-
-Special thanks to the Azure AI platform team and early adopters who helped shape this solution.
-
----
-
-## 🎯 Get Started Today
-
-Transform your AI governance from a roadblock to an accelerator:
-
-```bash
-# Deploy Citadel Governance Hub
-azd auth login
-azd env new citadel-governance-hub
-azd up
-```
-
-**Build the future, safely** – delivering the speed that business demands, with the safeguards that IT requires. 🏰
 
 ---
 
