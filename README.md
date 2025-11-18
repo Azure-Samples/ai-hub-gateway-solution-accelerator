@@ -25,7 +25,7 @@
 
 Citadel Governance Hub is an **enterprise-grade AI landing zone** that establishes a centralized, governable, and observable control plane for all AI service consumption across multiple teams, use cases, and environments. 
 
-Instead of fragmented, unmonitored, key-based model access, Citadel Governance Hub provides a **unified AI gateway pattern** built on Azure API Management (APIM), adding:
+Instead of fragmented, unmonitored, master-key model access, Citadel Governance Hub provides a **unified AI gateway pattern** built on Azure API Management (APIM), adding:
 - ✅ Intelligent routing and load balancing
 - ✅ Security enforcement and compliance guardrails  
 - ✅ Usage analytics and cost attribution
