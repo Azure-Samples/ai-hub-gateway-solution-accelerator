@@ -22,8 +22,11 @@ param tags object = { 'azd-env-name': environmentName, 'SecurityControl': 'Ignor
 @description('Name of the resource group. Leave blank to use default naming conventions.')
 param resourceGroupName string
 
-@description('Name of the managed identity. Leave blank to use default naming conventions.')
-param identityName string = ''
+@description('Name of the APIM managed identity. Leave blank to use default naming conventions.')
+param apimIdentityName string = ''
+
+@description('Name of the Usage Logic App managed identity. Leave blank to use default naming conventions.')
+param usageLogicAppIdentityName string = ''
 
 @description('Name of the API Management service. Leave blank to use default naming conventions.')
 param apimServiceName string = ''
@@ -32,7 +35,7 @@ param apimServiceName string = ''
 param logAnalyticsName string = ''
 
 @description('Name of the Application Insights dashboard for APIM. Leave blank to use default naming conventions.')
-param applicationInsightsDashboardName string = ''
+param apimApplicationInsightsDashboardName string = ''
 
 @description('Name of the Application Insights dashboard for Function/Logic App. Leave blank to use default naming conventions.')
 param funcAplicationInsightsDashboardName string = ''
@@ -41,7 +44,7 @@ param funcAplicationInsightsDashboardName string = ''
 param foundryApplicationInsightsDashboardName string = ''
 
 @description('Name of the Application Insights for APIM resource. Leave blank to use default naming conventions.')
-param applicationInsightsName string = ''
+param apimApplicationInsightsName string = ''
 
 @description('Name of the Application Insights for Function/Logic App resource. Leave blank to use default naming conventions.')
 param funcApplicationInsightsName string = ''
@@ -54,9 +57,6 @@ param eventHubNamespaceName string = ''
 
 @description('Name of the Cosmos DB account resource. Leave blank to use default naming conventions.')
 param cosmosDbAccountName string = ''
-
-@description('Name of the Function App resource for usage processing. Leave blank to use default naming conventions.')
-param usageProcessingFunctionAppName string = ''
 
 @description('Name of the Logic App resource for usage processing. Leave blank to use default naming conventions.')
 param usageProcessingLogicAppName string = ''
@@ -184,7 +184,7 @@ param openAIExternalNetworkAccess string = 'Disabled'
 @allowed([ 'Enabled', 'Disabled' ])
 param cosmosDbPublicAccess string = 'Disabled'
 
-@description('Event Hub public network access.')
+@description('Event Hub public network access. Needed to be Enabled when using APIM v2 SKUs during provisioning')
 @allowed([ 'Enabled', 'Disabled' ]) 
 param eventHubNetworkAccess string = 'Enabled'
 
@@ -197,13 +197,13 @@ param languageServiceExternalNetworkAccess string = 'Disabled'
 param aiContentSafetyExternalNetworkAccess string = 'Disabled'
 
 @description('Use Azure Monitor Private Link Scope for Log Analytics and Application Insights.')
-param useAzureMonitorPrivateLinkScope bool = !useExistingVnet
+param useAzureMonitorPrivateLinkScope bool = false
 
 //
 // FEATURE FLAGS - Deploy specific capabilities
 //
-@description('Create Application Insights dashboard.')
-param createAppInsightsDashboard bool = false
+@description('Create Application Insights dashboards.')
+param createAppInsightsDashboards bool = false
 
 @description('Deploy Azure Function App for processing usage data.')
 param provisionFunctionApp bool = false
@@ -270,14 +270,9 @@ param apicSku string = 'Free'
 //
 // ACCELERATOR SPECIFIC PARAMETERS - Additional parameters for the solution (should not be modified without careful consideration)
 //
-@description('Name of the Storage Account file share for Azure Function content.')
-param functionContentShareName string = 'usage-function-content'
 
 @description('Name of the Storage Account file share for Logic App content.')
 param logicContentShareName string = 'usage-logic-content'
-
-@description('OpenAI instances configuration - add more instances by modifying this object.')
-param openAiInstances object = {}
 
 @description('AI Search instances configuration - add more instances by adding to this array.')
 param aiSearchInstances array = [
@@ -540,17 +535,17 @@ module apimManagedIdentity './modules/security/managed-identity-apim.bicep' = {
   name: 'apim-managed-identity'
   scope: resourceGroup
   params: {
-    name: !empty(identityName) ? identityName : '${abbrs.managedIdentityUserAssignedIdentities}apim-${resourceToken}'
+    name: !empty(apimIdentityName) ? apimIdentityName : '${abbrs.managedIdentityUserAssignedIdentities}apim-${resourceToken}'
     location: location
     tags: tags
   }
 }
 
 module usageManagedIdentity './modules/security/managed-identity-usage.bicep' = {
-  name: 'usage-managed-identity'
+  name: 'logicapp-usage-managed-identity'
   scope: resourceGroup
   params: {
-    name: !empty(identityName) ? identityName : '${abbrs.managedIdentityUserAssignedIdentities}usage-${resourceToken}'
+    name: !empty(usageLogicAppIdentityName) ? usageLogicAppIdentityName : '${abbrs.managedIdentityUserAssignedIdentities}logicapp-${resourceToken}'
     location: location
     tags: tags
     cosmosDbAccountName: cosmosDb.outputs.cosmosDbAccountName
@@ -564,8 +559,8 @@ module monitoring './modules/monitor/monitoring.bicep' = {
     location: location
     tags: tags
     logAnalyticsName: !empty(logAnalyticsName) ? logAnalyticsName : '${abbrs.operationalInsightsWorkspaces}${resourceToken}'
-    apimApplicationInsightsName: !empty(applicationInsightsName) ? applicationInsightsName : '${abbrs.insightsComponents}apim-${resourceToken}'
-    apimApplicationInsightsDashboardName: !empty(applicationInsightsDashboardName) ? applicationInsightsDashboardName : '${abbrs.portalDashboards}apim-${resourceToken}'
+    apimApplicationInsightsName: !empty(apimApplicationInsightsName) ? apimApplicationInsightsName : '${abbrs.insightsComponents}apim-${resourceToken}'
+    apimApplicationInsightsDashboardName: !empty(apimApplicationInsightsDashboardName) ? apimApplicationInsightsDashboardName : '${abbrs.portalDashboards}apim-${resourceToken}'
     functionApplicationInsightsName: !empty(funcApplicationInsightsName) ? funcApplicationInsightsName : '${abbrs.insightsComponents}func-${resourceToken}'
     functionApplicationInsightsDashboardName: !empty(funcAplicationInsightsDashboardName) ? funcAplicationInsightsDashboardName : '${abbrs.portalDashboards}func-${resourceToken}'
     foundryApplicationInsightsName: !empty(foundryApplicationInsightsName) ? foundryApplicationInsightsName : '${abbrs.insightsComponents}aif-${resourceToken}'
@@ -574,47 +569,12 @@ module monitoring './modules/monitor/monitoring.bicep' = {
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
     privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
     applicationInsightsDnsZoneName: monitorPrivateDnsZoneName
-    createDashboard: createAppInsightsDashboard
+    createDashboard: createAppInsightsDashboards
     dnsZoneRG: !useExistingVnet ? resourceGroup.name : dnsZoneRG
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
     usePrivateLinkScope: useAzureMonitorPrivateLinkScope
   }
-  dependsOn: [
-    vnet
-    vnetExisting
-  ]
 }
-
-@batchSize(1)
-module openAis 'modules/ai/cognitiveservices.bicep' = [for (config, i) in items(openAiInstances): {
-  name: '${config.value.name}-${resourceToken}'
-  scope: resourceGroup
-  params: {
-    name: '${config.value.name}-${resourceToken}'
-    location: config.value.location
-    tags: tags
-    managedIdentityName: apimManagedIdentity.outputs.managedIdentityName
-    vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
-    vNetLocation: useExistingVnet ? vnetExisting.outputs.location : vnet.outputs.location
-    privateEndpointSubnetName: useExistingVnet ? vnetExisting.outputs.privateEndpointSubnetName : vnet.outputs.privateEndpointSubnetName
-    aiPrivateEndpointName: !empty(openAiPrivateEndpointName) ? '${openAiPrivateEndpointName}-${i}' : '${abbrs.cognitiveServicesAccounts}openai-pe-${i}-${resourceToken}'
-    publicNetworkAccess: openAIExternalNetworkAccess
-    openAiDnsZoneName: openAiPrivateDnsZoneName
-    sku: {
-      name: openAiSkuName
-    }
-    deploymentCapacity: deploymentCapacity
-    deployments: config.value.deployments
-    vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
-    dnsZoneRG: !useExistingVnet ? resourceGroup.name : dnsZoneRG
-    dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
-  }
-  dependsOn: [
-    vnet
-    vnetExisting
-    apimManagedIdentity
-  ]
-}]
 
 module contentSafety 'modules/ai/cognitiveservices.bicep' = {
   name: 'ai-content-safety'
@@ -638,11 +598,6 @@ module contentSafety 'modules/ai/cognitiveservices.bicep' = {
     dnsZoneRG: !useExistingVnet ? resourceGroup.name : dnsZoneRG
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
-  dependsOn: [
-    vnet
-    vnetExisting
-    apimManagedIdentity
-  ]
 }
 
 module languageService 'modules/ai/cognitiveservices.bicep' = {
@@ -667,11 +622,6 @@ module languageService 'modules/ai/cognitiveservices.bicep' = {
     dnsZoneRG: !useExistingVnet ? resourceGroup.name : dnsZoneRG
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
-  dependsOn: [
-    vnet
-    vnetExisting
-    apimManagedIdentity
-  ]
 }
 
 module foundry 'modules/foundry/foundry.bicep' = if(enableAIFoundry) {
@@ -709,10 +659,6 @@ module eventHub './modules/event-hub/event-hub.bicep' = {
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
     capacity: eventHubCapacityUnits
   }
-  dependsOn: [
-    vnet
-    vnetExisting
-  ]
 }
 
 module apim './modules/apim/apim.bicep' = {
@@ -723,7 +669,6 @@ module apim './modules/apim/apim.bicep' = {
     location: location
     tags: tags
     applicationInsightsName: monitoring.outputs.applicationInsightsName
-    openAiUris: [for i in range(0, length(openAiInstances)): openAis[i].outputs.openAiEndpointUri]
     managedIdentityName: apimManagedIdentity.outputs.managedIdentityName
     entraAuth: entraAuth
     clientAppId: entraAuth ? entraClientId : null 
@@ -755,13 +700,8 @@ module apim './modules/apim/apim.bicep' = {
     isMCPSampleDeployed: true
     apiCenterServiceName: apiCenter.outputs.name
     apiCenterWorkspaceName: apiCenter.outputs.defaultWorkspaceName
+
   }
-  dependsOn: [
-    vnet
-    vnetExisting
-    apimManagedIdentity
-    eventHub
-  ]
 }
 
 module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
@@ -781,10 +721,6 @@ module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
     throughput: cosmosDbRUs
     publicAccess: cosmosDbPublicAccess
   }
-  dependsOn: [
-    vnet
-    vnetExisting
-  ]
 }
 
 module storageAccount './modules/functionapp/storageaccount.bicep' = {
@@ -805,46 +741,11 @@ module storageAccount './modules/functionapp/storageaccount.bicep' = {
     storageFilePrivateEndpointName: !empty(storageFilePrivateEndpointName) ? storageFilePrivateEndpointName : '${abbrs.storageStorageAccounts}file-pe-${resourceToken}'
     storageTablePrivateEndpointName: !empty(storageTablePrivateEndpointName) ? storageTablePrivateEndpointName : '${abbrs.storageStorageAccounts}table-pe-${resourceToken}'
     storageQueuePrivateEndpointName: !empty(storageQueuePrivateEndpointName) ? storageQueuePrivateEndpointName : '${abbrs.storageStorageAccounts}queue-pe-${resourceToken}'
-    functionContentShareName: functionContentShareName
     logicContentShareName: logicContentShareName
     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
     dnsZoneRG: !useExistingVnet ? resourceGroup.name : dnsZoneRG
     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
   }
-  dependsOn: [
-    vnet
-    vnetExisting
-  ]
-}
-
-module functionApp './modules/functionapp/functionapp.bicep' = if(provisionFunctionApp) {
-  name: 'usageFunctionApp'
-  scope: resourceGroup
-  params: {
-    location: location
-    tags: tags
-    functionAppName: !empty(usageProcessingFunctionAppName) ? usageProcessingFunctionAppName : '${abbrs.webSitesFunctions}usage-${resourceToken}'
-    azdserviceName: 'usageProcessingFunctionApp'
-    storageAccountName: storageAccount.outputs.storageAccountName
-    functionAppIdentityName: usageManagedIdentity.outputs.managedIdentityName
-    applicationInsightsName: monitoring.outputs.funcApplicationInsightsName
-    eventHubNamespaceName: eventHub.outputs.eventHubNamespaceName
-    eventHubName: eventHub.outputs.eventHubName
-    cosmosDBEndpoint: cosmosDb.outputs.cosmosDbEndpoint
-    cosmosDatabaseName: cosmosDb.outputs.cosmosDbDatabaseName
-    cosmosContainerName: cosmosDb.outputs.cosmosDbContainerName
-    functionAppSubnetId: useExistingVnet ? vnetExisting.outputs.functionAppSubnetId : vnet.outputs.functionAppSubnetId
-    functionContentShareName: functionContentShareName
-  }
-  dependsOn: [
-    vnet
-    vnetExisting
-    storageAccount
-    usageManagedIdentity
-    monitoring
-    eventHub
-    cosmosDb
-  ]
 }
 
 module logicApp './modules/logicapp/logicapp.bicep' = {
@@ -876,14 +777,6 @@ module logicApp './modules/logicapp/logicapp.bicep' = {
     functionAppSubnetId: useExistingVnet ? vnetExisting.outputs.functionAppSubnetId : vnet.outputs.functionAppSubnetId
     fileShareName: logicContentShareName
   }
-  dependsOn: [
-    vnet
-    vnetExisting
-    storageAccount
-    monitoring
-    eventHub
-    cosmosDb
-  ]
 }
 
 module apiCenter './modules/apic/apic.bicep' = if(enableAPICenter) {

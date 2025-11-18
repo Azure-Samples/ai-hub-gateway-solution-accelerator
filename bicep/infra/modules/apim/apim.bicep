@@ -13,7 +13,7 @@ param sku string = 'Developer'
 var isV2SKU = sku == 'StandardV2' || sku == 'PremiumV2'
 param skuCount int = 1
 param applicationInsightsName string
-param openAiUris array
+
 param managedIdentityName string
 param clientAppId string = ' '
 param tenantId string = tenant().tenantId
@@ -249,7 +249,6 @@ module apimOpenAIRealTimetApi './api.bicep' = if (enableOpenAIRealtime) {
   }
   dependsOn: [
     policyFragments
-    openAiBackends
   ]
 }
 
@@ -590,20 +589,6 @@ resource searchHRSubscription 'Microsoft.ApiManagement/service/subscriptions@202
     scope: searchHRProduct.id
   }
 }
-
-resource openAiBackends 'Microsoft.ApiManagement/service/backends@2022-08-01' = [for (openAiUri, i) in openAiUris: {
-  name: '${openAiApiBackendId}-${i}'
-  parent: apimService
-  properties: {
-    description: openAiApiBackendId
-    url: openAiUri
-    protocol: 'http'
-    tls: {
-      validateCertificateChain: true
-      validateCertificateName: true
-    }
-  }
-}]
 
 resource aiSearchBackends 'Microsoft.ApiManagement/service/backends@2022-08-01' = [for (aiSearchInstance, i) in aiSearchInstances: if(enableAzureAISearch) {
   name: aiSearchInstance.name
