@@ -8,23 +8,62 @@
     "location": {
       "value": "${AZURE_LOCATION}"
     },
+    "resourceGroupName": {
+      "value": "${AZURE_RESOURCE_GROUP=}"
+    },
+    "apimSku": {
+      "value": "${APIM_SKU=StandardV2}"
+    },
+    "apimSkuUnits": {
+      "value": "${APIM_SKU_UNITS=1}"
+    },
+    "enableAIFoundry": {
+      "value": "${ENABLE_AI_FOUNDRY=true}"
+    },
+    "enableAPICenter": {
+      "value": "${ENABLE_API_CENTER=true}"
+    },
+    "enableAIGatewayPiiRedaction": {
+      "value": "${ENABLE_PII_REDACTION=true}"
+    },
+    "createAppInsightsDashboards": {
+      "value": "${CREATE_DASHBOARDS=false}"
+    },
+    "cosmosDbRUs": {
+      "value": "${COSMOS_DB_RUS=400}"
+    },
+    "eventHubCapacityUnits": {
+      "value": "${EVENTHUB_CAPACITY=1}"
+    },
     "entraAuth": {
-      "value": "${AZURE_ENTRA_AUTH}"
+      "value": "${AZURE_ENTRA_AUTH=false}"
     },
     "entraTenantId": {
-      "value": "${AZURE_TENANT_ID}"
+      "value": "${AZURE_TENANT_ID=}"
     },
     "entraClientId": {
-      "value": "${AZURE_CLIENT_ID}"
+      "value": "${AZURE_CLIENT_ID=}"
     },
     "entraAudience": {
-      "value": "${AZURE_AUDIENCE}"
+      "value": "${AZURE_AUDIENCE=}"
     },
     "deploymentCapacity": {
-      "value": "${OPENAI_CAPACITY}",
-      "metadata": {
-        "description": "The OpenAI endpoints capacity (in thousands of tokens per minute)."
-      }
+      "value": "${OPENAI_CAPACITY=20}"
+    },
+    "useExistingVnet": {
+      "value": "${USE_EXISTING_VNET=false}"
+    },
+    "existingVnetRG": {
+      "value": "${EXISTING_VNET_RG=}"
+    },
+    "vnetName": {
+      "value": "${VNET_NAME=}"
+    },
+    "dnsZoneRG": {
+      "value": "${DNS_ZONE_RG=}"
+    },
+    "dnsSubscriptionId": {
+      "value": "${DNS_SUBSCRIPTION_ID=}"
     }
   }
 }

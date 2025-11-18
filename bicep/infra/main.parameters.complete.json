@@ -1,0 +1,355 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "// BASIC PARAMETERS": {
+      "value": "Configuration for environment name, location, and tags"
+    },
+    "environmentName": {
+      "value": "citadel-dev"
+    },
+    "location": {
+      "value": "eastus"
+    },
+    "tags": {
+      "value": {
+        "azd-env-name": "citadel-dev",
+        "SecurityControl": "Ignore",
+        "Environment": "Development",
+        "Project": "AI-Citadel-Gateway"
+      }
+    },
+    "// RESOURCE NAMES": {
+      "value": "Custom names for Azure resources (leave empty for auto-generated names)"
+    },
+    "resourceGroupName": {
+      "value": ""
+    },
+    "apimIdentityName": {
+      "value": ""
+    },
+    "usageLogicAppIdentityName": {
+      "value": ""
+    },
+    "apimServiceName": {
+      "value": ""
+    },
+    "logAnalyticsName": {
+      "value": ""
+    },
+    "apimApplicationInsightsDashboardName": {
+      "value": ""
+    },
+    "funcAplicationInsightsDashboardName": {
+      "value": ""
+    },
+    "foundryApplicationInsightsDashboardName": {
+      "value": ""
+    },
+    "apimApplicationInsightsName": {
+      "value": ""
+    },
+    "funcApplicationInsightsName": {
+      "value": ""
+    },
+    "foundryApplicationInsightsName": {
+      "value": ""
+    },
+    "eventHubNamespaceName": {
+      "value": ""
+    },
+    "cosmosDbAccountName": {
+      "value": ""
+    },
+    "usageProcessingLogicAppName": {
+      "value": ""
+    },
+    "storageAccountName": {
+      "value": ""
+    },
+    "languageServiceName": {
+      "value": ""
+    },
+    "aiContentSafetyName": {
+      "value": ""
+    },
+    "apicServiceName": {
+      "value": ""
+    },
+    "aiFoundryResourceName": {
+      "value": ""
+    },
+    "// NETWORKING PARAMETERS": {
+      "value": "Virtual network and subnet configuration"
+    },
+    "vnetName": {
+      "value": ""
+    },
+    "useExistingVnet": {
+      "value": false
+    },
+    "existingVnetRG": {
+      "value": ""
+    },
+    "apimSubnetName": {
+      "value": ""
+    },
+    "privateEndpointSubnetName": {
+      "value": ""
+    },
+    "functionAppSubnetName": {
+      "value": ""
+    },
+    "apimNsgName": {
+      "value": ""
+    },
+    "privateEndpointNsgName": {
+      "value": ""
+    },
+    "functionAppNsgName": {
+      "value": ""
+    },
+    "apimRouteTableName": {
+      "value": ""
+    },
+    "vnetAddressPrefix": {
+      "value": "10.170.0.0/24"
+    },
+    "apimSubnetPrefix": {
+      "value": "10.170.0.0/26"
+    },
+    "privateEndpointSubnetPrefix": {
+      "value": "10.170.0.64/26"
+    },
+    "functionAppSubnetPrefix": {
+      "value": "10.170.0.128/26"
+    },
+    "// DNS ZONE PARAMETERS": {
+      "value": "DNS zone configuration for existing VNet scenarios"
+    },
+    "dnsZoneRG": {
+      "value": ""
+    },
+    "dnsSubscriptionId": {
+      "value": ""
+    },
+    "// PRIVATE ENDPOINTS": {
+      "value": "Names for private endpoints"
+    },
+    "storageBlobPrivateEndpointName": {
+      "value": ""
+    },
+    "storageFilePrivateEndpointName": {
+      "value": ""
+    },
+    "storageTablePrivateEndpointName": {
+      "value": ""
+    },
+    "storageQueuePrivateEndpointName": {
+      "value": ""
+    },
+    "cosmosDbPrivateEndpointName": {
+      "value": ""
+    },
+    "eventHubPrivateEndpointName": {
+      "value": ""
+    },
+    "openAiPrivateEndpointName": {
+      "value": ""
+    },
+    "languageServicePrivateEndpointName": {
+      "value": ""
+    },
+    "aiContentSafetyPrivateEndpointName": {
+      "value": ""
+    },
+    "apimV2PrivateEndpointName": {
+      "value": ""
+    },
+    "// SERVICES NETWORK ACCESS": {
+      "value": "Network access configuration for services"
+    },
+    "apimNetworkType": {
+      "value": "External"
+    },
+    "apimV2UsePrivateEndpoint": {
+      "value": true
+    },
+    "apimV2PublicNetworkAccess": {
+      "value": true
+    },
+    "openAIExternalNetworkAccess": {
+      "value": "Disabled"
+    },
+    "cosmosDbPublicAccess": {
+      "value": "Disabled"
+    },
+    "eventHubNetworkAccess": {
+      "value": "Enabled"
+    },
+    "languageServiceExternalNetworkAccess": {
+      "value": "Disabled"
+    },
+    "aiContentSafetyExternalNetworkAccess": {
+      "value": "Disabled"
+    },
+    "useAzureMonitorPrivateLinkScope": {
+      "value": false
+    },
+    "// FEATURE FLAGS": {
+      "value": "Enable or disable specific capabilities"
+    },
+    "createAppInsightsDashboards": {
+      "value": false
+    },
+    "provisionFunctionApp": {
+      "value": false
+    },
+    "enableAIModelInference": {
+      "value": true
+    },
+    "enableDocumentIntelligence": {
+      "value": true
+    },
+    "enableAzureAISearch": {
+      "value": true
+    },
+    "enableAIGatewayPiiRedaction": {
+      "value": true
+    },
+    "enableOpenAIRealtime": {
+      "value": true
+    },
+    "enableAIFoundry": {
+      "value": true
+    },
+    "entraAuth": {
+      "value": false
+    },
+    "enableAPICenter": {
+      "value": true
+    },
+    "// COMPUTE SKU & SIZE": {
+      "value": "SKUs and capacity settings"
+    },
+    "apimSku": {
+      "value": "StandardV2"
+    },
+    "apimSkuUnits": {
+      "value": 1
+    },
+    "openAiSkuName": {
+      "value": "S0"
+    },
+    "deploymentCapacity": {
+      "value": 20
+    },
+    "eventHubCapacityUnits": {
+      "value": 1
+    },
+    "cosmosDbRUs": {
+      "value": 400
+    },
+    "logicAppsSkuCapacityUnits": {
+      "value": 1
+    },
+    "languageServiceSkuName": {
+      "value": "S"
+    },
+    "aiContentSafetySkuName": {
+      "value": "S0"
+    },
+    "apicSku": {
+      "value": "Free"
+    },
+    "// ACCELERATOR SPECIFIC PARAMETERS": {
+      "value": "Configuration for Logic Apps and AI services"
+    },
+    "logicContentShareName": {
+      "value": "usage-logic-content"
+    },
+    "aiSearchInstances": {
+      "value": []
+    },
+    "aiFoundryInstances": {
+      "value": [
+        {
+          "name": "",
+          "location": "eastus",
+          "customSubDomainName": "",
+          "defaultProjectName": "citadel-governance-project"
+        },
+        {
+          "name": "",
+          "location": "eastus2",
+          "customSubDomainName": "",
+          "defaultProjectName": "citadel-governance-project"
+        }
+      ]
+    },
+    "aiFoundryModelsConfig": {
+      "value": [
+        {
+          "name": "gpt-4o-mini",
+          "publisher": "OpenAI",
+          "version": "2024-07-18",
+          "sku": "GlobalStandard",
+          "capacity": 100,
+          "aiserviceIndex": 0
+        },
+        {
+          "name": "gpt-4o",
+          "publisher": "OpenAI",
+          "version": "2024-11-20",
+          "sku": "GlobalStandard",
+          "capacity": 100,
+          "aiserviceIndex": 0
+        },
+        {
+          "name": "DeepSeek-R1",
+          "publisher": "DeepSeek",
+          "version": "1",
+          "sku": "GlobalStandard",
+          "capacity": 1,
+          "aiserviceIndex": 0
+        },
+        {
+          "name": "Phi-4",
+          "publisher": "Microsoft",
+          "version": "3",
+          "sku": "GlobalStandard",
+          "capacity": 1,
+          "aiserviceIndex": 0
+        },
+        {
+          "name": "gpt-5",
+          "publisher": "OpenAI",
+          "version": "2025-08-07",
+          "sku": "GlobalStandard",
+          "capacity": 100,
+          "aiserviceIndex": 1
+        },
+        {
+          "name": "DeepSeek-R1",
+          "publisher": "DeepSeek",
+          "version": "1",
+          "sku": "GlobalStandard",
+          "capacity": 1,
+          "aiserviceIndex": 1
+        }
+      ]
+    },
+    "// ENTRA ID AUTHENTICATION": {
+      "value": "Microsoft Entra ID configuration (only used when entraAuth is true)"
+    },
+    "entraTenantId": {
+      "value": ""
+    },
+    "entraClientId": {
+      "value": ""
+    },
+    "entraAudience": {
+      "value": ""
+    }
+  }
+}

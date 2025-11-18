@@ -408,6 +408,9 @@ Master Citadel implementation and operations with our detailed guides:
 |-------|-------------|
 | [Architecture Overview](./guides/architecture.md) | Complete system design and Citadel pillars |
 | [Deployment Guide](./guides/deployment.md) | Step-by-step deployment instructions |
+| [**🆕 Quick Start: Bicep Parameters**](./guides/QUICKSTART-PARAMETERS.md) | **Fast deployment with native Bicep parameter files** |
+| [**🆕 Parameters Deployment Guide**](./guides/parameters-deployment-guide.md) | **Comprehensive Bicep parameter file usage** |
+| [**🆕 JSON to Bicep Migration**](./guides/bicep-parameters-migration-guide.md) | **Migrate from JSON to .bicepparam files** |
 | [Enterprise Provisioning](./guides/enterprise-provisioning.md) | Branch-based deployment, CI/CD automation |
 | [APIM Configuration](./guides/apim-configuration.md) | Advanced API Management policies and routing |
 | [Bring Your Own Network](./guides/bring-your-own-network.md) | Deploy into existing VNets with private connectivity |
