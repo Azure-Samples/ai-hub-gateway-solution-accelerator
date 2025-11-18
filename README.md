@@ -561,24 +561,21 @@ Describes the tools and agents a spoke exposes back to the hub:
 Citadel Governance Hub is continuously evolving as part of the **Foundry Citadel Platform** vision:
 
 ### ✅ **Current Release**
+
 - Unified AI Gateway with intelligent routing
-- Platform and agent-level observability
-- Azure OpenAI, AI Search, Document Intelligence integration
+- Platform observability
+- Universal LLM, Azure OpenAI, Azure OpenAI Realtime, AI Search, Document Intelligence integration
 - PII detection and content safety
 - Usage analytics and cost management
 
 ### 🚧 **Coming Soon**
-- Enhanced AI Registry with MCP protocol support
-- Advanced AI evaluation metrics and automated testing
-- Multi-region disaster recovery and failover
-- Extended third-party AI service support
-- Self-service AI catalog and marketplace
+
+- AI Evaluation pipeline at the gateway level
+- Defender enablement
 
 ### 🔮 **Future Vision**
-- Autonomous agent governance and orchestration
-- Federated AI governance across clouds
-- AI supply chain security and provenance
-- Advanced AI risk management and explainability
+
+- Autonomous agent governance and orchestration through DevOps
 
 ---
 
@@ -588,7 +585,6 @@ We welcome contributions from the community! Whether it's:
 - 🐛 Bug reports and fixes
 - 📖 Documentation improvements
 - 💡 Feature requests and enhancements
-- 🎨 Sample implementations and blueprints
 
 Please see our [Contributing Guide](./CONTRIBUTING.md) for details.
 
