@@ -22,9 +22,8 @@ param apimSku = 'PremiumV2'
 param apimSkuUnits = 2
 
 // Higher capacity for production workloads
-param cosmosDbRUs = 1000
-param eventHubCapacityUnits = 2
-param deploymentCapacity = 100
+param cosmosDbRUs = 3000
+param eventHubCapacityUnits = 5
 
 // Enable monitoring dashboards
 param createAppInsightsDashboards = true

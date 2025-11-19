@@ -121,7 +121,6 @@ param useAzureMonitorPrivateLinkScope = false
 // =============================================================================
 
 param createAppInsightsDashboards = false
-param provisionFunctionApp = false
 param enableAIModelInference = true
 param enableDocumentIntelligence = true
 param enableAzureAISearch = true
@@ -139,10 +138,6 @@ param enableAPICenter = true
 // Allowed: Developer, Premium, StandardV2, PremiumV2
 param apimSku = 'StandardV2'
 param apimSkuUnits = 1
-
-// OpenAI Configuration
-param openAiSkuName = 'S0'
-param deploymentCapacity = 20
 
 // Event Hub & Cosmos DB Capacity
 param eventHubCapacityUnits = 1

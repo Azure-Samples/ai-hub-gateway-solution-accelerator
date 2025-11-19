@@ -205,9 +205,6 @@ param useAzureMonitorPrivateLinkScope bool = false
 @description('Create Application Insights dashboards.')
 param createAppInsightsDashboards bool = false
 
-@description('Deploy Azure Function App for processing usage data.')
-param provisionFunctionApp bool = false
-
 @description('Enable AI Model Inference in API Management.')
 param enableAIModelInference bool = true
 
@@ -241,12 +238,6 @@ param apimSku string = 'StandardV2'
 
 @description('API Management service SKU units.')
 param apimSkuUnits int = 1
-
-@description('SKU name for OpenAI services.')
-param openAiSkuName string = 'S0'
-
-@description('OpenAI deployment capacity (in thousands of tokens per minute).')
-param deploymentCapacity int = 20
 
 @description('Event Hub capacity units.')
 param eventHubCapacityUnits int = 1

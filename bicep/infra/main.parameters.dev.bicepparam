@@ -23,7 +23,6 @@ param apimSkuUnits = 1
 // Minimal capacity for dev
 param cosmosDbRUs = 400
 param eventHubCapacityUnits = 1
-param deploymentCapacity = 20
 
 // Enable dashboards for monitoring during development
 param createAppInsightsDashboards = true

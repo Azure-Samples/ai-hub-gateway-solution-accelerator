@@ -18,13 +18,6 @@ This document provides an overview of all deployment-related files in the AI Hub
 | `bicep/infra/main.parameters.dev.bicepparam` | Development environment | Cost-optimized configuration for development |
 | `bicep/infra/main.parameters.prod.bicepparam` | Production environment | High-availability configuration for production |
 
-### Legacy JSON Parameter Files (Deprecated)
-| File | Purpose | Status |
-|------|---------|--------|
-| `bicep/infra/main.parameters.json` | JSON format for azd | Deprecated - use .bicepparam |
-| `bicep/infra/main.parameters.complete.json` | Comprehensive JSON | Deprecated - use .bicepparam |
-| `bicep/infra/main.parameters.llm-example.json` | LLM backend example | Reference only |
-
 ## 📋 Environment Configuration
 
 | File | Purpose | Usage |
@@ -226,27 +219,6 @@ az deployment sub validate --template-file bicep/infra/main.bicep --parameters b
 ```powershell
 az deployment sub create --name citadel-myenv --location eastus --template-file bicep/infra/main.bicep --parameters bicep/infra/main.parameters.myenv.bicepparam
 ```
-
-## 🎓 Learning Path
-
-1. **Beginner:** Start with [QUICKSTART-PARAMETERS.md](../guides/QUICKSTART-PARAMETERS.md)
-2. **Intermediate:** Review [parameters-deployment-guide.md](../guides/parameters-deployment-guide.md)
-3. **Advanced:** Explore [enterprise-provisioning.md](../guides/enterprise-provisioning.md)
-4. **Expert:** Customize [main.bicep](../bicep/infra/main.bicep) directly
-
-## 🆘 Getting Help
-
-- **Deployment Issues:** [deployment-troubleshooting.md](../guides/deployment-troubleshooting.md)
-- **Parameter Questions:** [parameters-deployment-guide.md](../guides/parameters-deployment-guide.md)
-- **Architecture Questions:** [architecture.md](../guides/architecture.md)
-- **Configuration Help:** Service-specific guides in [guides/](../guides/)
-
-## 📚 Additional Resources
-
-- [Azure Bicep Documentation](https://learn.microsoft.com/azure/azure-resource-manager/bicep/)
-- [Azure Developer CLI Documentation](https://learn.microsoft.com/azure/developer/azure-developer-cli/)
-- [Azure API Management Documentation](https://learn.microsoft.com/azure/api-management/)
-- [Solution Architecture](../guides/architecture.md)
 
 ---
 

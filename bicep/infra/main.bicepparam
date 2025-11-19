@@ -24,7 +24,6 @@ param createAppInsightsDashboards = bool(readEnvironmentVariable('CREATE_DASHBOA
 // CAPACITY SETTINGS
 param cosmosDbRUs = int(readEnvironmentVariable('COSMOS_DB_RUS', '400'))
 param eventHubCapacityUnits = int(readEnvironmentVariable('EVENTHUB_CAPACITY', '1'))
-param deploymentCapacity = int(readEnvironmentVariable('OPENAI_CAPACITY', '20'))
 
 // ENTRA ID AUTHENTICATION
 param entraAuth = bool(readEnvironmentVariable('AZURE_ENTRA_AUTH', 'false'))

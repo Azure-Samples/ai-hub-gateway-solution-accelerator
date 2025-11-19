@@ -94,6 +94,42 @@ AI Citadel Governance Hub provides automatable agent onboarding configurations t
 
 ---
 
+## 🎯 Key Use Cases
+
+Citadel Governance Hub enables secure, scalable AI deployment across diverse enterprise scenarios:
+
+### 💼 **Enterprise AI Governance**
+- Centralized access control for all AI services across departments
+- Cost attribution and chargeback to business units
+- Compliance reporting and audit trails
+- Shadow AI prevention and policy enforcement
+
+### 🤖 **Multi-Agent Systems**
+- Discover and reuse agents through the AI Registry
+- Govern agent-to-agent communication
+- Monitor multi-agent workflows end-to-end
+- Enforce safety guardrails across agent interactions
+
+### 🌐 **Multi-Cloud AI Strategy**
+- Unified governance across Azure OpenAI, AWS Bedrock, and open-source models
+- Consistent security policies regardless of backend
+- Seamless migration and failover between providers
+- Cost optimization through intelligent routing
+
+### 🔒 **Regulated Industries**
+- Financial services compliance (SOC 2, PCI DSS)
+- Healthcare data protection (HIPAA)
+- Government security requirements (FedRAMP)
+- PII detection and anonymization
+
+### 📊 **AI Operations at Scale**
+- Support thousands of concurrent AI applications
+- Near real-time usage monitoring and alerts
+- Capacity planning and quota management
+- Performance optimization and troubleshooting
+
+---
+
 ## 🏗️ Architecture Overview
 
 AI Citadel Governance Hub follows a **hub-spoke architecture** that integrates seamlessly with your existing enterpriseAzure Landing Zone:
@@ -279,8 +315,6 @@ The central governance layer with unified AI Gateway that all AI workloads route
 | **📊 Log Analytics** | Logs, metrics & audits | Scalable enterprise telemetry ingestion and storage |
 | **📊 Application Insights** | Platform monitoring | Performance dashboards, automated alerts |
 | **📨 Event Hub** | Usage data streaming | Real-time usage streaming, custom logging |
-| **🛡️ Content Safety** | LLM protection | Prompt Shield and Content Safety protections |
-| **💳 Language Service** | PII detection | Natural language based PII entity detection, anonymization |
 | **🗄️ Cosmos DB** | Usage analytics | Long-term storage of usage, automatic scaling |
 | **⚡ Logic App** | Event processing | Workflow-based processing of usage/logs & AI Eval |
 | **🔐 Managed Identity** | Zero-credential auth | Secure service-to-service communication |
@@ -288,9 +322,16 @@ The central governance layer with unified AI Gateway that all AI workloads route
 
 #### Security & Compliance
 
+AI Gateway security & compliance enforcements components:
+
+| Component | Purpose |Enterprise Features |
+|---------|---------|---------------------|
+| **🛡️ Content Safety** | LLM protection | Prompt Shield and Content Safety protections |
+| **💳 Language Service** | PII detection | Natural language and RegEx based PII entity detection with anonymization support |
+
 Supported by subscription wide security services:
 
-| Service | Purpose |Enterprise Features |
+| Component | Purpose |Enterprise Features |
 |---------|---------|---------------------|
 |**Defender for Cloud**|Threat protection|AI workload security posture management|
 |**Purview**|Data governance|Sensitivity labeling, data classification|
@@ -300,19 +341,21 @@ Supported by subscription wide security services:
 
 Optionally you can deploy one or more generative AI services in the hub:
 
-| Service | Purpose | Enterprise Features |
+| Component | Purpose | Enterprise Features |
 |---------|---------|---------------------|
-| **Microsoft Foundry** | LLM model hosting | Private endpoints, dedicated capacity, enterprise SLAs |
+| **Microsoft Foundry** | LLM model hosting | Access to rich foundational model catalog with variety of deployment options |
 
 #### Optional Components
+
+Pluggable components to enhance AI Citadel Governance capabilities:
 
 | Component | Purpose |
 |-----------|---------|
 | **Azure Managed Redis** | Semantic caching layer for high-throughput AI workloads |
 
-### 🌐 **Citadel Agent Spoke** - AI Development Environments
+### 🌐 **Citadel Compliant Agents** - Existing and new agents on-boarding
 
-To govern AI agents through AI Citadel Governance Hub, agents must communicate with AI backends (central LLMs, tools and agents) through the unified AI gateway.
+To govern AI agents through AI Citadel Governance Hub, agents must communicate with AI backends (central LLMs, tools and agents) through the Citadel's unified AI gateway.
 
 #### Existing agents
 
@@ -320,7 +363,7 @@ Guidance to bring existing agents is through updating endpoint and credentials t
 
 Recommendation is to use Azure Key Vault to store these information due to its sensitivity when the agent is running on Azure.
 
-Leverage Citadel Access Contracts to declare the required access to LLMs, tools and agents through the gateway along with precise governance policies.
+Leverage **Citadel Access Contracts** to declare the required access to LLMs, tools and agents through the gateway along with precise governance policies.
 
 #### New agents
 
@@ -328,7 +371,7 @@ Building new agents is accelerated through the **Citadel Agent Spoke** landing z
 
 **Deployment Approach:**
 - **One spoke per business unit or use case** - Dedicated environments for insurance claims processing, customer support automation, or other agentic scenarios
-- **Flexible runtime options** - Choose between AI Foundry Agents (fully managed) or Azure Container Apps (bring-your-own-agent)
+- **Flexible runtime options** - Choose between AI Foundry Agents (fully managed runtime) or Azure Container Apps (bring-your-own-agent)
 - **Pre-configured infrastructure** - Automated deployment via Bicep or Terraform with all networking, security, and monitoring built-in
 - **Hub integration** - Seamless connection to Citadel Governance Hub through Citadel Access & Publish Contracts
 
@@ -350,6 +393,34 @@ Building new agents is accelerated through the **Citadel Agent Spoke** landing z
 - **Brownfield (Standalone with Existing Resources)** - Integrates with existing enterprise landing zones, reusing VNets and centralized monitoring
 
 > **Note:** Citadel Agent Spoke deployment supports the AI development velocity pillar and is designed to work in conjunction with Citadel Governance Hub. Multiple spokes can connect to a single hub for unified governance and observability.
+
+---
+
+## 🔄 AI Citadel Contracts - Connect agents to governance hub
+
+Citadel Governance Hub seamlessly integrates with **Citadel compliant Agents** environments through automated governance alignment:
+
+### 📝 **AI Access Contract**
+Declares the governed dependencies an agent needs—LLMs, AI services, tools, and reusable agents—along with precise access policies:
+- Model selection and capacity allocation
+- Regional preferences and compliance requirements
+- Safety and security guardrails
+- Usage quotas and cost limits
+
+### 📤 **AI Publish Contract**
+Describes the tools and agents a spoke exposes back to the hub:
+- Publishing rules and governance gates
+- Ownership metadata and documentation
+- Security posture and compliance status
+- Discovery and cataloging in the AI Registry
+
+**Benefits:**
+- ✅ Audit-ready traceability through infrastructure-as-code
+- ✅ Faster release cycles with automated approvals
+- ✅ Reduced manual effort in governance onboarding
+- ✅ Continuous policy compliance verification
+
+> 🔗 **Learn More:** [Citadel Access Contracts Guide](./guides/Citadel-Access-Contracts.md)
 
 ---
 
@@ -388,13 +459,11 @@ azd up
 
 Once deployed, access your Citadel AI Gateway through Azure API Management:
 
-![APIM Test](./assets/apim-test.png)
-
 **Key Endpoints:**
 - **AI Gateway**: `https://<your-apim>.azure-api.net`
 - **AI Registry**: Azure API Center portal
 - **Monitoring Dashboard**: Application Insights
-- **Usage Analytics**: Power BI Dashboard (optional)
+- **Usage Analytics**: Power BI Dashboard connected to Cosmos DB (optional)
 
 ---
 
@@ -454,77 +523,13 @@ Master Citadel implementation and operations with our detailed guides:
 
 ---
 
-## 🎯 Key Use Cases
-
-Citadel Governance Hub enables secure, scalable AI deployment across diverse enterprise scenarios:
-
-### 💼 **Enterprise AI Governance**
-- Centralized access control for all AI services across departments
-- Cost attribution and chargeback to business units
-- Compliance reporting and audit trails
-- Shadow AI prevention and policy enforcement
-
-### 🤖 **Multi-Agent Systems**
-- Discover and reuse agents through the AI Registry
-- Govern agent-to-agent communication
-- Monitor multi-agent workflows end-to-end
-- Enforce safety guardrails across agent interactions
-
-### 🌐 **Multi-Cloud AI Strategy**
-- Unified governance across Azure OpenAI, AWS Bedrock, and open-source models
-- Consistent security policies regardless of backend
-- Seamless migration and failover between providers
-- Cost optimization through intelligent routing
-
-### 🔒 **Regulated Industries**
-- Financial services compliance (SOC 2, PCI DSS)
-- Healthcare data protection (HIPAA)
-- Government security requirements (FedRAMP)
-- PII detection and anonymization
-
-### 📊 **AI Operations at Scale**
-- Support thousands of concurrent AI applications
-- Near real-time usage monitoring and alerts
-- Capacity planning and quota management
-- Performance optimization and troubleshooting
-
----
-
-## 🔄 Integration with Citadel Agent Spoke (CAS)
-
-Citadel Governance Hub seamlessly integrates with **Citadel Agent Spoke** environments through automated governance alignment:
-
-### 📝 **AI Access Contract**
-Declares the governed dependencies an agent needs—LLMs, AI services, tools, and reusable agents—along with precise access policies:
-- Model selection and capacity allocation
-- Regional preferences and compliance requirements
-- Safety and security guardrails
-- Usage quotas and cost limits
-
-### 📤 **AI Publish Contract**
-Describes the tools and agents a spoke exposes back to the hub:
-- Publishing rules and governance gates
-- Ownership metadata and documentation
-- Security posture and compliance status
-- Discovery and cataloging in the AI Registry
-
-**Benefits:**
-- ✅ Audit-ready traceability through infrastructure-as-code
-- ✅ Faster release cycles with automated approvals
-- ✅ Reduced manual effort in governance onboarding
-- ✅ Continuous policy compliance verification
-
-> 🔗 **Learn More:** [Citadel Access Contracts Guide](./guides/Citadel-Access-Contracts.md)
-
----
-
 ## 🌟 What Makes Citadel Different?
 
 | Traditional Approach | Citadel Governance Hub |
 |---------------------|------------------------|
 | ❌ Direct API key access per team | ✅ Centralized gateway with managed credentials |
 | ❌ Fragmented monitoring per service | ✅ Unified observability across all AI workloads |
-| ❌ Manual cost tracking and allocation | ✅ Automated usage tracking and chargeback |
+| ❌ Manual cost tracking and allocation | ✅ Automated usage tracking and charge-back |
 | ❌ Inconsistent security policies | ✅ Enforced guardrails on every AI call |
 | ❌ Shadow AI and governance gaps | ✅ Complete visibility and control |
 | ❌ Slow onboarding and provisioning | ✅ Automated templates and reusable blueprints |
@@ -574,11 +579,12 @@ Citadel Governance Hub is continuously evolving as part of the **Foundry Citadel
 ### 🚧 **Coming Soon**
 
 - AI Evaluation pipeline at the gateway level
+- Add support for A2A and agents publishing
 - Defender enablement
 
 ### 🔮 **Future Vision**
 
-- Autonomous agent governance and orchestration through DevOps
+- Autonomous agent governance and orchestration through DevOps end-to-end approach
 
 ---
 
