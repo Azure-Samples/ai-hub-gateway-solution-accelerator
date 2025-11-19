@@ -21,27 +21,42 @@ This guide provides the fastest path to deploying AI Citadel Governance Hub for 
 
 ## 🎯 Deployment Options
 
-Choose your deployment method:
+### Getting the template
+
+First, initialize your local project in an empty folder (e.g. `ai-hub-citadel-deployment`):
+
+```bash
+azd init -t Azure-Samples/ai-hub-gateway-solution-accelerator -e ai-hub-citadel-dev
+
+# or use git clone:
+git clone https://github.com/Azure-Samples/ai-hub-gateway-solution-accelerator.git
+# Make the repository your current directory:
+cd ai-hub-gateway-solution-accelerator
+
+```
+
+Then proceed to choose your deployment method:
 
 ### Option 1: Default Quick Deploy (Recommended)
 
 Deploy with minimal configuration using intelligent defaults:
 
 ```bash
+
 # Authenticate to Azure
+# append --tenant-id <your-tenant-id> if needed
 azd auth login
 
 # Initialize environment
 azd env new ai-hub-citadel-dev
 
-# Deploy everything
+# Provision and deploy everything based on defaults
 azd up
 ```
 
 This will:
 - ✅ Create a new resource group
 - ✅ Deploy all infrastructure with default settings
-- ✅ Use StandardV2 SKU for API Management (production-capable)
 - ✅ Create new Virtual Network with private endpoints
 - ✅ Create new Log Analytics workspace
 - ✅ Deploy 2 AI Foundry instances with sample models
@@ -58,13 +73,12 @@ Customize key settings using environment variables:
 ```bash
 # Authenticate and initialize
 azd auth login
-azd env new citadel-dev
+azd env new ai-hub-citadel-dev
 
 # Set custom environment variables
 azd env set AZURE_LOCATION eastus2
 azd env set APIM_SKU Developer
 azd env set ENABLE_AI_FOUNDRY true
-azd env set CREATE_DASHBOARDS true
 
 # Deploy
 azd up
@@ -75,13 +89,13 @@ azd up
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `AZURE_LOCATION` | `eastus` | Primary Azure region |
-| `APIM_SKU` | `StandardV2` | API Management SKU (use `Developer` for dev) |
+| `APIM_SKU` | `StandardV2` | API Management SKU |
 | `COSMOS_DB_RUS` | `400` | Cosmos DB throughput |
 | `EVENTHUB_CAPACITY` | `1` | Event Hub capacity units |
 | `ENABLE_AI_FOUNDRY` | `true` | Deploy AI Foundry instances |
 | `ENABLE_API_CENTER` | `true` | Enable API Center registry |
-| `ENABLE_PII_REDACTION` | `true` | Enable PII detection/masking |
-| `CREATE_DASHBOARDS` | `false` | Create Application Insights dashboards |
+
+For full list of variables, see [/bicep/infra/main.bicepparam](../bicep/infra/main.bicepparam).
 
 ---
 

@@ -6,11 +6,11 @@ using './main.bicep'
  */
 
 // Basic Configuration
-param environmentName = 'citadel-dev'
+param environmentName = 'ai-hub-citadel-dev'
 param location = 'eastus'
 param resourceGroupName = ''  // Auto-generated based on environmentName
 param tags = {
-  'azd-env-name': 'citadel-dev'
+  'azd-env-name': 'ai-hub-citadel-dev'
   SecurityControl: 'Ignore'
   Environment: 'Development'
   CostCenter: 'Engineering'
@@ -25,10 +25,10 @@ param cosmosDbRUs = 400
 param eventHubCapacityUnits = 1
 
 // Enable dashboards for monitoring during development
-param createAppInsightsDashboards = true
+param createAppInsightsDashboards = false
 
 // Disable API Center in dev to save costs
-param enableAPICenter = false
+param enableAPICenter = true
 
 // Enable features for testing
 param enableAIFoundry = true
