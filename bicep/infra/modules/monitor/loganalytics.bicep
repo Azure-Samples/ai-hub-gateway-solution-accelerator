@@ -5,11 +5,24 @@ param tags object = {}
 // Networking
 param privateLinkScopeName string
 
+// Existing Log Analytics workspace parameters
+param useExistingLogAnalytics bool = false
+param existingLogAnalyticsName string = ''
+param existingLogAnalyticsRG string = ''
+param existingLogAnalyticsSubscriptionId string = ''
+
 resource privateLinkScope 'microsoft.insights/privateLinkScopes@2021-07-01-preview' existing = if (privateLinkScopeName != '') {
   name: privateLinkScopeName
 }
 
-resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2021-12-01-preview' = {
+// Reference existing Log Analytics workspace (potentially cross-subscription)
+resource existingLogAnalytics 'Microsoft.OperationalInsights/workspaces@2021-12-01-preview' existing = if (useExistingLogAnalytics) {
+  name: existingLogAnalyticsName
+  scope: resourceGroup(existingLogAnalyticsSubscriptionId, existingLogAnalyticsRG)
+}
+
+// Create new Log Analytics workspace
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2021-12-01-preview' = if (!useExistingLogAnalytics) {
   name: name
   location: location
   tags: union(tags, { 'azd-service-name': name })
@@ -26,7 +39,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2021-12-01-previ
   })
 }
 
-resource logAnalyticsScopedResource 'Microsoft.Insights/privateLinkScopes/scopedResources@2021-07-01-preview' = if (privateLinkScopeName != '') {
+resource logAnalyticsScopedResource 'Microsoft.Insights/privateLinkScopes/scopedResources@2021-07-01-preview' = if (privateLinkScopeName != '' && !useExistingLogAnalytics) {
   parent: privateLinkScope
   name: '${logAnalytics.name}-connection'
   properties: {
@@ -34,5 +47,5 @@ resource logAnalyticsScopedResource 'Microsoft.Insights/privateLinkScopes/scoped
   }
 }
 
-output id string = logAnalytics.id
-output name string = logAnalytics.name
+output id string = useExistingLogAnalytics ? existingLogAnalytics.id : logAnalytics.id
+output name string = useExistingLogAnalytics ? existingLogAnalytics.name : logAnalytics.name

@@ -34,6 +34,18 @@ param apimServiceName string = ''
 @description('Name of the Log Analytics workspace. Leave blank to use default naming conventions.')
 param logAnalyticsName string = ''
 
+@description('Use an existing Log Analytics workspace instead of creating a new one.')
+param useExistingLogAnalytics bool = false
+
+@description('Name of the existing Log Analytics workspace (only used when useExistingLogAnalytics is true).')
+param existingLogAnalyticsName string = ''
+
+@description('Resource group containing the existing Log Analytics workspace (only used when useExistingLogAnalytics is true).')
+param existingLogAnalyticsRG string = ''
+
+@description('Subscription ID containing the existing Log Analytics workspace (only used when useExistingLogAnalytics is true). Leave blank to use the current subscription.')
+param existingLogAnalyticsSubscriptionId string = ''
+
 @description('Name of the Application Insights dashboard for APIM. Leave blank to use default naming conventions.')
 param apimApplicationInsightsDashboardName string = ''
 
@@ -96,7 +108,7 @@ param apimSubnetName string = ''
 @description('Subnet name for Private Endpoints in the VNet. Leave blank to use default naming conventions.')
 param privateEndpointSubnetName string = ''
 
-@description('Subnet name for Function App in the VNet. Leave blank to use default naming conventions.')
+@description('Subnet name for Function/Logic App in the VNet. Leave blank to use default naming conventions.')
 param functionAppSubnetName string = ''
 
 
@@ -175,10 +187,6 @@ param apimV2UsePrivateEndpoint bool = true
 
 @description('API Management service external network access. When false, APIM must have private endpoint.')
 param apimV2PublicNetworkAccess bool = true
-
-@description('Azure OpenAI service public network access.')
-@allowed([ 'Enabled', 'Disabled' ])
-param openAIExternalNetworkAccess string = 'Disabled'
 
 @description('Cosmos DB public network access.')
 @allowed([ 'Enabled', 'Disabled' ])
@@ -550,6 +558,10 @@ module monitoring './modules/monitor/monitoring.bicep' = {
     location: location
     tags: tags
     logAnalyticsName: !empty(logAnalyticsName) ? logAnalyticsName : '${abbrs.operationalInsightsWorkspaces}${resourceToken}'
+    useExistingLogAnalytics: useExistingLogAnalytics
+    existingLogAnalyticsName: existingLogAnalyticsName
+    existingLogAnalyticsRG: existingLogAnalyticsRG
+    existingLogAnalyticsSubscriptionId: !empty(existingLogAnalyticsSubscriptionId) ? existingLogAnalyticsSubscriptionId : subscription().subscriptionId
     apimApplicationInsightsName: !empty(apimApplicationInsightsName) ? apimApplicationInsightsName : '${abbrs.insightsComponents}apim-${resourceToken}'
     apimApplicationInsightsDashboardName: !empty(apimApplicationInsightsDashboardName) ? apimApplicationInsightsDashboardName : '${abbrs.portalDashboards}apim-${resourceToken}'
     functionApplicationInsightsName: !empty(funcApplicationInsightsName) ? funcApplicationInsightsName : '${abbrs.insightsComponents}func-${resourceToken}'

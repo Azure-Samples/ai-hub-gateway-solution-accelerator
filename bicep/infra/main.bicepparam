@@ -31,6 +31,12 @@ param entraTenantId = readEnvironmentVariable('AZURE_TENANT_ID', '')
 param entraClientId = readEnvironmentVariable('AZURE_CLIENT_ID', '')
 param entraAudience = readEnvironmentVariable('AZURE_AUDIENCE', '')
 
+// MONITORING
+param useExistingLogAnalytics = bool(readEnvironmentVariable('USE_EXISTING_LOG_ANALYTICS', 'false'))
+param existingLogAnalyticsName = readEnvironmentVariable('EXISTING_LOG_ANALYTICS_NAME', '')
+param existingLogAnalyticsRG = readEnvironmentVariable('EXISTING_LOG_ANALYTICS_RG', '')
+param existingLogAnalyticsSubscriptionId = readEnvironmentVariable('EXISTING_LOG_ANALYTICS_SUBSCRIPTION_ID', '')
+
 // NETWORKING
 param useExistingVnet = bool(readEnvironmentVariable('USE_EXISTING_VNET', 'false'))
 param existingVnetRG = readEnvironmentVariable('EXISTING_VNET_RG', '')

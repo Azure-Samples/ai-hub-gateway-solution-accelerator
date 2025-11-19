@@ -38,7 +38,9 @@ param enableAIModelInference = true
 // No Entra ID auth in dev (simplifies testing)
 param entraAuth = false
 
+// Use new Log Analytics workspace (don't use existing)
+param useExistingLogAnalytics = false
+
 // Public network access for easier development
-param openAIExternalNetworkAccess = 'Enabled'
 param cosmosDbPublicAccess = 'Enabled'
 param eventHubNetworkAccess = 'Enabled'

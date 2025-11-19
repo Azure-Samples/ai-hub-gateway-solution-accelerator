@@ -52,6 +52,16 @@ param apicServiceName = ''
 param aiFoundryResourceName = ''
 
 // =============================================================================
+// MONITORING PARAMETERS
+// =============================================================================
+
+// Log Analytics Workspace Configuration
+param useExistingLogAnalytics = false
+param existingLogAnalyticsName = ''  // Name of existing Log Analytics workspace
+param existingLogAnalyticsRG = ''  // Resource group of existing workspace
+param existingLogAnalyticsSubscriptionId = ''  // Subscription ID (leave empty for current subscription)
+
+// =============================================================================
 // NETWORKING PARAMETERS
 // =============================================================================
 
@@ -107,7 +117,6 @@ param apimV2UsePrivateEndpoint = true
 param apimV2PublicNetworkAccess = true
 
 // Azure Services Public Network Access
-param openAIExternalNetworkAccess = 'Disabled'
 param cosmosDbPublicAccess = 'Disabled'
 param eventHubNetworkAccess = 'Enabled'
 param languageServiceExternalNetworkAccess = 'Disabled'

@@ -47,7 +47,6 @@ param entraAudience = ''  // Set via environment variable or override
 param apimNetworkType = 'Internal'
 param apimV2UsePrivateEndpoint = true
 param apimV2PublicNetworkAccess = false
-param openAIExternalNetworkAccess = 'Disabled'
 param cosmosDbPublicAccess = 'Disabled'
 param eventHubNetworkAccess = 'Disabled'
 param languageServiceExternalNetworkAccess = 'Disabled'
@@ -55,6 +54,12 @@ param aiContentSafetyExternalNetworkAccess = 'Disabled'
 
 // Enable Azure Monitor Private Link Scope
 param useAzureMonitorPrivateLinkScope = true
+
+// Log Analytics Configuration (use existing workspace if available)
+param useExistingLogAnalytics = false
+param existingLogAnalyticsName = ''  // Set to existing workspace name if reusing
+param existingLogAnalyticsRG = ''  // Set to existing workspace resource group
+param existingLogAnalyticsSubscriptionId = ''  // Set if workspace is in different subscription
 
 // Production AI Foundry configuration
 param aiFoundryInstances = [

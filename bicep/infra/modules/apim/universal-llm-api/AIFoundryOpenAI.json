@@ -3,7 +3,7 @@
   "info": {
     "title": "Azure OpenAI Service API",
     "description": "Azure OpenAI APIs for completions and search",
-    "version": "2025-03-01-preview"
+    "version": "2024-05-01-preview"
   },
   "servers": [
     {
@@ -50,9 +50,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -154,9 +154,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -320,9 +320,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -447,9 +447,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -523,9 +523,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -599,9 +599,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -670,9 +670,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -773,9 +773,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -811,9 +811,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -870,9 +870,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -917,9 +917,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -974,9 +974,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -1014,9 +1014,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -1073,9 +1073,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -1120,9 +1120,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -1177,9 +1177,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -1287,9 +1287,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -1334,9 +1334,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -1402,9 +1402,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -1458,9 +1458,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -1508,9 +1508,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -1620,9 +1620,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -1690,9 +1690,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -1758,9 +1758,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -1814,9 +1814,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -1882,9 +1882,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -1950,9 +1950,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -2061,9 +2061,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           },
           {
@@ -2174,9 +2174,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],
@@ -2265,8 +2265,8 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
-              "default": "2025-03-01-preview"
+              "example": "2024-05-01-preview",
+              "default": "2024-05-01-preview"
             },
             "description": "api version"
           }
@@ -2313,8 +2313,8 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
-              "default": "2025-03-01-preview"
+              "example": "2024-05-01-preview",
+              "default": "2024-05-01-preview"
             },
             "description": "api version"
           }
@@ -2362,8 +2362,8 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
-              "default": "2025-03-01-preview"
+              "example": "2024-05-01-preview",
+              "default": "2024-05-01-preview"
             },
             "description": "api version"
           }
@@ -2409,8 +2409,8 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
-              "default": "2025-03-01-preview"
+              "example": "2024-05-01-preview",
+              "default": "2024-05-01-preview"
             },
             "description": "api version"
           }
@@ -2466,8 +2466,8 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
-              "default": "2025-03-01-preview"
+              "example": "2024-05-01-preview",
+              "default": "2024-05-01-preview"
             },
             "description": "api version"
           }
@@ -2598,8 +2598,8 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
-              "default": "2025-03-01-preview"
+              "example": "2024-05-01-preview",
+              "default": "2024-05-01-preview"
             },
             "description": "api version"
           }
@@ -2646,8 +2646,8 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
-              "default": "2025-03-01-preview"
+              "example": "2024-05-01-preview",
+              "default": "2024-05-01-preview"
             },
             "description": "api version"
           }
@@ -2716,8 +2716,8 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
-              "default": "2025-03-01-preview"
+              "example": "2024-05-01-preview",
+              "default": "2024-05-01-preview"
             },
             "description": "api version"
           }
@@ -2772,8 +2772,8 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
-              "default": "2025-03-01-preview"
+              "example": "2024-05-01-preview",
+              "default": "2024-05-01-preview"
             },
             "description": "api version"
           }
@@ -2962,8 +2962,8 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
-              "default": "2025-03-01-preview"
+              "example": "2024-05-01-preview",
+              "default": "2024-05-01-preview"
             },
             "description": "api version"
           }
@@ -3032,8 +3032,8 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
-              "default": "2025-03-01-preview"
+              "example": "2024-05-01-preview",
+              "default": "2024-05-01-preview"
             },
             "description": "api version"
           }
@@ -3090,8 +3090,8 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
-              "default": "2025-03-01-preview"
+              "example": "2024-05-01-preview",
+              "default": "2024-05-01-preview"
             },
             "description": "api version"
           }
@@ -3231,8 +3231,8 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
-              "default": "2025-03-01-preview"
+              "example": "2024-05-01-preview",
+              "default": "2024-05-01-preview"
             },
             "description": "api version"
           }
@@ -3271,9 +3271,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2025-03-01-preview",
+              "example": "2024-05-01-preview",
               "description": "api version",
-              "default": "2025-03-01-preview"
+              "default": "2024-05-01-preview"
             }
           }
         ],

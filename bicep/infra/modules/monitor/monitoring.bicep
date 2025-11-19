@@ -1,4 +1,8 @@
 param logAnalyticsName string
+param useExistingLogAnalytics bool = false
+param existingLogAnalyticsName string = ''
+param existingLogAnalyticsRG string = ''
+param existingLogAnalyticsSubscriptionId string = ''
 param apimApplicationInsightsName string
 param apimApplicationInsightsDashboardName string
 param functionApplicationInsightsName string
@@ -51,6 +55,10 @@ module logAnalytics 'loganalytics.bicep' = {
     location: location
     tags: tags
     privateLinkScopeName: usePrivateLinkScope ? privateLinkScopeName : ''
+    useExistingLogAnalytics: useExistingLogAnalytics
+    existingLogAnalyticsName: existingLogAnalyticsName
+    existingLogAnalyticsRG: existingLogAnalyticsRG
+    existingLogAnalyticsSubscriptionId: existingLogAnalyticsSubscriptionId
   }
 }
 
