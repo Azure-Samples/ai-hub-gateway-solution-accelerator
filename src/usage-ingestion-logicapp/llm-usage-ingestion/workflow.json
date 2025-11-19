@@ -1,0 +1,286 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Create_Export_Config": {
+                "type": "ServiceProvider",
+                "inputs": {
+                    "parameters": {
+                        "databaseId": "@appsetting('CosmosDBDatabase')",
+                        "containerId": "@appsetting('CosmosDBContainerConfig')",
+                        "item": "{ \"id\": \"002\", \"type\": \"default\", \"lastExportDate\": \"@{formatDateTime(utcNow(), 'yyyy-MM-ddTHH:mm:00')}\", \"totalExportedRecords\": 0 }",
+                        "isUpsert": true
+                    },
+                    "serviceProviderConfiguration": {
+                        "connectionName": "AzureCosmosDB",
+                        "operationId": "CreateOrUpdateDocument",
+                        "serviceProviderId": "/serviceProviders/AzureCosmosDB"
+                    }
+                },
+                "runAfter": {
+                    "Read_Export_Config": [
+                        "FAILED"
+                    ]
+                }
+            },
+            "For_each": {
+                "type": "Foreach",
+                "foreach": "@body('Parse_Metrics_Logs')?['value']",
+                "actions": {
+                    "Create_Usage_Log": {
+                        "type": "ServiceProvider",
+                        "inputs": {
+                            "parameters": {
+                                "databaseId": "@appsetting('CosmosDBDatabase')",
+                                "containerId": "@appsetting('CosmosDBContainerLLMUsage')",
+                                "item": "{\n  \"id\": \"@{concat('llm-', guid())}\",\n  \"timestamp\": \"@{body('ParseMetricEntry')?['timestamp']}\",\n  \"appId\": \"@{body('ParseMetricEntry')?['appId']}\",\n  \"productName\": \"@{body('ParseMetricEntry')?['productName']}\",\n  \"deploymentName\": \"@{body('ParseMetricEntry')?['deploymentName']}\",\n  \"backendId\": \"@{body('ParseMetricEntry')?['backendId']}\",\n  \"customDimension1\": \"@{body('ParseMetricEntry')?['customDimension1']}\",\n  \"customDimension2\": \"@{body('ParseMetricEntry')?['customDimension2']}\",\n  \"gatewayName\": \"@{body('ParseMetricEntry')?['gatewayName']}\",\n  \"gatewayRegion\": \"@{body('ParseMetricEntry')?['gatewayRegion']}\",\n  \"promptTokens\": \"@{body('ParseMetricEntry')?['promptTokens']}\",\n  \"responseTokens\": \"@{body('ParseMetricEntry')?['responseTokens']}\",\n  \"totalTokens\": \"@{body('ParseMetricEntry')?['totalTokens']}\",\n  \"targetService\": \"NA\",\n  \"model\": \"@{body('ParseMetricEntry')?['deploymentName']}\",\n  \"aiGatewayId\": \"managed\",\n  \"RequestIp\": \"NA\",\n  \"operationName\": \"NA\"\n}",
+                                "isUpsert": true
+                            },
+                            "serviceProviderConfiguration": {
+                                "connectionName": "AzureCosmosDB",
+                                "operationId": "CreateOrUpdateDocument",
+                                "serviceProviderId": "/serviceProviders/AzureCosmosDB"
+                            }
+                        },
+                        "runAfter": {
+                            "ParseMetricEntry": [
+                                "SUCCEEDED"
+                            ]
+                        }
+                    },
+                    "ParseMetricEntry": {
+                        "type": "ParseJson",
+                        "inputs": {
+                            "content": "@items('For_each')",
+                            "schema": {
+                                "properties": {
+                                    "timestamp": {
+                                        "type": "string"
+                                    },
+                                    "appId": {
+                                        "type": "string"
+                                    },
+                                    "productName": {
+                                        "type": "string"
+                                    },
+                                    "deploymentName": {
+                                        "type": "string"
+                                    },
+                                    "backendId": {
+                                        "type": "string"
+                                    },
+                                    "customDimension1": {
+                                        "type": "string"
+                                    },
+                                    "customDimension2": {
+                                        "type": "string"
+                                    },
+                                    "gatewayName": {
+                                        "type": "string"
+                                    },
+                                    "gatewayRegion": {
+                                        "type": "string"
+                                    },
+                                    "promptTokens": {
+                                        "type": "integer"
+                                    },
+                                    "responseTokens": {
+                                        "type": "integer"
+                                    },
+                                    "totalTokens": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Parse_Metrics_Logs": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "Parse_Metrics_Logs": {
+                "type": "ParseJson",
+                "inputs": {
+                    "content": "@body('Run_query_and_list_results')",
+                    "schema": {
+                        "properties": {
+                            "value": {
+                                "items": {
+                                    "properties": {
+                                        "timestamp": {
+                                            "type": "string"
+                                        },
+                                        "appId": {
+                                            "type": "string"
+                                        },
+                                        "productName": {
+                                            "type": "string"
+                                        },
+                                        "deploymentName": {
+                                            "type": "string"
+                                        },
+                                        "backendId": {
+                                            "type": "string"
+                                        },
+                                        "customDimension1": {
+                                            "type": "string"
+                                        },
+                                        "customDimension2": {
+                                            "type": "string"
+                                        },
+                                        "gatewayName": {
+                                            "type": "string"
+                                        },
+                                        "gatewayRegion": {
+                                            "type": "string"
+                                        },
+                                        "promptTokens": {
+                                            "type": "integer"
+                                        },
+                                        "responseTokens": {
+                                            "type": "integer"
+                                        },
+                                        "totalTokens": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "required": [
+                                        "timestamp",
+                                        "appId",
+                                        "productName",
+                                        "backendId",
+                                        "deploymentName",
+                                        "gatewayName",
+                                        "gatewayRegion",
+                                        "promptTokens",
+                                        "responseTokens",
+                                        "totalTokens"
+                                    ],
+                                    "type": "object"
+                                },
+                                "type": "array"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "runAfter": {
+                    "Run_query_and_list_results": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "Read_Export_Config": {
+                "type": "ServiceProvider",
+                "inputs": {
+                    "parameters": {
+                        "databaseId": "@appsetting('CosmosDBDatabase')",
+                        "containerId": "@appsetting('CosmosDBContainerConfig')",
+                        "itemId": "002",
+                        "partitionKey": "default"
+                    },
+                    "serviceProviderConfiguration": {
+                        "connectionName": "AzureCosmosDB",
+                        "operationId": "ReadDocument",
+                        "serviceProviderId": "/serviceProviders/AzureCosmosDB"
+                    }
+                },
+                "runAfter": {}
+            },
+            "Run_query_and_list_results": {
+                "type": "ApiConnection",
+                "inputs": {
+                    "host": {
+                        "connection": {
+                            "referenceName": "azuremonitorlogs"
+                        }
+                    },
+                    "method": "post",
+                    "body": "let startTime = todatetime('@{variables('LastExportDate')}');\nlet endTime = todatetime('@{variables('CurrentTime')}');\n\nlet timeInterval = 1h;\nlet timeBinFormat = \"M/dd/yyyy h:mm:ss tt\";\n\ncustomMetrics\n| extend appId = tostring(customDimensions[\"appId\"]),\n         productName = tostring(customDimensions[\"productName\"]),\n         deploymentName = tostring(customDimensions[\"deploymentName\"]),\n         backendId = tostring(customDimensions[\"Backend ID\"]),\n         gatewayName = tostring(customDimensions[\"Service Name\"]),\n         gatewayRegion = tostring(customDimensions[\"Region\"]),\n         timeBin = bin(timestamp, timeInterval)\n| where ingestion_time() between(startTime .. endTime) and name in ('Prompt Tokens', 'Completion Tokens', 'Total Tokens')\n| summarize totalTokens = sumif(value, name == \"Total Tokens\"),\n            responseTokens = sumif(value, name == \"Completion Tokens\"),\n            promptTokens = sumif(value, name == \"Prompt Tokens\")\n            by appId, deploymentName, productName, backendId, gatewayName, gatewayRegion, timeBin\n| project timestamp = format_datetime(timeBin, \"M/dd/yyyy h:mm:ss tt\"), appId, deploymentName, productName, backendId, gatewayName, gatewayRegion, promptTokens, responseTokens, totalTokens",
+                    "path": "/queryData",
+                    "queries": {
+                        "subscriptions": "@appsetting('AppInsights_SubscriptionId')",
+                        "resourcegroups": "@appsetting('AppInsights_ResourceGroup')",
+                        "resourcetype": "Application Insights",
+                        "resourcename": "@appsetting('AppInsights_Name')",
+                        "timerange": "Set in query"
+                    }
+                },
+                "runAfter": {
+                    "Initialize_Logs_Time_Range": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "Update_Export_Config": {
+                "type": "ServiceProvider",
+                "inputs": {
+                    "parameters": {
+                        "databaseId": "@appsetting('CosmosDBDatabase')",
+                        "containerId": "@appsetting('CosmosDBContainerConfig')",
+                        "item": "{ \"id\": \"001\", \"type\": \"default\", \"lastExportDate\": \"@{variables('CurrentTime')}\", \"totalExportedRecords\": @{length(body('Run_query_and_list_results')?['value'])} }",
+                        "isUpsert": true
+                    },
+                    "serviceProviderConfiguration": {
+                        "connectionName": "AzureCosmosDB",
+                        "operationId": "CreateOrUpdateDocument",
+                        "serviceProviderId": "/serviceProviders/AzureCosmosDB"
+                    }
+                },
+                "runAfter": {
+                    "For_each": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "Initialize_Logs_Time_Range": {
+                "type": "InitializeVariable",
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "LastExportDate",
+                            "type": "string",
+                            "value": "@if(equals(outputs('Read_Export_Config')?['statusCode'], 'OK'), body('Read_Export_Config')?['content']['lastExportDate'], formatDateTime(utcNow(), 'yyyy-MM-ddTHH:mm:00'))"
+                        },
+                        {
+                            "name": "CurrentTime",
+                            "type": "string",
+                            "value": "@formatDateTime(utcNow(), 'yyyy-MM-ddTHH:mm:00')"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Create_Export_Config": [
+                        "SUCCEEDED",
+                        "SKIPPED"
+                    ]
+                }
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "triggers": {
+            "Recurrence": {
+                "type": "Recurrence",
+                "recurrence": {
+                    "frequency": "Day",
+                    "interval": 1,
+                    "schedule": {
+                        "hours": [
+                            "6",
+                            "12",
+                            "18",
+                            "23"
+                        ]
+                    },
+                    "timeZone": "GMT Standard Time"
+                }
+            }
+        }
+    },
+    "kind": "Stateful"
+}

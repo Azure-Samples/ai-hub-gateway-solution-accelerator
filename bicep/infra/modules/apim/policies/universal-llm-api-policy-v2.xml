@@ -1,0 +1,129 @@
+<policies>
+    <inbound>
+        <base />
+        
+        <!--
+            Universal LLM API Policy v2
+            Purpose: Routes requests to appropriate backend pools based on model selection and RBAC permissions
+            
+            Flow:
+            1. Validate Entra ID authentication (optional, controlled by entra-validate named value)
+            2. Extract and validate model parameter from request payload
+            3. Configure backend pools and routing rules
+            4. Determine target backend pool based on model and permissions
+            5. Set up authentication and route to selected backend
+            6. Configure collecting usage metrics
+            
+            Configuration:
+            - Modify allowedBackendPools for RBAC (comma-separated pool IDs, empty = all allowed)
+            - Set defaultBackendPool for unmapped models (empty = return error)
+            - Backend pool definitions are in frag-set-backend-pools fragment
+        -->
+        
+        <!-- Step 1: Validate Entra ID authentication (if enabled) -->
+        <include-fragment fragment-id="aad-auth" />
+        
+        <!-- Step 2: Extract model parameter from request payload -->
+        <set-variable name="requestedModel" value="@{
+            try
+            {
+                var bodyText = context.Request.Body.As<string>(preserveContent: true);
+                if (string.IsNullOrEmpty(bodyText))
+                {
+                    return string.Empty;
+                }
+                var body = JObject.Parse(bodyText);
+                return body["model"] != null ? body["model"].ToString() : string.Empty;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }" />
+
+        <!-- Step 3: Validate that model parameter is present -->
+        <choose>
+            <when condition="@(string.IsNullOrEmpty((string)context.Variables["requestedModel"]))">
+                <!-- If requested model is not identified, return 400 error -->
+                <return-response>
+                    <set-status code="400" reason="Bad Request" />
+                    <set-header name="Content-Type" exists-action="override">
+                        <value>application/json</value>
+                    </set-header>
+                    <set-body>@{
+                        return new JObject(
+                            new JProperty("error", new JObject(
+                                new JProperty("message", "Model could not be detected"),
+                                new JProperty("type", "invalid_request_error"),
+                                new JProperty("code", "missing_model_parameter"),
+                                new JProperty("param", "model")
+                            ))
+                        ).ToString();
+                    }</set-body>
+                </return-response>
+                <!-- Alternatively you can set default model -->
+                <!-- 
+                    <set-variable name="requestedModel" value="default-model-name" />
+                -->
+            </when>
+        </choose>
+        
+        <!-- Remove api-key header to prevent it from being passed to backend endpoints -->
+        <set-header name="api-key" exists-action="delete" />
+        
+        <!-- Step 4: Configure RBAC and default routing behavior -->
+        <!-- RBAC: Set allowed backend pools (comma-separated pool IDs, empty = all pools allowed) -->
+        <set-variable name="allowedBackendPools" value="" />
+        
+        <!-- Set default backend pool (empty = return error for unmapped models) -->
+        <set-variable name="defaultBackendPool" value="" />
+
+        <!-- Step 4: Load backend pool configurations -->
+        <include-fragment fragment-id="set-backend-pools" />
+
+        <!-- Step 5: Determine target backend pool based on model and permissions -->
+        <include-fragment fragment-id="set-target-backend-pool" />
+
+        <!-- Step 6: Configure authentication and route to selected backend -->
+        <include-fragment fragment-id="set-backend-authorization" />
+
+        <!-- Step 7: Configure collecting usage metrics -->
+        <include-fragment fragment-id="set-llm-usage" />
+
+        <!-- CORS Configuration for AI Foundry Compatibility -->
+        <include-fragment fragment-id="ai-foundry-compatibility" />
+    </inbound>
+    <backend>
+        <!--
+            Backend Retry Logic
+            Purpose: Implements retry mechanism for transient failures (429 throttling, 503 service unavailable)
+            
+            Configuration:
+            - Retry count: Set to one less than number of backends in pool to try all backends
+            - Condition: Retries on 429 (throttling) or 503 (except when backend pool is unavailable)
+            - Strategy: First fast retry with zero interval, buffer request body for replay
+        -->
+        <retry count="2" interval="0" first-fast-retry="true" condition="@(context.Response.StatusCode == 429 || (context.Response.StatusCode == 503 && !context.Response.StatusReason.Contains("Backend pool") && !context.Response.StatusReason.Contains("is temporarily unavailable")))">
+            <forward-request buffer-request-body="true" />
+        </retry>
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+        <!--
+            Error Handling and Custom Metrics
+            Purpose: Pushes custom metrics for 429 throttling errors to enable Azure Monitor alerts
+            
+            Variables Set:
+            - service-name: Identifies the service generating the error
+            - target-deployment: The model that was requested when error occurred
+            
+            Integration: Uses throttling-events fragment to send metrics to monitoring system
+        -->
+        <set-variable name="service-name" value="Universal LLM API" />
+        <set-variable name="target-deployment" value="@((string)context.Variables["requestedModel"])" />
+        <include-fragment fragment-id="throttling-events" />
+    </on-error>
+</policies>

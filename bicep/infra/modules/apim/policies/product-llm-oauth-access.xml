@@ -1,0 +1,46 @@
+<!--
+    Product Policy: LLM OAuth Access
+    Purpose: Enable Entra ID OAuth authentication for LLM product access
+    
+    This policy initializes the required variables and invokes the aad-auth-custom fragment
+    to validate JWT tokens from Entra ID before allowing access to LLM APIs.
+    
+    Configuration:
+    - entra-auth: Set to "true" to enable authentication
+    - tenant-id: Your Entra ID tenant identifier
+    - audience: Expected audience claim in the JWT token
+    - client-id: Expected application/client ID claim in the JWT token
+-->
+<policies>
+    <inbound>
+        <base />
+        
+        <!-- Initialize Entra ID authentication variables -->
+        <!-- Enable Entra ID authentication -->
+        <set-variable name="entra-auth" value="true" />
+        
+        <!-- Set your Entra ID tenant ID -->
+        <set-variable name="tenant-id" value="{{tenant-id}}" />
+        
+        <!-- Set expected audience (typically the API application ID URI or client ID) -->
+        <set-variable name="audience" value="{{audience}}" />
+        
+        <!-- Set expected client/application ID -->
+        <set-variable name="client-id" value="{{client-id}}" />
+        
+        <!-- Invoke the custom Entra ID authentication fragment -->
+        <include-fragment fragment-id="aad-auth-custom" />
+    </inbound>
+    
+    <backend>
+        <base />
+    </backend>
+    
+    <outbound>
+        <base />
+    </outbound>
+    
+    <on-error>
+        <base />
+    </on-error>
+</policies>
