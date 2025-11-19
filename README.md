@@ -475,26 +475,16 @@ Master Citadel implementation and operations with our detailed guides:
 
 | Guide | Description |
 |-------|-------------|
-| [Architecture Overview](./guides/architecture.md) | Complete system design and Citadel pillars |
 | [**🆕 Quick Deployment Guide**](./guides/quick-deployment-guide.md) | **Fast deployment for non-production environments** |
 | [**🆕 Full Deployment Guide**](./guides/full-deployment-guide.md) | **Comprehensive guide for dev, staging, and production** |
-| [Quick Start: Bicep Parameters](./guides/QUICKSTART-PARAMETERS.md) | Fast deployment with native Bicep parameter files |
 | [Parameters Deployment Guide](./guides/parameters-deployment-guide.md) | Comprehensive Bicep parameter file usage |
-| [JSON to Bicep Migration](./guides/bicep-parameters-migration-guide.md) | Migrate from JSON to .bicepparam files |
 | [Enterprise Provisioning](./guides/enterprise-provisioning.md) | Branch-based deployment, CI/CD automation |
-| [APIM Configuration](./guides/apim-configuration.md) | Advanced API Management policies and routing |
-| [Bring Your Own Network](./guides/bring-your-own-network.md) | Deploy into existing VNets with private connectivity |
-| [Deployment Troubleshooting](./guides/deployment-troubleshooting.md) | Common issues and solutions |
 
 ### 🔧 **AI Service Integration**
 
 | Guide | Description |
 |-------|-------------|
-| [OpenAI Onboarding](./guides/openai-onboarding.md) | Add Azure OpenAI instances and models (including Realtime API) |
-| [AI Search Integration](./guides/ai-search-integration.md) | Vector search and RAG capabilities |
-| [AI Foundry Integration](./guides/ai-studio-integration.md) | Custom model deployment and AI Foundry projects |
-| [Document Intelligence](./guides/doc-intell-onboarding.md) | Advanced document processing integration |
-| [End-to-End Scenario](./guides/end-to-end-scenario.md) | Complete chat-with-data implementation |
+| [LLM-Backend-Onboarding](./guides/LLM-Backend-Onboarding.md) | Add Azure OpenAI instances and models (including Realtime API) |
 
 ### 🛡️ **Security & Compliance**
 
@@ -502,7 +492,6 @@ Master Citadel implementation and operations with our detailed guides:
 |-------|-------------|
 | [PII Detection & Masking](./guides/pii-masking-apim.md) | Automated sensitive data protection |
 | [Entra ID Authentication](./guides/entraid-auth-validation.md) | JWT validation and Zero Trust implementation |
-| [Use Case Onboarding](./guides/use-case-onboarding-decision-guide.md) | Multi-service AI solution patterns |
 | [Citadel Access Contracts](./guides/Citadel-Access-Contracts.md) | AI Access & Publish Contract specifications |
 
 ### 📊 **Observability & Analytics**
@@ -512,15 +501,11 @@ Master Citadel implementation and operations with our detailed guides:
 | [Power BI Dashboard](./guides/power-bi-dashboard.md) | Usage analytics and cost allocation dashboards |
 | [Throttling Events Monitoring](./guides/throttling-events-handling.md) | Real-time 429 error tracking with alerts |
 | [Dynamic Throttling Assignment](./guides/dynamic-throttling-assignment.md) | Intelligent load balancing for PTU models |
-| [Usage Ingestion](./guides/openai-usage-ingestion.md) | Token tracking and billing integration |
 
 ### ⚙️ **Advanced Capabilities**
 
 | Guide | Description |
 |-------|-------------|
-| [Hybrid Deployment](./guides/ai-hub-gateway-hybrid-deployment.md) | Multi-cloud and edge scenarios |
-| [Dynamic LLM Backend Configuration](./guides/dynamic-llm-backend-configuration.md) | Runtime backend selection and failover |
-| [Use Case Onboarding Automation](./infra/usecase-onboarding/README.md) | Automate APIM Products, Subscriptions, and Key Vault secrets |
 
 ---
 
