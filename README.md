@@ -1,10 +1,35 @@
 # 🚀 AI Hub Gateway Landing Zone
 
+> ## 🏰 **NEW: AI Citadel Governance Hub v1 - Now in Preview!**
+> 
+> **The next evolution of AI Hub Gateway is here!** AI Citadel Governance Hub expands enterprise AI governance with three powerful pillars:
+> 
+> - **🛡️ Governance & Security** - Unified AI gateway, managed credentials, multi-cloud support, AI content safety, AI registry
+> - **📊 Observability & Compliance** - Platform-level monitoring, centralized AI evaluations, automated quality assessments
+> - **🚀 AI Development Velocity** - Citadel Access & Publish Contracts, agent blueprints, DevOps integration
+> 
+> **Built on proven AI Hub Gateway practices + Microsoft's latest AI innovations**
+> 
+> 🎯 **Preview Available Now**: [`citadel-v1` branch](https://github.com/azure-samples/ai-hub-gateway-solution-accelerator/tree/citadel-v1)  
+> 📚 **Quick Deployment Guide**: [Citadel Governance Hub Guide](https://github.com/azure-samples/ai-hub-gateway-solution-accelerator/blob/citadel-v1/guides/quick-deployment-guide.md)
+> 
+> **💡 Recommendation**: New deployments should use the `citadel-v1` branch for access to the latest features. Citadel will become the main branch upon GA.
+
 **Enterprise-ready solution accelerator** for implementing a centralized AI API gateway that empowers organizations to securely leverage multiple Azure AI services with unified governance, monitoring, and cost management.
+
+
 
 ![AI Hub Gateway Landing Zone](./assets/architecture-1-0-6.png)
 
 ## ⭐ What's New (Latest Updates)
+
+🏰 **AI Citadel Governance Hub v1 Preview**
+- **Three Pillars Architecture** - Governance & Security, Observability & Compliance, AI Development Velocity
+- **AI Registry** - Universal catalog for LLMs, tools (via Model Context Protocol), and agents
+- **Citadel Contracts** - Infrastructure-as-code for AI Access & Publish governance
+- **Platform AI Evaluations** - Automated quality assessments (groundedness, relevance, coherence, safety) -- Coming Soon
+- **Agent Landing Zones** - Ready to integrate with [pre-configured spoke environments with AI Foundry or Container Apps](https://github.com/Azure/AI-Landing-Zones/tree/main)
+- **Enhanced Multi-Cloud** - Unified governance across Azure OpenAI, AWS Bedrock, and open-source models
 
 🔒 **Enterprise Security & Compliance**
 - **[PII Detection & Masking](./guides/pii-masking-apim.md)** - Automatic detection and redaction of sensitive data
