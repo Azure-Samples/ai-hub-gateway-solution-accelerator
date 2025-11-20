@@ -78,6 +78,21 @@ az provider list --query "[?registrationState=='Registered'].namespace" -o table
 
 ## 🎯 Deployment Preparation
 
+First you need to get the deployment template files:
+
+```bash
+
+azd init --template Azure-Samples/ai-hub-gateway-solution-accelerator -e ai-hub-citadel-dev --branch citadel-v1
+
+# or use git clone:
+# git clone https://github.com/Azure-Samples/ai-hub-gateway-solution-accelerator.git
+# git checkout citadel-v1
+
+# Make the repository your current directory:
+cd ai-hub-citadel-deployment # it may differ if you used git clone
+
+```
+
 ### 1. Parameter Files Strategy
 
 AI Citadel Governance Hub uses **Bicep parameter files (.bicepparam)** for environment-specific configurations.
@@ -86,10 +101,10 @@ AI Citadel Governance Hub uses **Bicep parameter files (.bicepparam)** for envir
 
 | File | Purpose | Use Case |
 |------|---------|----------|
-| `main.bicepparam` | Environment variables | azd deployments, CI/CD |
-| `main.parameters.dev.bicepparam` | Development | Dev/test environments |
-| `main.parameters.prod.bicepparam` | Production | Production workloads |
-| `main.parameters.complete.bicepparam` | Reference | All parameters documented |
+| [`main.bicepparam`](../bicep/infra/main.bicepparam) | Environment variables | Used in azd deployments, CI/CD |
+| [`main.parameters.dev.bicepparam`](../bicep/infra/main.parameters.dev.bicepparam) | Development | Dev/test environments |
+| [`main.parameters.prod.bicepparam`](../bicep/infra/main.parameters.prod.bicepparam) | Production | Production workloads |
+| [`main.parameters.complete.bicepparam`](../bicep/infra/main.parameters.complete.bicepparam) | Reference | All parameters documented |
 
 #### Parameter File Structure
 
