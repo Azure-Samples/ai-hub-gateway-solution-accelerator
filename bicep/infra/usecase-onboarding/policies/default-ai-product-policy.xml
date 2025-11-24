@@ -1,17 +1,44 @@
+<!--
+    - Policies are applied in the order they appear.
+    - Position <base/> inside a section to inherit policies from the outer scope.
+    - Comments within policies are not preserved.
+-->
+<!-- Add policies as children to the <inbound>, <outbound>, <backend>, and <on-error> elements -->
 <policies>
-  <inbound>
-    <base />
-    <!-- It is important to review which target AI services will be accessed through this product and adjust accordingly -->
-    <!-- Basic rate limit per subscription as a safeguard -->
-    <rate-limit calls="100" renewal-period="60" />
-  </inbound>
-  <backend>
-    <base />
-  </backend>
-  <outbound>
-    <base />
-  </outbound>
-  <on-error>
-    <base />
-  </on-error>
+    <!-- Throttle, authorize, validate, cache, or transform the requests -->
+    <inbound>
+        <base />
+        <!-- Extract and validate model parameter from request -->
+        <include-fragment fragment-id="set-llm-requested-model" />
+        <!-- Restrict access for this product to specific models -->
+        <choose>
+            <when condition="@(!new [] { "gpt-4o", "DeepSeek-R1" }.Contains(context.Variables["requestedModel"] ?? String.Empty))">
+                <return-response>
+                    <set-status code="401" reason="Unauthorized model access" />
+                </return-response>
+            </when>
+        </choose>
+        <!-- Capacity management - Subscription Level: allow only assigned tpm for each HR use case subscription -->
+        <llm-token-limit counter-key="@(context.Subscription.Id)" tokens-per-minute="300" estimate-prompt-tokens="false" tokens-consumed-header-name="consumed-tokens" remaining-tokens-header-name="remaining-tokens" token-quota="100000" token-quota-period="Monthly" retry-after-header-name="retry-after" />
+        <!-- Failure to pass content safety will result in 403 error -->
+        <llm-content-safety backend-id="content-safety-backend" shield-prompt="true">
+            <!-- 0 is most restrictive and can be set up-to 7 -->
+            <categories output-type="EightSeverityLevels">
+                <category name="Hate" threshold="0" />
+                <category name="Violence" threshold="0" />
+            </categories>
+        </llm-content-safety>
+    </inbound>
+    <!-- Control if and how the requests are forwarded to services  -->
+    <backend>
+        <base />
+    </backend>
+    <!-- Customize the responses -->
+    <outbound>
+        <base />
+    </outbound>
+    <!-- Handle exceptions and customize error responses  -->
+    <on-error>
+        <base />
+    </on-error>
 </policies>

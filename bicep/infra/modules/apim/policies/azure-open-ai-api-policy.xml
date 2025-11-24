@@ -23,37 +23,10 @@
         <!-- Step 1: Validate Entra ID authentication (if enabled) -->
         <include-fragment fragment-id="aad-auth" />
         
-        <!-- Step 2: Extract model parameter from request payload -->
-        <set-variable name="requestedModel" value="@((string)context.Request.MatchedParameters["deployment-id"])" />
-
-        <!-- Step 3: Validate that model parameter is present -->
-        <choose>
-            <when condition="@(string.IsNullOrEmpty((string)context.Variables["requestedModel"]))">
-                <!-- If requested model is not identified, return 400 error -->
-                <return-response>
-                    <set-status code="400" reason="Bad Request" />
-                    <set-header name="Content-Type" exists-action="override">
-                        <value>application/json</value>
-                    </set-header>
-                    <set-body>@{
-                        return new JObject(
-                            new JProperty("error", new JObject(
-                                new JProperty("message", "Model could not be detected"),
-                                new JProperty("type", "invalid_request_error"),
-                                new JProperty("code", "missing_model_parameter"),
-                                new JProperty("param", "model")
-                            ))
-                        ).ToString();
-                    }</set-body>
-                </return-response>
-                <!-- Alternatively you can set default model -->
-                <!-- 
-                    <set-variable name="requestedModel" value="default-model-name" />
-                -->
-            </when>
-        </choose>
+        <!-- Step 2: Extract and validate model parameter from request -->
+        <include-fragment fragment-id="set-llm-requested-model" />
         
-        <!-- Step 3.1: Inject model parameter into request body if not present -->
+        <!-- Step 3: Inject model parameter into request body if not present -->
         <set-body>@{
             var body = context.Request.Body.As<JObject>(preserveContent: true);
             string requestedModel = (string)context.Variables["requestedModel"];

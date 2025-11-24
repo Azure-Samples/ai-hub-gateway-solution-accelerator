@@ -26,12 +26,15 @@ This guide provides the fastest path to deploying AI Citadel Governance Hub for 
 First, initialize your local project in an empty folder (e.g. `ai-hub-citadel-deployment`):
 
 ```bash
-azd init -t Azure-Samples/ai-hub-gateway-solution-accelerator -e ai-hub-citadel-dev
+
+azd init --template Azure-Samples/ai-hub-gateway-solution-accelerator -e ai-hub-citadel-dev --branch citadel-v1
 
 # or use git clone:
-git clone https://github.com/Azure-Samples/ai-hub-gateway-solution-accelerator.git
+# git clone https://github.com/Azure-Samples/ai-hub-gateway-solution-accelerator.git
+# git checkout citadel-v1
+
 # Make the repository your current directory:
-cd ai-hub-gateway-solution-accelerator
+cd ai-hub-citadel-deployment # it may differ if you used git clone
 
 ```
 
@@ -48,7 +51,7 @@ Deploy with minimal configuration using intelligent defaults:
 azd auth login
 
 # Initialize environment
-azd env new ai-hub-citadel-dev
+azd env new ai-hub-citadel-dev-01
 
 # Provision and deploy everything based on defaults
 azd up
