@@ -51,7 +51,7 @@ Deploy with minimal configuration using intelligent defaults:
 azd auth login
 
 # Initialize environment
-azd env new ai-hub-citadel-dev
+azd env new ai-hub-citadel-dev-01
 
 # Provision and deploy everything based on defaults
 azd up

@@ -1,0 +1,74 @@
+<fragment>
+    <!--
+        Extract Requested Model Fragment
+        Purpose: Extracts the requested model from either Azure OpenAI endpoint or inference endpoint
+        
+        Supported Patterns:
+        1. Azure OpenAI: Model from deployment-id path parameter (/deployments/{deployment-id}/chat/completions)
+        2. Inference Endpoint: Model from request body JSON ({"model": "model-name", ...})
+        
+        Output Variable:
+        - requestedModel: The extracted model name (empty string if not found)
+        
+        Logic:
+        - First attempts to extract from deployment-id path parameter (Azure OpenAI pattern)
+        - If not found, attempts to extract from request body model field (Inference pattern)
+        - Returns empty string if neither pattern matches
+    -->
+    
+    <set-variable name="requestedModel" value="@{
+        try
+        {
+            // First try to get model from deployment-id path parameter (Azure OpenAI pattern)
+            var deploymentId = context.Request.MatchedParameters.ContainsKey("deployment-id") 
+                ? context.Request.MatchedParameters["deployment-id"] 
+                : null;
+            
+            if (!string.IsNullOrEmpty(deploymentId))
+            {
+                return deploymentId;
+            }
+            
+            // If not found, try to get model from request body (Inference endpoint pattern)
+            var bodyText = context.Request.Body.As<string>(preserveContent: true);
+            if (string.IsNullOrEmpty(bodyText))
+            {
+                return string.Empty;
+            }
+            
+            var body = JObject.Parse(bodyText);
+            return body["model"] != null ? body["model"].ToString() : string.Empty;
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }" />
+    
+    <!-- Validate that model parameter is present -->
+    <choose>
+        <when condition="@(string.IsNullOrEmpty((string)context.Variables["requestedModel"]))">
+            <!-- If requested model is not identified, return 400 error -->
+            <return-response>
+                <set-status code="400" reason="Bad Request" />
+                <set-header name="Content-Type" exists-action="override">
+                    <value>application/json</value>
+                </set-header>
+                <set-body>@{
+                    return new JObject(
+                        new JProperty("error", new JObject(
+                            new JProperty("message", "Model could not be detected"),
+                            new JProperty("type", "invalid_request_error"),
+                            new JProperty("code", "missing_model_parameter"),
+                            new JProperty("param", "model")
+                        ))
+                    ).ToString();
+                }</set-body>
+            </return-response>
+            <!-- Alternatively you can set default model by uncommenting below -->
+            <!-- 
+                <set-variable name="requestedModel" value="default-model-name" />
+            -->
+        </when>
+    </choose>
+</fragment>

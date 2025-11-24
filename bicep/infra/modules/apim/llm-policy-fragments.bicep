@@ -116,6 +116,20 @@ resource setLLMUsagePolicyFragment 'Microsoft.ApiManagement/service/policyFragme
   }
 }
 
+/**
+ * Policy Fragment: Set LLM Requested Model
+ * Extracts the requested model from either Azure OpenAI endpoint or inference endpoint
+ */
+resource setLLMRequestedModelPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2024-06-01-preview' = {
+  parent: apimService
+  name: 'set-llm-requested-model'
+  properties: {
+    description: 'Extracts the requested model from deployment-id (Azure OpenAI) or request body (Inference)'
+    value: loadTextContent('./policies/frag-set-llm-requested-model.xml')
+    format: 'rawxml'
+  }
+}
+
 // ------------------
 //    OUTPUTS
 // ------------------
