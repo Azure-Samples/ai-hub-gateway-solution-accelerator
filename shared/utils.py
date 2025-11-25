@@ -14,6 +14,34 @@ print_message = lambda message, output='', duration='': print(f"👉🏽 {BOLD_G
 print_ok = lambda message, output='', duration='': print(f"✅ {BOLD_GREEN}{message}{RESET_FORMATTING} ⌚ {datetime.datetime.now().time()} {duration}{' ' if output else ''}{output}")
 print_warning = lambda message, output='', duration='': print(f"⚠️ {BOLD_YELLOW}{message}{RESET_FORMATTING} ⌚ {datetime.datetime.now().time()} {duration}{' ' if output else ''}{output}")
 
+def mask_sensitive_values(data, sensitive_keys=None):
+    """
+    Recursively mask sensitive values in nested dictionaries and lists.
+    
+    Args:
+        data: The data structure to process (dict, list, or primitive)
+        sensitive_keys: List of key names to mask (case-insensitive). 
+                       Defaults to ['apiKey', 'api_key', 'key', 'secret', 'password']
+    
+    Returns:
+        A copy of the data with sensitive values replaced by '########'
+    """
+    if sensitive_keys is None:
+        sensitive_keys = ['apikey', 'api_key', 'secret', 'password']
+    
+    sensitive_keys_lower = [k.lower() for k in sensitive_keys]
+    
+    if isinstance(data, dict):
+        return {
+            k: '########' if k.lower() in sensitive_keys_lower and isinstance(v, str)
+               else mask_sensitive_values(v, sensitive_keys)
+            for k, v in data.items()
+        }
+    elif isinstance(data, list):
+        return [mask_sensitive_values(item, sensitive_keys) for item in data]
+    else:
+        return data
+
 class Output(object):
     def __init__(self, success, text):
         self.success = success

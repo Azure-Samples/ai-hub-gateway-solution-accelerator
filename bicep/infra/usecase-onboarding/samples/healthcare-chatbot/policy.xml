@@ -12,7 +12,7 @@
         <include-fragment fragment-id="set-llm-requested-model" />
         <!-- Restrict access for this product to specific models -->
         <choose>
-            <when condition="@(!new [] { "gpt-4o", "DeepSeek-R1" }.Contains(context.Variables["requestedModel"] ?? String.Empty))">
+            <when condition="@(!new [] { "gpt-4o-mini", "DeepSeek-R1" }.Contains(context.Variables["requestedModel"] ?? ""))">
                 <return-response>
                     <set-status code="401" reason="Unauthorized model access" />
                 </return-response>

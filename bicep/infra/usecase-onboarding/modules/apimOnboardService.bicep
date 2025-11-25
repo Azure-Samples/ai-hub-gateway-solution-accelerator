@@ -10,8 +10,8 @@ param productDescription string = 'AI Gateway product for use case'
 @description('APIM product terms')
 param productTerms string = ''
 
-@description('List of API resourceIds to include in product')
-param apiResourceIds array
+@description('List of API names to include in product')
+param apiNames array
 
 @description('Optional product policy XML; if empty, a default minimal policy is applied')
 param productPolicyXml string = ''
@@ -41,8 +41,8 @@ resource product 'Microsoft.ApiManagement/service/products@2024-05-01' = {
   }
 }
 
-resource productApis 'Microsoft.ApiManagement/service/products/apis@2024-05-01' = [for apiId in apiResourceIds: {
-  name: last(split(apiId, '/'))
+resource productApis 'Microsoft.ApiManagement/service/products/apis@2024-05-01' = [for (apiName, i) in apiNames: {
+  name: apiName
   parent: product
 }]
 
@@ -50,7 +50,7 @@ resource policy 'Microsoft.ApiManagement/service/products/policies@2024-05-01' =
   name: 'policy'
   parent: product
   properties: {
-    format: 'xml'
+    format: 'rawxml'
     value: empty(productPolicyXml) ? defaultPolicy : productPolicyXml
   }
 }
@@ -66,7 +66,7 @@ resource sub 'Microsoft.ApiManagement/service/subscriptions@2024-05-01' = {
 }
 
 // first API path for endpoint URL construction
-var firstApiName = last(split(apiResourceIds[0], '/'))
+var firstApiName = apiNames[0]
 resource api 'Microsoft.ApiManagement/service/apis@2024-05-01' existing = {
   name: firstApiName
   parent: apim
