@@ -12,7 +12,7 @@ param tags = {
 param resourceGroupName = readEnvironmentVariable('AZURE_RESOURCE_GROUP', '')
 
 // API MANAGEMENT
-param apimSku = readEnvironmentVariable('APIM_SKU', 'StandardV2')
+param apimSku = readEnvironmentVariable('APIM_SKU', 'Developer')
 param apimSkuUnits = int(readEnvironmentVariable('APIM_SKU_UNITS', '1'))
 
 // FEATURE FLAGS

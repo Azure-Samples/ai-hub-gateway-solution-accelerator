@@ -242,7 +242,7 @@ param enableAPICenter bool = true
 //
 @description('API Management service SKU. Only Developer and Premium are supported.')
 @allowed([ 'Developer', 'Premium', 'StandardV2', 'PremiumV2' ])
-param apimSku string = 'StandardV2'
+param apimSku string = 'Developer'
 
 @description('API Management service SKU units.')
 param apimSkuUnits int = 1
@@ -671,7 +671,7 @@ module apim './modules/apim/apim.bicep' = {
     name: !empty(apimServiceName) ? apimServiceName : '${abbrs.apiManagementService}${resourceToken}'
     location: location
     tags: tags
-    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    applicationInsightsName: monitoring.outputs.apimApplicationInsightsName
     managedIdentityName: apimManagedIdentity.outputs.managedIdentityName
     entraAuth: entraAuth
     clientAppId: entraAuth ? entraClientId : null 
@@ -776,7 +776,7 @@ module logicApp './modules/logicapp/logicapp.bicep' = {
     cosmosDBContainerPIIName: cosmosDb.outputs.cosmosDbPiiUsageContainerName
     cosmosDBContainerLLMUsageName: cosmosDb.outputs.cosmosDbLLMUsageContainerName
     eventHubPIIName: eventHub.outputs.eventHubPIIName
-    apimAppInsightsName: monitoring.outputs.applicationInsightsName
+    apimAppInsightsName: monitoring.outputs.apimApplicationInsightsName
     functionAppSubnetId: useExistingVnet ? vnetExisting.outputs.functionAppSubnetId : vnet.outputs.functionAppSubnetId
     fileShareName: logicContentShareName
   }

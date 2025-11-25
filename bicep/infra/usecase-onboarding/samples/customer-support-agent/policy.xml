@@ -24,8 +24,8 @@
         <llm-content-safety backend-id="content-safety-backend" shield-prompt="true">
             <!-- 0 is most restrictive and can be set up-to 7 -->
             <categories output-type="EightSeverityLevels">
-                <category name="Hate" threshold="3" />
-                <category name="Violence" threshold="3" />
+                <category name="Hate" threshold="0" />
+                <category name="Violence" threshold="0" />
             </categories>
         </llm-content-safety>
     </inbound>

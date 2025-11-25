@@ -12,10 +12,10 @@ param useTargetAzureKeyVault bool = true
 @description('Use case descriptor used in naming: <code>-<businessUnit>-<useCaseName>-<environment>')
 param useCase object
 
-@description('Catalog of existing AI services in APIM as an object map by code. Example: { OAI: { apiResourceIds: ["/subscriptions/.../resourceGroups/.../providers/Microsoft.ApiManagement/service/<apimName>/apis/<apiName>"] } }')
-param existingServices object
+@description('Map of service codes to their API names in APIM. Example: { OAI: ["azure-openai-service-api"], DOC: ["document-intelligence-api"] }')
+param apiNameMapping object
 
-@description('Required AI services for this use case. Each item: { code: "OAI", endpointSecretName: "OAI_ENDPOINT", apiKeySecretName: "OAI_KEY", policyXml?: "<policies>...</policies>" }. If omitted or empty, the default policy at policies/default-ai-product-policy.xml is used.')
+@description('Required AI services for this use case. Each item: { code: "OAI", endpointSecretName: "OAI_ENDPOINT", apiKeySecretName: "OAI_KEY", policyXmlPath?: "path/to/policy.xml" }')
 param services array
 
 @description('Optional product terms shown to subscribers')
@@ -23,10 +23,7 @@ param productTerms string = ''
 
 var productPostfix = '${useCase.businessUnit}-${useCase.useCaseName}-${useCase.environment}'
 
-// // Normalize services by merging a default policyXml property
-// var normalizedServices = [for s in services: union({ policyXml: '' }, s)]
-
-// Default APIM product policy (applied when a service item does not provide policyXml)
+// Default APIM product policy (applied when a service item does not provide policyXmlPath)
 var defaultProductPolicyXml = loadTextContent('./policies/default-ai-product-policy.xml')
 
 resource apimRg 'Microsoft.Resources/resourceGroups@2022-09-01' existing = {
@@ -59,9 +56,9 @@ module onboard 'modules/apimOnboardService.bicep' = [for s in services: {
     productDisplayName: '${s.code} ${useCase.businessUnit} ${useCase.useCaseName} ${useCase.environment}'
     productDescription: 'AI Gateway product for ${s.code} - ${useCase.useCaseName}'
     productTerms: productTerms
-    apiResourceIds: existingServices[s.code].apiResourceIds
-  // policyXml is optional per service; pass normalized value
-  productPolicyXml: s.policyXml == '' ? defaultProductPolicyXml : s.policyXml
+    apiNames: apiNameMapping[s.code]
+    // Use provided policy XML or default
+    productPolicyXml: contains(s, 'policyXml') && !empty(s.policyXml) ? s.policyXml : defaultProductPolicyXml
     subscriptionName: '${s.code}-${productPostfix}-SUB-01'
     subscriptionDisplayName: '${s.code}-${productPostfix}-SUB-01'
   }

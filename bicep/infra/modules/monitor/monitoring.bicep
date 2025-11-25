@@ -126,9 +126,9 @@ module privateEndpoint '../networking/private-endpoint.bicep' = if (usePrivateLi
   ]
 }
 
-output applicationInsightsName string = apimApplicationInsights.outputs.name
-output applicationInsightsConnectionString string = apimApplicationInsights.outputs.connectionString
-output applicationInsightsInstrumentationKey string = apimApplicationInsights.outputs.instrumentationKey
+output apimApplicationInsightsName string = apimApplicationInsights.outputs.name
+output apimApplicationInsightsConnectionString string = apimApplicationInsights.outputs.connectionString
+output apimApplicationInsightsInstrumentationKey string = apimApplicationInsights.outputs.instrumentationKey
 output apimApplicationInsightsId string = apimApplicationInsights.outputs.id
 output funcApplicationInsightsName string = functionApplicationInsights.outputs.name
 output funcApplicationInsightsConnectionString string = functionApplicationInsights.outputs.connectionString

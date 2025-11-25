@@ -750,7 +750,7 @@ resource apimAppInsights 'Microsoft.ApiManagement/service/diagnostics@2024-05-01
   name: 'applicationinsights'
   properties: {
     alwaysLog: 'allErrors'
-    httpCorrelationProtocol: 'Legacy'
+    httpCorrelationProtocol: 'W3C'
     verbosity: 'information'
     logClientIp: true
     loggerId: apimLogger.id
