@@ -726,7 +726,7 @@ resource apimLogger 'Microsoft.ApiManagement/service/loggers@2024-05-01' = {
   parent: apimService
   properties: {
     credentials: {
-      instrumentationKey: applicationInsights.properties.InstrumentationKey
+      connectionString: applicationInsights.properties.ConnectionString
     }
     description: 'Application Insights logger for API observability'
     isBuffered: false

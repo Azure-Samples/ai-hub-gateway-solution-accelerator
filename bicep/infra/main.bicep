@@ -458,11 +458,11 @@ var aiCogntiveServicesDnsZoneName = 'privatelink.cognitiveservices.azure.com'
 var apimV2SkuDnsZoneName = 'privatelink.azure-api.net'
 var aiServicesDnsZoneName = 'privatelink.services.ai.azure.com'
 
-var privateDnsZoneNames = [
+// Base DNS zones (always included)
+var baseDnsZoneNames = [
   openAiPrivateDnsZoneName
   aiCogntiveServicesDnsZoneName
   keyVaultPrivateDnsZoneName
-  monitorPrivateDnsZoneName
   eventHubPrivateDnsZoneName 
   cosmosDbPrivateDnsZoneName
   storageBlobPrivateDnsZoneName
@@ -472,6 +472,9 @@ var privateDnsZoneNames = [
   apimV2SkuDnsZoneName
   aiServicesDnsZoneName
 ]
+
+// Only include Azure Monitor DNS zone when Private Link Scope is enabled
+var privateDnsZoneNames = useAzureMonitorPrivateLinkScope ? concat(baseDnsZoneNames, [monitorPrivateDnsZoneName]) : baseDnsZoneNames
 
 // Organize resources in a resource group
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
