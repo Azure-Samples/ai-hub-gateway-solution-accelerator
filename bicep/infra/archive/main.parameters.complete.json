@@ -229,6 +229,9 @@
     "enableAPICenter": {
       "value": true
     },
+    "apicLocation": {
+      "value": ""
+    },
     "// COMPUTE SKU & SIZE": {
       "value": "SKUs and capacity settings"
     },
@@ -290,6 +293,13 @@
     "aiFoundryModelsConfig": {
       "value": [
         {
+          "name": "DeepSeek-R1",
+          "publisher": "DeepSeek",
+          "version": "1",
+          "sku": "GlobalStandard",
+          "capacity": 1
+        },
+        {
           "name": "gpt-4o-mini",
           "publisher": "OpenAI",
           "version": "2024-07-18",
@@ -306,14 +316,6 @@
           "aiserviceIndex": 0
         },
         {
-          "name": "DeepSeek-R1",
-          "publisher": "DeepSeek",
-          "version": "1",
-          "sku": "GlobalStandard",
-          "capacity": 1,
-          "aiserviceIndex": 0
-        },
-        {
           "name": "Phi-4",
           "publisher": "Microsoft",
           "version": "3",
@@ -327,14 +329,6 @@
           "version": "2025-08-07",
           "sku": "GlobalStandard",
           "capacity": 100,
-          "aiserviceIndex": 1
-        },
-        {
-          "name": "DeepSeek-R1",
-          "publisher": "DeepSeek",
-          "version": "1",
-          "sku": "GlobalStandard",
-          "capacity": 1,
           "aiserviceIndex": 1
         }
       ]

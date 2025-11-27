@@ -175,7 +175,7 @@ module modelDeployments 'deployments.bicep' = [for (config, i) in aiServicesConf
   name: take('models-${foundryResources[i].name}', 64)
   params: {
     cognitiveServiceName: foundryResources[i].name
-    modelsConfig: filter(modelsConfig, model => !contains(model, 'aiservice') || model.aiservice == foundryResources[i].name )
+    modelsConfig: filter(modelsConfig, model => !contains(model, 'aiservice') || empty(model.aiservice) || model.aiservice == foundryResources[i].name)
   }
 }]
 
