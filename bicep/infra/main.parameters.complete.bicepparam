@@ -138,6 +138,7 @@ param enableOpenAIRealtime = true
 param enableAIFoundry = true
 param entraAuth = false
 param enableAPICenter = true
+param apicLocation = '' // blank to use param location
 
 // =============================================================================
 // COMPUTE SKU & SIZE
@@ -198,7 +199,15 @@ param aiFoundryInstances = [
 // aiserviceIndex: Index of the AI Foundry instance in aiFoundryInstances array
 // Leave aiserviceIndex empty to deploy to all instances
 param aiFoundryModelsConfig = [
-  // Models for AI Foundry Instance 0
+  // Models for all AI Foundry instances
+  {
+    name: 'DeepSeek-R1'
+    publisher: 'DeepSeek'
+    version: '1'
+    sku: 'GlobalStandard'
+    capacity: 1
+  }
+  // Models specific to AI Foundry Instance 0
   {
     name: 'gpt-4o-mini'
     publisher: 'OpenAI'
@@ -216,14 +225,6 @@ param aiFoundryModelsConfig = [
     aiserviceIndex: 0
   }
   {
-    name: 'DeepSeek-R1'
-    publisher: 'DeepSeek'
-    version: '1'
-    sku: 'GlobalStandard'
-    capacity: 1
-    aiserviceIndex: 0
-  }
-  {
     name: 'Phi-4'
     publisher: 'Microsoft'
     version: '3'
@@ -231,21 +232,13 @@ param aiFoundryModelsConfig = [
     capacity: 1
     aiserviceIndex: 0
   }
-  // Models for AI Foundry Instance 1
+  // Models specific to AI Foundry Instance 1
   {
     name: 'gpt-5'
     publisher: 'OpenAI'
     version: '2025-08-07'
     sku: 'GlobalStandard'
     capacity: 100
-    aiserviceIndex: 1
-  }
-  {
-    name: 'DeepSeek-R1'
-    publisher: 'DeepSeek'
-    version: '1'
-    sku: 'GlobalStandard'
-    capacity: 1
     aiserviceIndex: 1
   }
 ]
