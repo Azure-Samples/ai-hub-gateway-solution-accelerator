@@ -6,8 +6,18 @@ Foundry APIM Connection Module
 Creates an APIM connection in an existing Azure AI Foundry project.
 This enables Foundry agents to access AI models through the APIM gateway.
 
+AUTHENTICATION MODES (authType):
+- 'ProjectManagedIdentity' (DEFAULT): the Foundry project's managed identity acquires an Entra ID
+  token for `managedIdentityAudience` (default https://cognitiveservices.azure.com) and sends it as
+  a Bearer token. The APIM subscription key is ALSO sent as the `api-key` custom header so the
+  gateway can validate the APIM subscription (api-key) AND the JWT (Bearer). The access contract's
+  product policy must enable JWT validation for this audience (jwtRequired + jwtAudience).
+- 'ApiKey' (backward compatible): only the APIM subscription key is used, stored in `credentials.key`
+  and sent via the default `api-key` header. Reproduces the original behavior exactly.
+
 REFERENCES:
 - https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/ai-gateway
+  (see "Configure managed identity authentication for API Management")
 */
 
 // ============================================================================
@@ -34,9 +44,12 @@ param apimSubscriptionKey string
 // OPTIONAL PARAMETERS
 // ============================================================================
 
-@allowed(['ApiKey'])
-@description('Authentication type (ApiKey is currently supported)')
+@allowed(['ApiKey', 'ProjectManagedIdentity'])
+@description('Authentication type. "ProjectManagedIdentity" (default in the access contract) uses the Foundry project managed identity for a Bearer token AND sends the APIM subscription key as the "api-key" custom header. "ApiKey" stores the subscription key in credentials.key (original behavior).')
 param authType string = 'ApiKey'
+
+@description('Audience (resource) the Foundry project managed identity requests a token for when authType is ProjectManagedIdentity. The access contract product policy must validate the JWT against this same value.')
+param managedIdentityAudience string = 'https://cognitiveservices.azure.com'
 
 @allowed(['ApiManagement', 'ModelGateway'])
 @description('Foundry connection category. Use ModelGateway for portal-compatible model gateway connections.')
@@ -78,10 +91,15 @@ param authConfig object = {}
 // VARIABLES
 // ============================================================================
 
+// When using the project managed identity, the APIM subscription key is delivered as the
+// "api-key" custom header (in addition to the Bearer token), so it is merged into customHeaders.
+var isManagedIdentity = authType == 'ProjectManagedIdentity'
+var effectiveCustomHeaders = isManagedIdentity ? union(customHeaders, { 'api-key': apimSubscriptionKey }) : customHeaders
+
 // Validation flags
 var hasStaticModels = length(staticModels) > 0
 var hasCustomDiscovery = !empty(listModelsEndpoint) && !empty(getModelEndpoint) && !empty(deploymentProvider)
-var hasCustomHeaders = !empty(customHeaders)
+var hasCustomHeaders = !empty(effectiveCustomHeaders)
 var hasAuthConfig = !empty(authConfig)
 var hasInferenceAPIVersion = !empty(inferenceAPIVersion)
 var hasDeploymentAPIVersion = !empty(deploymentAPIVersion)
@@ -116,11 +134,16 @@ var staticModelsMetadata = hasStaticModels && !hasCustomDiscovery ? {
 
 // Always emit customHeaders (portal requires this field even if empty)
 var customHeadersMetadata = {
-  customHeaders: hasCustomHeaders ? string(customHeaders) : '{}'
+  customHeaders: hasCustomHeaders ? string(effectiveCustomHeaders) : '{}'
 }
 
 var authConfigMetadata = hasAuthConfig ? {
   authConfig: string(authConfig)
+} : {}
+
+// Managed identity connections record the token audience so the project MI requests the right resource.
+var audienceMetadata = isManagedIdentity ? {
+  audience: managedIdentityAudience
 } : {}
 
 var metadata = union(
@@ -130,7 +153,8 @@ var metadata = union(
   modelDiscoveryMetadata,
   staticModelsMetadata,
   customHeadersMetadata,
-  authConfigMetadata
+  authConfigMetadata,
+  audienceMetadata
 )
 
 // ============================================================================
@@ -156,9 +180,14 @@ resource apimConnection 'Microsoft.CognitiveServices/accounts/projects/connectio
   properties: {
     category: connectionCategory
     target: targetUrl
-    authType: authType
+    // 'ProjectManagedIdentity' is a valid runtime value for BYO AI gateway connections but is not yet
+    // in the ARM type definition, so any() is used to bypass the stale type check.
+    authType: any(authType)
+    audience: isManagedIdentity ? managedIdentityAudience : ''
     isSharedToAll: isSharedToAll
-    credentials: {
+    // ApiKey: subscription key stored as the credential. ProjectManagedIdentity: no stored key
+    // (the project MI provides a Bearer token); the subscription key travels as the api-key header.
+    credentials: isManagedIdentity ? {} : {
       key: apimSubscriptionKey
     }
     metadata: metadata
@@ -177,3 +206,9 @@ output connectionId string = apimConnection.id
 
 @description('Target URL for the APIM connection')
 output targetUrl string = targetUrl
+
+@description('Authentication type used for the connection')
+output authType string = authType
+
+@description('Managed identity token audience (empty when authType is ApiKey)')
+output managedIdentityAudience string = isManagedIdentity ? managedIdentityAudience : ''

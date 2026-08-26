@@ -61,6 +61,13 @@ param foundryConfig object = {
   connectionNamePrefix: ''
   // Foundry connection category: ApiManagement or ModelGateway
   connectionCategory: 'ApiManagement'
+  // Authentication type: 'ProjectManagedIdentity' (default) validates a project-MI Bearer token
+  // against managedIdentityAudience AND sends the subscription key as the api-key custom header;
+  // 'ApiKey' stores the subscription key in credentials (original behavior).
+  authType: 'ProjectManagedIdentity'
+  // Audience the project managed identity requests a token for (must match the JWT audience the
+  // access contract product policy validates). Only used when authType is ProjectManagedIdentity.
+  managedIdentityAudience: 'https://cognitiveservices.azure.com'
   // Whether deployment name is in URL path (true) or request body (false)
   deploymentInPath: 'false'
   // Share connection to all project users
@@ -75,7 +82,7 @@ param foundryConfig object = {
   listModelsEndpoint: ''
   getModelEndpoint: ''
   deploymentProvider: 'AzureOpenAI'
-  // Custom headers for requests
+  // Custom headers for requests (the api-key header is added automatically for ProjectManagedIdentity)
   customHeaders: {}
   // Custom auth configuration
   authConfig: {}
@@ -264,6 +271,8 @@ module foundryConnections 'modules/foundryConnection.bicep' = [for (s, i) in ser
     connectionName: '${foundryConnectionPrefix}-${s.code}'
     targetUrl: '${effectiveGatewayUrl}/${onboard[i].outputs.apiPaths[serviceSecretPlans[i].foundryApiIndex]}'
     apimSubscriptionKey: onboard[i].outputs.subscriptionActiveKey
+    authType: foundryConfig.?authType ?? 'ProjectManagedIdentity'
+    managedIdentityAudience: foundryConfig.?managedIdentityAudience ?? 'https://cognitiveservices.azure.com'
     connectionCategory: foundryConfig.?connectionCategory ?? 'ApiManagement'
     isSharedToAll: foundryConfig.?isSharedToAll ?? false
     deploymentInPath: foundryConfig.?deploymentInPath ?? 'false'
@@ -365,6 +374,8 @@ module additionalFoundryConnections 'modules/foundryConnection.bicep' = [for ite
     connectionName: '${foundryConnectionPrefix}-${item.s.code}'
     targetUrl: '${(item.f.?endpointSource ?? '') == 'global' ? globalGatewayUrl : (item.f.?endpointSource ?? '') == 'primary' ? apimSvc.properties.gatewayUrl : startsWith(item.f.?endpointSource ?? '', 'secondary:') ? additionalApim[int(replace(item.f.endpointSource, 'secondary:', ''))].properties.gatewayUrl : effectiveGatewayUrl}/${onboard[item.serviceIndex].outputs.apiPaths[serviceSecretPlans[item.serviceIndex].foundryApiIndex]}'
     apimSubscriptionKey: onboard[item.serviceIndex].outputs.subscriptionActiveKey
+    authType: foundryConfig.?authType ?? 'ProjectManagedIdentity'
+    managedIdentityAudience: foundryConfig.?managedIdentityAudience ?? 'https://cognitiveservices.azure.com'
     connectionCategory: foundryConfig.?connectionCategory ?? 'ApiManagement'
     isSharedToAll: foundryConfig.?isSharedToAll ?? false
     deploymentInPath: foundryConfig.?deploymentInPath ?? 'false'
@@ -436,6 +447,8 @@ output foundryConnections array = [for (s, i) in services: useTargetFoundry ? {
   targetUrl: '${apimSvc.properties.gatewayUrl}/${onboard[i].outputs.apiPaths[serviceSecretPlans[i].foundryApiIndex]}'
   foundryAccount: foundry.accountName
   foundryProject: foundry.projectName
+  authType: foundryConfig.?authType ?? 'ProjectManagedIdentity'
+  managedIdentityAudience: (foundryConfig.?authType ?? 'ProjectManagedIdentity') == 'ProjectManagedIdentity' ? (foundryConfig.?managedIdentityAudience ?? 'https://cognitiveservices.azure.com') : ''
 } : {}]
 
 // ============================================================================

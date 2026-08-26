@@ -331,6 +331,15 @@ param foundry = {
 //   Default: Uses '<businessUnit>-<useCaseName>-<environment>' from useCase
 //   Final name: '<prefix>-<serviceCode>' (e.g., 'HR-ChatBot-DEV-LLM')
 //
+// - authType: Connection authentication mode
+//   'ProjectManagedIdentity' (default): Foundry project managed identity presents an Entra ID Bearer
+//     token (audience = managedIdentityAudience) AND the subscription key is sent as the 'api-key'
+//     custom header. The product policy MUST validate the JWT for that audience (see the policy guide).
+//   'ApiKey': subscription key only, stored in credentials.key (original behavior, fully backward compatible)
+//
+// - managedIdentityAudience: Audience the project MI requests a token for (only for ProjectManagedIdentity)
+//   Default: 'https://cognitiveservices.azure.com' — must match the JWT audience validated by the policy
+//
 // - deploymentInPath: Controls how model names are passed in requests
 //   'true': Model name in URL path (/deployments/{model}/chat/completions)
 //   'false': Model name in request body ({"model": "{model}"})
@@ -367,6 +376,8 @@ param foundry = {
 // ============================================================================
 param foundryConfig = {
   connectionNamePrefix: ''           // Empty = use useCase naming convention
+  authType: 'ProjectManagedIdentity' // Default: MI Bearer token (JWT) + api-key custom header. 'ApiKey' = subscription key only
+  managedIdentityAudience: 'https://cognitiveservices.azure.com' // MI token audience; product policy must validate this JWT
   deploymentInPath: 'false'          // Model name in request body (false for Azure OpenAI /deployments/[deployment-id])
   isSharedToAll: false               // Share with all project users
   inferenceAPIVersion: ''            // Empty = APIM defaults
@@ -375,7 +386,7 @@ param foundryConfig = {
   listModelsEndpoint: ''             // Empty = APIM defaults (/deployments)
   getModelEndpoint: ''               // Empty = APIM defaults (/deployments/{deployment-id})
   deploymentProvider: ''             // Empty = AzureOpenAI format
-  customHeaders: {}                  // No custom headers
+  customHeaders: {}                  // No custom headers (api-key added automatically for ProjectManagedIdentity)
   authConfig: {}                     // Default api-key header is used
 }
 

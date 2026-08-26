@@ -38,7 +38,7 @@ flowchart TD
     A[New or existing LLM integration?] -->|New build| B{Need provider-native<br/>features or SDK?}
     A -->|Existing Azure OpenAI SDK code| L[Azure OpenAI API<br/>/openai/deployments/...]
     B -->|No — standard chat/embeddings/responses| C[Unified AI API<br/>OpenAI-compatible path<br/>/unified-ai/v1/*]
-    B -->|Yes — Bedrock / Gemini / Anthropic native| D[Unified AI API<br/>native path<br/>/unified-ai/bedrock|gemini|claude/*]
+    B -->|Yes — Bedrock / Gemini / Anthropic native| D["Unified AI API<br/>native path<br/>/unified-ai/bedrock|gemini|claude/*"]
     C -.OpenAI-compatible alt.-> E[Universal LLM API<br/>/models/*]
     L:::legacy
     classDef legacy fill:#ffe8e8,stroke:#cc0000;

@@ -72,6 +72,8 @@ param foundry = {
 
 param foundryConfig = {
   connectionNamePrefix: ''
+  authType: 'ProjectManagedIdentity'
+  managedIdentityAudience: 'https://cognitiveservices.azure.com'
   deploymentInPath: 'false'
   isSharedToAll: false
   inferenceAPIVersion: '2024-05-01-preview'

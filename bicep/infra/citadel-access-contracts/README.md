@@ -585,6 +585,8 @@ param foundry = {
 
 param foundryConfig = {
   connectionNamePrefix: ''        // Empty = use useCase naming
+  authType: 'ProjectManagedIdentity' // Default: MI JWT + api-key header. 'ApiKey' = key only
+  managedIdentityAudience: 'https://cognitiveservices.azure.com' // MI token audience (validated by policy)
   deploymentInPath: 'false'       // Model in request body
   isSharedToAll: false            // Share with project users
   inferenceAPIVersion: ''         // APIM defaults
@@ -593,7 +595,7 @@ param foundryConfig = {
   listModelsEndpoint: ''          // APIM defaults
   getModelEndpoint: ''            // APIM defaults
   deploymentProvider: ''          // AzureOpenAI format
-  customHeaders: {}               // No custom headers
+  customHeaders: {}               // No custom headers (api-key added automatically for MI)
   authConfig: {}                  // Default api-key header
 }
 ```
@@ -637,6 +639,8 @@ agent = client.agents.create_agent(
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `connectionNamePrefix` | string | `''` | Custom prefix for connection names. Empty uses `<BU>-<UseCase>-<ENV>` |
+| `authType` | string | `'ProjectManagedIdentity'` | Connection auth mode. `ProjectManagedIdentity` (default) = managed-identity **JWT + api-key header**; `ApiKey` = subscription key only (original behavior) |
+| `managedIdentityAudience` | string | `'https://cognitiveservices.azure.com'` | Audience the project MI requests a token for (must match the JWT audience validated by the product policy). Only used when `authType = ProjectManagedIdentity` |
 | `deploymentInPath` | string | `'false'` | `'true'`: model in URL, `'false'`: model in body |
 | `isSharedToAll` | bool | `false` | Share connection with all project users |
 | `inferenceAPIVersion` | string | `''` | API version for chat/embeddings (empty = APIM defaults) |
@@ -645,10 +649,32 @@ agent = client.agents.create_agent(
 | `listModelsEndpoint` | string | `''` | Custom list endpoint (empty = `/deployments`) |
 | `getModelEndpoint` | string | `''` | Custom get endpoint (empty = `/deployments/{id}`) |
 | `deploymentProvider` | string | `''` | Discovery format (`AzureOpenAI` or `OpenAI`) |
-| `customHeaders` | object | `{}` | Additional headers for requests |
-| `authConfig` | object | `{}` | Custom auth header config |
+| `customHeaders` | object | `{}` | Additional headers for requests (the `api-key` header is added automatically for `ProjectManagedIdentity`) |
+| `authConfig` | object | `{}` | Custom auth header config (applies to the `ApiKey` mode) |
 
 > **LLM endpoint selection:** the Foundry connection always targets the **LLM inference endpoint** of the contract. Set `foundryApiName` on the service to pick which granted API is the LLM endpoint; when omitted the first known LLM API (`universal-llm-api` / `azure-openai-api` / `unified-ai-api`) is used, else the first API in `apiNameMapping[code]`.
+
+### Foundry connection authentication (`authType`)
+
+The Foundry connection supports two authentication modes. The APIM gateway itself supports **api-key only** or **api-key + JWT**, and the two connection modes map directly onto that:
+
+| `authType` | What Foundry sends | APIM validates | Product policy needs |
+|------------|--------------------|----------------|----------------------|
+| `ProjectManagedIdentity` **(default)** | `Authorization: Bearer <MI token>` **and** `api-key: <subscription key>` (custom header) | The **subscription key** (api-key) **and** the **JWT** (audience `https://cognitiveservices.azure.com`) | JWT validation enabled for that audience |
+| `ApiKey` (backward compatible) | `api-key: <subscription key>` (stored in `credentials.key`) | The **subscription key** only | Nothing extra (api-key is always validated) |
+
+**How `ProjectManagedIdentity` works:**
+
+1. The connection is created with `authType = ProjectManagedIdentity` and **no stored key** — the subscription key is instead injected into `customHeaders` as `api-key`.
+2. At runtime the Foundry **project managed identity** acquires an Entra ID token for `managedIdentityAudience` (default `https://cognitiveservices.azure.com`) and sends it as `Authorization: Bearer …`.
+3. APIM validates the subscription key (api-key) **and** the JWT. The access contract's product policy enables JWT validation for the cognitive services audience by reusing the gateway's `security-handler` (see [Foundry ProjectManagedIdentity JWT validation](./citadel-access-contracts-policy.md#foundry-projectmanagedidentity-jwt-validation-policy)).
+
+**Prerequisites for `ProjectManagedIdentity`:**
+- Enable a **system-assigned or user-assigned managed identity** on the Foundry **project** (Azure portal → Foundry resource → Projects → your project → **Identity**).
+- The product policy must validate the JWT for the same audience. When you use the `base-access-contract-request` module or the validation notebook, this policy is generated automatically. For manual contracts, add the snippet from the policy guide.
+- The gateway validates audience + issuer by default; optionally restrict to the project MI's client ID for tighter security (see the policy guide).
+
+> ✅ **Backward compatible** — set `authType = 'ApiKey'` (and omit `managedIdentityAudience`) to reproduce the original subscription-key-only connection exactly. Existing contracts that want the old behavior should set `authType = 'ApiKey'` explicitly.
 
 ### Combined Targets Example
 

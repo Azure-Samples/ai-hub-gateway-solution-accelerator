@@ -526,6 +526,68 @@ JWT authentication works alongside all other access contract policies like model
 
 > **NOTE:** The `jwtRequired` variable must be set within the product policy inbound section. The `security-handler` fragment reads this variable during API-level policy execution.
 
+### Foundry ProjectManagedIdentity JWT Validation Policy
+
+When an access contract targets **Microsoft Foundry** with the default connection auth mode
+`ProjectManagedIdentity` (see [Foundry connection authentication](./README.md#foundry-connection-authentication-authtype)),
+the Foundry project's **managed identity** presents an Entra ID **Bearer token** issued for the
+**cognitive services audience** (`https://cognitiveservices.azure.com`), *in addition to* the APIM
+subscription key that Foundry sends as the `api-key` custom header. The product policy therefore has
+to validate **both** credentials: the subscription key (validated automatically by APIM) **and** the
+JWT for that audience.
+
+This reuses the exact same [`security-handler` JWT validation](#jwt-authentication-policy) described
+above — the only difference is that the **audience/issuer are overridden** to match the managed
+identity token instead of a client app registration. Managed identity tokens are v1 tokens, so the
+issuer is `https://sts.windows.net/{tenantId}/`.
+
+**Product policy snippet (add to the inbound section):**
+
+```xml
+<inbound>
+    <base />
+    <!-- Foundry ProjectManagedIdentity: require + validate the project-MI Bearer token for the
+         cognitive services audience, alongside the always-required api-key subscription key. -->
+    <set-variable name="jwtRequired" value="true" />
+    <set-variable name="jwtAudience" value="https://cognitiveservices.azure.com" />
+    <set-variable name="jwtIssuer" value="https://sts.windows.net/{{JWT-TenantId}}/" />
+    <set-variable name="jwtOpenIdConfigUrl" value="https://login.microsoftonline.com/{{JWT-TenantId}}/v2.0/.well-known/openid-configuration" />
+
+    <!-- Other policies (model access, capacity, etc.) -->
+</inbound>
+```
+
+**How it works:**
+
+1. Foundry sends `api-key: <subscription key>` (custom header) and `Authorization: Bearer <MI token>`.
+2. APIM validates the subscription key (api-key is always required).
+3. `jwtRequired=true` makes the `security-handler` fragment validate the Bearer token; the
+   `jwtAudience` / `jwtIssuer` / `jwtOpenIdConfigUrl` overrides scope validation to the managed
+   identity token (audience `https://cognitiveservices.azure.com`).
+4. Requests missing a valid token are rejected with `401 Unauthorized`.
+
+**Configuration notes:**
+
+| Variable | Value | Notes |
+|----------|-------|-------|
+| `jwtAudience` | `https://cognitiveservices.azure.com` | Must equal `managedIdentityAudience` on the Foundry connection |
+| `jwtIssuer` | `https://sts.windows.net/{{JWT-TenantId}}/` | v1 issuer for managed identity tokens |
+| `jwtOpenIdConfigUrl` | `https://login.microsoftonline.com/{{JWT-TenantId}}/v2.0/.well-known/openid-configuration` | v2.0 JWKS keys validate v1 token signatures |
+
+- `{{JWT-TenantId}}` is an APIM named value that always exists; it holds the real tenant ID only when
+  the gateway was deployed with `entraAuth=true`. For MI Foundry contracts, deploy with `entraAuth=true`
+  or bake the literal tenant ID into the policy (the validation notebook bakes it in automatically so
+  the generated policy is self-contained).
+- **Optional hardening:** the `security-handler` validates audience + issuer only. To restrict to the
+  specific project managed identity, add a check on the token's `azp`/`appid` claim equal to the MI's
+  client (application) ID.
+- Set `authType = 'ApiKey'` on the Foundry connection to skip this entirely (subscription key only) —
+  fully backward compatible.
+
+> **Validation:** The [Citadel Access Contracts test notebook](../../../validation/citadel-access-contracts-tests.ipynb)
+> generates this policy automatically for Foundry-targeted contracts and exercises it by attaching a
+> real Entra ID Bearer token (for the same audience) to its direct HTTP tests.
+
 ### App Role Authorization Policy
 
 App role authorization adds fine-grained access control on top of JWT authentication. When enabled for a product, the `security-handler` fragment checks that the JWT token contains at least one of the required app roles in the `roles` claim. This is enforced **after** JWT validation, so the token must first pass audience, issuer, and signature checks.
