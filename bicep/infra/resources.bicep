@@ -207,6 +207,9 @@ param keyVaultPrivateEndpointName string = ''
 @description('Azure Managed Redis private endpoint name. Leave blank to use default naming conventions.')
 param redisPrivateEndpointName string = ''
 
+@description('Logic App private endpoint name. Leave blank to use default naming conventions.')
+param logicAppPrivateEndpointName string = ''
+
 // Services network access configuration
 
 @description('Network type for API Management service. Applies only to Premium and Developer SKUs.')
@@ -218,6 +221,12 @@ param apimV2UsePrivateEndpoint bool = true
 
 @description('API Management service external network access. When false, APIM must have private endpoint.')
 param apimV2PublicNetworkAccess bool = true
+
+@description('Create a private endpoint for the Logic App. Existing VNets require existingPrivateDnsZones.logicApp or dnsZoneRG for privatelink.azurewebsites.net, with DNS links or forwarding configured.')
+param logicAppUsePrivateEndpoint bool = false
+
+@description('Allow public network access to the Logic App. When false, website and SCM access require a working private endpoint and private DNS; workflow publishing must run from a connected network.')
+param logicAppPublicNetworkAccess bool = true
 
 @description('Cosmos DB public network access.')
 @allowed([ 'Enabled', 'Disabled' ])
@@ -679,6 +688,7 @@ var aiCogntiveServicesDnsZoneName = 'privatelink.cognitiveservices.azure.com'
 var apimV2SkuDnsZoneName = 'privatelink.azure-api.net'
 var aiServicesDnsZoneName = 'privatelink.services.ai.azure.com'
 var redisPrivateDnsZoneName = 'privatelink.redis.azure.net'
+var logicAppPrivateDnsZoneName = 'privatelink.azurewebsites.net'
 
 // AI Foundry requires 3 DNS zones for full private endpoint support
 var aiFoundryDnsZoneNames = [
@@ -702,6 +712,10 @@ var existingApimGatewayDnsZoneId = existingPrivateDnsZones.?apimGateway ?? ''
 var existingAiServicesDnsZoneId = existingPrivateDnsZones.?aiServices ?? ''
 var existingOpenAiDnsZoneId = existingPrivateDnsZones.?openai ?? ''
 var existingRedisDnsZoneId = existingPrivateDnsZones.?redis ?? ''
+var existingLogicAppDnsZoneId = existingPrivateDnsZones.?logicApp ?? ''
+
+var createLogicAppDnsZone = logicAppUsePrivateEndpoint && !useExistingVnet && empty(existingLogicAppDnsZoneId) && empty(dnsZoneRG)
+var logicAppPrivateDnsZoneResourceId = !empty(existingLogicAppDnsZoneId) ? existingLogicAppDnsZoneId : (!empty(dnsZoneRG) ? resourceId(!empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId, dnsZoneRG, 'Microsoft.Network/privateDnsZones', logicAppPrivateDnsZoneName) : (createLogicAppDnsZone ? resourceId('Microsoft.Network/privateDnsZones', logicAppPrivateDnsZoneName) : ''))
 
 // Existing DNS zone resource IDs for AI Foundry (for BYO network scenarios)
 var aiFoundryDnsZoneResourceIds = union(
@@ -730,8 +744,12 @@ var baseDnsZoneNames = [
   redisPrivateDnsZoneName
 ]
 
-// Only include Azure Monitor DNS zone when Private Link Scope is enabled
-var privateDnsZoneNames = useAzureMonitorPrivateLinkScope ? concat(baseDnsZoneNames, [monitorPrivateDnsZoneName]) : baseDnsZoneNames
+// Only include optional DNS zones when their private connectivity is enabled
+var privateDnsZoneNames = concat(
+  baseDnsZoneNames,
+  useAzureMonitorPrivateLinkScope ? [monitorPrivateDnsZoneName] : [],
+  createLogicAppDnsZone ? [logicAppPrivateDnsZoneName] : []
+)
 
 module dnsDeployment './modules/networking/dns.bicep' = [for privateDnsZoneName in privateDnsZoneNames: if(!useExistingVnet) {
   name: 'dns-deployment-${privateDnsZoneName}'
@@ -1108,6 +1126,11 @@ module logicApp './modules/logicapp/logicapp.bicep' = {
     eventHubPIIName: eventHub.outputs.eventHubPIIName
     apimAppInsightsName: monitoring.outputs.apimApplicationInsightsName
     functionAppSubnetId: useExistingVnet ? vnetExisting.outputs.functionAppSubnetId : vnet.outputs.functionAppSubnetId
+    logicAppUsePrivateEndpoint: logicAppUsePrivateEndpoint
+    logicAppPublicNetworkAccess: logicAppPublicNetworkAccess
+    logicAppPrivateEndpointName: !empty(logicAppPrivateEndpointName) ? logicAppPrivateEndpointName : '${abbrs.logicWorkflows}pe-${resourceToken}'
+    privateEndpointSubnetId: useExistingVnet ? vnetExisting!.outputs.privateEndpointSubnetId : vnet!.outputs.privateEndpointSubnetId
+    dnsZoneResourceId: logicAppPrivateDnsZoneResourceId
     fileShareName: logicContentShareName
   }
 }
