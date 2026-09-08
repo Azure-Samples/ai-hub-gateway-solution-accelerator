@@ -21,6 +21,12 @@ param cosmosDbAccountName string
 
 param functionAppSubnetId string
 
+param logicAppUsePrivateEndpoint bool = false
+param logicAppPublicNetworkAccess bool = true
+param logicAppPrivateEndpointName string = ''
+param privateEndpointSubnetId string = ''
+param dnsZoneResourceId string = ''
+
 param dotnetFrameworkVersion string = 'v6.0'
 
 var docDbAccNativeContributorRoleDefinitionId = '00000000-0000-0000-0000-000000000002'
@@ -84,8 +90,26 @@ resource logicApp 'Microsoft.Web/sites@2024-04-01' = {
   properties: {
     enabled: true
     serverFarmId: hostingPlan.id
+    publicNetworkAccess: logicAppPublicNetworkAccess ? 'Enabled' : 'Disabled'
     reserved: isReserved       
     virtualNetworkSubnetId: functionAppSubnetId
+  }
+}
+
+module privateEndpoint '../networking/private-endpoint.bicep' = if (logicAppUsePrivateEndpoint) {
+  name: '${logicAppName}-pe'
+  params: {
+    groupIds: [
+      'sites'
+    ]
+    dnsZoneName: 'privatelink.azurewebsites.net'
+    name: logicAppPrivateEndpointName
+    privateLinkServiceId: logicApp.id
+    location: location
+    privateEndpointSubnetId: privateEndpointSubnetId
+    dnsZoneResourceId: dnsZoneResourceId
+    enableDnsIntegration: true
+    tags: tags
   }
 }
 
@@ -108,7 +132,6 @@ resource functionAppSiteConfig 'Microsoft.Web/sites/config@2024-04-01' = {
     minTlsVersion: '1.2'
     scmMinTlsVersion: '1.2'
     minimumElasticInstanceCount: 1
-    publicNetworkAccess: 'Enabled'  
     functionsRuntimeScaleMonitoringEnabled: true
     netFrameworkVersion: dotnetFrameworkVersion
     preWarmedInstanceCount: 1

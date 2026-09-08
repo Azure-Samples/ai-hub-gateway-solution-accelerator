@@ -90,6 +90,7 @@ param existingPrivateDnsZones = {
   apimGateway: readEnvironmentVariable('EXISTING_DNS_ZONE_APIM', '')           // privatelink.azure-api.net
   aiServices: readEnvironmentVariable('EXISTING_DNS_ZONE_AI_SERVICES', '')     // privatelink.services.azure.com
   redis: readEnvironmentVariable('EXISTING_DNS_ZONE_REDIS', '')                // privatelink.redis.azure.net
+  logicApp: readEnvironmentVariable('EXISTING_DNS_ZONE_LOGIC_APP', '')
 }
 
 // Private Endpoint names
@@ -103,11 +104,14 @@ param apimV2PrivateEndpointName = readEnvironmentVariable('APIM_V2_PE_NAME', '')
 param aiFoundryPrivateEndpointName = readEnvironmentVariable('AI_FOUNDRY_PE_NAME', '')
 param keyVaultPrivateEndpointName = readEnvironmentVariable('KEY_VAULT_PE_NAME', '')
 param redisPrivateEndpointName = readEnvironmentVariable('REDIS_PE_NAME', '')
+param logicAppPrivateEndpointName = readEnvironmentVariable('LOGIC_APP_PE_NAME', '')
 
 // Services network access configuration
 param apimNetworkType = readEnvironmentVariable('APIM_NETWORK_TYPE', 'External')
 param apimV2UsePrivateEndpoint = bool(readEnvironmentVariable('APIM_V2_USE_PRIVATE_ENDPOINT', 'true'))
 param apimV2PublicNetworkAccess = bool(readEnvironmentVariable('APIM_V2_PUBLIC_NETWORK_ACCESS', 'true'))
+param logicAppUsePrivateEndpoint = bool(readEnvironmentVariable('LOGIC_APP_USE_PRIVATE_ENDPOINT', 'false'))
+param logicAppPublicNetworkAccess = bool(readEnvironmentVariable('LOGIC_APP_PUBLIC_NETWORK_ACCESS', 'true'))
 param cosmosDbPublicAccess = readEnvironmentVariable('COSMOS_DB_PUBLIC_ACCESS', 'Disabled')
 param eventHubNetworkAccess = readEnvironmentVariable('EVENTHUB_NETWORK_ACCESS', 'Enabled')
 param aiFoundryExternalNetworkAccess = readEnvironmentVariable('AI_FOUNDRY_EXTERNAL_NETWORK_ACCESS', 'Disabled')
