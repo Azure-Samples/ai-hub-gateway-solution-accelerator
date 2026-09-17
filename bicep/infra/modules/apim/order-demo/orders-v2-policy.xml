@@ -1,0 +1,51 @@
+<policies>
+    <inbound>
+        <base />
+        <set-header name="x-order-backend-key" exists-action="override">
+            <value>{{order-backend-api-key}}</value>
+        </set-header>
+        <choose>
+            <when condition="@(context.Operation.Id == &quot;get-order&quot;)">
+                <choose>
+                    <when condition="@((string)context.Request.MatchedParameters[&quot;orderId&quot;] != &quot;ORD-1042&quot;)">
+                        <return-response>
+                            <set-status code="404" reason="Not Found" />
+                            <set-header name="Content-Type" exists-action="override">
+                                <value>application/json</value>
+                            </set-header>
+                            <set-body>@("{\"error\":\"Order not found\"}")</set-body>
+                        </return-response>
+                    </when>
+                </choose>
+                <return-response>
+                    <set-status code="200" reason="OK" />
+                    <set-header name="Content-Type" exists-action="override">
+                        <value>application/json</value>
+                    </set-header>
+                    <set-body>@("{\"orderId\":\"ORD-1042\",\"customerId\":\"CUST-4711\",\"productId\":\"TM-IO\",\"quantity\":2,\"currency\":\"DKK\",\"status\":\"Confirmed\",\"estimatedDelivery\":\"2026-09-21\"}")</set-body>
+                </return-response>
+            </when>
+            <when condition="@(context.Operation.Id == &quot;create-order&quot;)">
+                <validate-content unspecified-content-type-action="prevent" max-size="102400" size-exceeded-action="prevent" errors-variable-name="validationErrors">
+                    <content type="application/json" validate-as="json" action="prevent" />
+                </validate-content>
+                <return-response>
+                    <set-status code="201" reason="Created" />
+                    <set-header name="Content-Type" exists-action="override">
+                        <value>application/json</value>
+                    </set-header>
+                    <set-body>@("{\"orderId\":\"ORD-1042\",\"customerId\":\"CUST-4711\",\"productId\":\"TM-IO\",\"quantity\":2,\"currency\":\"DKK\",\"status\":\"Confirmed\",\"estimatedDelivery\":\"2026-09-21\"}")</set-body>
+                </return-response>
+            </when>
+        </choose>
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

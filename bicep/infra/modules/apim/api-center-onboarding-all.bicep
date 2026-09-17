@@ -32,6 +32,9 @@ param enableOpenAIRealtime bool = true
 @description('Enable Document Intelligence API Center registration')
 param enableDocumentIntelligence bool = true
 
+@description('Register the Orders and Products demo APIs in API Center')
+param enableOrderApiDemo bool = false
+
 // ------------------
 //    MCP API Center Onboarding
 // ------------------
@@ -360,5 +363,63 @@ module weatherAPIApiCenter './api-center-onboarding.bicep' = if (isMCPSampleDepl
     apiPath: 'weather'
     customProperties: weatherAPICustomProperties
     documentationUrl: 'https://example.com/weather-api-docs'
+  }
+}
+
+var orderDemoCustomProperties = {
+  Visibility: true
+  Categories: ['Commerce', 'Demo']
+  Vendor: 'Internal'
+  Type: 'Business API'
+  Icon: 'https://learn.microsoft.com/media/logos/logo-ms-social.png'
+}
+
+module ordersApiCenter './api-center-onboarding.bicep' = if (enableOrderApiDemo) {
+  name: 'orders-demo-api-center'
+  params: {
+    apicServiceName: apiCenterServiceName
+    apicWorkspaceName: apiCenterWorkspaceName
+    environmentName: apiCenterAPIEnvironment
+    apiName: 'orders-api'
+    apiDisplayName: 'Orders API'
+    apiDescription: 'Order Management API governed by Azure API Management'
+    apiKind: 'REST'
+    lifecycleStage: 'production'
+    versionName: '1-0-0'
+    versionDisplayName: '1.0.0'
+    definitionName: 'orders-api-definition'
+    definitionDisplayName: 'Orders API Definition'
+    definitionDescription: 'Orders API OpenAPI definition for version 1.0.0'
+    deploymentName: 'orders-api-apim'
+    deploymentDisplayName: 'Orders API - APIM'
+    deploymentDescription: 'Orders API deployment in Azure API Management'
+    gatewayUrl: apimGatewayUrl
+    apiPath: 'orders-demo'
+    customProperties: orderDemoCustomProperties
+  }
+}
+
+module productsApiCenter './api-center-onboarding.bicep' = if (enableOrderApiDemo) {
+  name: 'products-demo-api-center'
+  params: {
+    apicServiceName: apiCenterServiceName
+    apicWorkspaceName: apiCenterWorkspaceName
+    environmentName: apiCenterAPIEnvironment
+    apiName: 'products-api'
+    apiDisplayName: 'Products API'
+    apiDescription: 'Product catalogue API governed and cached by Azure API Management'
+    apiKind: 'REST'
+    lifecycleStage: 'production'
+    versionName: '1-0-0'
+    versionDisplayName: '1.0.0'
+    definitionName: 'products-api-definition'
+    definitionDisplayName: 'Products API Definition'
+    definitionDescription: 'Products API OpenAPI definition for version 1.0.0'
+    deploymentName: 'products-api-apim'
+    deploymentDisplayName: 'Products API - APIM'
+    deploymentDescription: 'Products API deployment in Azure API Management'
+    gatewayUrl: apimGatewayUrl
+    apiPath: 'products-demo'
+    customProperties: orderDemoCustomProperties
   }
 }

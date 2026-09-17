@@ -1,0 +1,93 @@
+openapi: 3.0.1
+info:
+  title: Orders API
+  version: 1.0.0
+  description: Self-contained Order Management API used by the APIM lifecycle demo.
+servers:
+  - url: https://example.invalid
+paths:
+  /orders/{orderId}:
+    get:
+      operationId: get-order
+      summary: Retrieve an order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: ORD-1042
+      responses:
+        '200':
+          description: Order found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+              example:
+                orderId: ORD-1042
+                customerId: CUST-4711
+                productId: TM-IO
+                quantity: 2
+                currency: DKK
+                status: Confirmed
+                estimatedDelivery: '2026-09-21'
+        '404':
+          description: Order not found
+  /orders:
+    post:
+      operationId: create-order
+      summary: Create an order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrder'
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Request body does not match the API contract
+components:
+  schemas:
+    CreateOrder:
+      type: object
+      additionalProperties: false
+      required:
+        - customerId
+        - productId
+        - quantity
+        - currency
+      properties:
+        customerId:
+          type: string
+        productId:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+    Order:
+      allOf:
+        - $ref: '#/components/schemas/CreateOrder'
+        - type: object
+          required:
+            - orderId
+            - status
+            - estimatedDelivery
+          properties:
+            orderId:
+              type: string
+            status:
+              type: string
+            estimatedDelivery:
+              type: string
+              format: date

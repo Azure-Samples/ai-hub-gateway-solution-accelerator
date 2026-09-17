@@ -132,6 +132,7 @@ param entraAuth = bool(readEnvironmentVariable('AZURE_ENTRA_AUTH', 'false'))
 param enableAPICenter = bool(readEnvironmentVariable('ENABLE_API_CENTER', 'false'))
 param enableManagedRedis = bool(readEnvironmentVariable('ENABLE_MANAGED_REDIS', 'false'))
 param enableUnifiedAiApi = bool(readEnvironmentVariable('ENABLE_UNIFIED_AI_API', 'true'))
+param enableOrderApiDemo = bool(readEnvironmentVariable('ENABLE_ORDER_API_DEMO', 'false'))
 
 // ============================================================================
 // INFERENCE API DIAGNOSTIC LOG SETTINGS

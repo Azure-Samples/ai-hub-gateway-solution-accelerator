@@ -557,6 +557,9 @@ param entraClientSecret string = ''
 @description('Enable the Unified AI Wildcard API (3rd API alongside Azure OpenAI and Universal LLM)')
 param enableUnifiedAiApi bool = true
 
+@description('Deploy the self-contained Orders and Products APIs used by the APIM lifecycle demo')
+param enableOrderApiDemo bool = false
+
 // Load abbreviations from JSON file
 var abbrs = loadJsonContent('./abbreviations.json')
 // Generate a unique token for resources
@@ -1039,6 +1042,17 @@ module keyVaultApimSystemRbac './modules/keyvault/keyvault-apim-system-rbac.bice
   }
 }
 
+module orderApiDemo './modules/apim/order-demo.bicep' = if (enableOrderApiDemo) {
+  name: 'order-api-demo'
+  params: {
+    apiManagementName: apim.outputs.apimName
+    keyVaultName: keyVault.outputs.keyVaultName
+  }
+  dependsOn: [
+    keyVaultApimSystemRbac
+  ]
+}
+
 module cosmosDb './modules/cosmos-db/cosmos-db.bicep' = {
   name: 'cosmos-db'
   params: {
@@ -1156,6 +1170,7 @@ module apiCenterOnboarding './modules/apim/api-center-onboarding-all.bicep' = if
     enableAIModelInference: enableAIModelInference
     enableOpenAIRealtime: enableOpenAIRealtime
     enableDocumentIntelligence: enableDocumentIntelligence
+    enableOrderApiDemo: enableOrderApiDemo
   }
   dependsOn: [
     apim

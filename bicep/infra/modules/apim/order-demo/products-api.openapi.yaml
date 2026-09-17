@@ -1,0 +1,59 @@
+openapi: 3.0.1
+info:
+  title: Products API
+  version: 1.0.0
+  description: Product catalogue API used to demonstrate gateway caching.
+servers:
+  - url: https://example.invalid
+paths:
+  /products/{productId}:
+    get:
+      operationId: get-product
+      summary: Retrieve product information
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: TM-IO
+      responses:
+        '200':
+          description: Product found
+          headers:
+            X-Cache:
+              description: Whether APIM served the response from its cache.
+              schema:
+                type: string
+                enum:
+                  - HIT
+                  - MISS
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+              example:
+                productId: TM-IO
+                name: Trackman IO
+                category: Sports technology
+                currency: DKK
+        '404':
+          description: Product not found
+components:
+  schemas:
+    Product:
+      type: object
+      required:
+        - productId
+        - name
+        - category
+        - currency
+      properties:
+        productId:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        currency:
+          type: string

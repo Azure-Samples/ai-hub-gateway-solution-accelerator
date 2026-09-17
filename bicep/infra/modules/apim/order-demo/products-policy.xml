@@ -1,0 +1,53 @@
+<policies>
+    <inbound>
+        <base />
+        <set-variable name="product-cache-key" value="@(&quot;demo-product-&quot; + (string)context.Request.MatchedParameters[&quot;productId&quot;])" />
+        <cache-lookup-value key="@((string)context.Variables[&quot;product-cache-key&quot;])" variable-name="cached-product" caching-type="internal" />
+        <choose>
+            <when condition="@(context.Variables.ContainsKey(&quot;cached-product&quot;))">
+                <return-response>
+                    <set-status code="200" reason="OK" />
+                    <set-header name="Content-Type" exists-action="override">
+                        <value>application/json</value>
+                    </set-header>
+                    <set-header name="X-Cache" exists-action="override">
+                        <value>HIT</value>
+                    </set-header>
+                    <set-body>@((string)context.Variables[&quot;cached-product&quot;])</set-body>
+                </return-response>
+            </when>
+        </choose>
+        <choose>
+            <when condition="@((string)context.Request.MatchedParameters[&quot;productId&quot;] != &quot;TM-IO&quot;)">
+                <return-response>
+                    <set-status code="404" reason="Not Found" />
+                    <set-header name="Content-Type" exists-action="override">
+                        <value>application/json</value>
+                    </set-header>
+                    <set-body>@("{\"error\":\"Product not found\"}")</set-body>
+                </return-response>
+            </when>
+        </choose>
+        <set-variable name="product-response" value="@(&quot;{\&quot;productId\&quot;:\&quot;TM-IO\&quot;,\&quot;name\&quot;:\&quot;Trackman IO\&quot;,\&quot;category\&quot;:\&quot;Sports technology\&quot;,\&quot;currency\&quot;:\&quot;DKK\&quot;}&quot;)" />
+        <cache-store-value key="@((string)context.Variables[&quot;product-cache-key&quot;])" value="@((string)context.Variables[&quot;product-response&quot;])" duration="60" caching-type="internal" />
+        <return-response>
+            <set-status code="200" reason="OK" />
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
+            <set-header name="X-Cache" exists-action="override">
+                <value>MISS</value>
+            </set-header>
+            <set-body>@((string)context.Variables["product-response"])</set-body>
+        </return-response>
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>
