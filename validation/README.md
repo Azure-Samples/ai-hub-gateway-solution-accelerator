@@ -43,6 +43,8 @@ Before running any notebook, ensure the following are in place:
   ```
 - **VS Code** with the Jupyter extension (recommended for running notebooks)
 
+> **Note:** Currently the [apimtools.py](../shared/apimtools.py) script is used for interacting with the APIM instance and it uses `DefaultAzureCredential` from the Azure Identity library for authentication which tries to get credentials from `EnvironmentCredential`, `WorkloadIdentityCredential`, `ManagedIdentityCredential`, and `AzureCliCredential` in that order. If you are running the notebooks through an Azure VM that has any of the above credentials it will be used automatically. If you want to use only the signed in Azure CLI credentials, you can replace `DefaultAzureCredential` with `AzureCliCredential` in the script through find/replace. Make sure to restart the notebook kernel after making this change to ensure the new authentication method is used.
+
 ### Optional (per notebook)
 
 | Capability | Required By | Details |
