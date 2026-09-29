@@ -29,6 +29,7 @@ Work top-to-bottom. Steps 1–2 are **required** to serve traffic; the rest are 
 - [ ] **4. Usage reporting activated** *(recommended)* — Power BI dashboard connected to Cosmos DB → [Power BI Dashboard](./power-bi-dashboard.md)
 - [ ] **5. Multi-region linked** *(if global)* — Cosmos DB multi-write across regions → [Cosmos Global Sync](../bicep/infra/citadel-cosmos-global-multi-master-sync/README.md)
 - [ ] **6. Gateway upgraded** *(as releases ship)* — new policies/APIs/backends applied in place → [APIM Gateway Upgrade](../bicep/infra/apim-gateway-upgrade/README.md)
+- [ ] **Logic App private connectivity verified** *(when enabled)* - website/SCM DNS, workflow publishing, public access restrictions, and ingestion health checked using the [private connectivity checklist](#logic-app-private-connectivity-checks).
 
 > All submodules use versioned Bicep parameter files (`.bicepparam`) and are DevOps/CI-CD friendly. Keep customized copies under source control, separate from the accelerator's default files.
 
@@ -153,6 +154,21 @@ curl https://<your-apim-gateway-host>/version/backend-contract
 ---
 
 ## 7. Validation
+
+### Logic App private connectivity checks
+
+When `logicAppUsePrivateEndpoint = true`, complete these checks after provisioning and workflow publishing. The flags default to `false` / `true` for endpoint creation / public access; see the [parameter reference](./parameters-usage-guide.md#logic-app-private-access) and [publishing prerequisites](./full-deployment-guide.md#private-only-logic-app-publishing).
+
+- [ ] The Logic App private endpoint connection is **Approved**, targets the `sites` subresource, and uses the private-endpoint subnet rather than the delegated outbound integration subnet.
+- [ ] From the publishing runner and administration network, both `<app>.azurewebsites.net` and `<app>.scm.azurewebsites.net` resolve to the endpoint's private IP and are reachable over HTTPS. Confirm the `privatelink.azurewebsites.net` zone group and both records, plus any required links or forwarding.
+- [ ] Authenticated workflow publishing succeeds through private SCM, and the expected workflows are present and enabled. Infrastructure deployment success alone is not sufficient.
+- [ ] For private-only mode, the site's `publicNetworkAccess` is `Disabled`. From a client without private connectivity, confirm website and SCM access are blocked by the public-network restriction; an authentication error or missing-route response alone is not proof. Skip this rejection check when public access is intentionally enabled for staged verification.
+- [ ] Expected Event Hub and scheduled ingestion workflows run successfully, fresh usage records reach Cosmos DB, and Event Hub backlog is not accumulating unexpectedly.
+- [ ] Storage access and monitoring connections remain healthy, logs continue to arrive, and there are no new dependency connectivity errors. Confirm other services' access settings and outbound integration remain unchanged.
+
+**Existing-app maintenance:** Do not rerun the main or resource-group accelerator templates to convert an existing hub. Plan a separately approved, narrowly scoped networking change; the gateway-upgrade supporting-services templates do not expose these flags. Changes can restart the app or delay ingestion, so validate recovery rather than assuming zero disruption. In an incremental ARM deployment, setting `logicAppUsePrivateEndpoint = false` does not delete an existing endpoint; removal requires a separate reviewed operation. Any temporary restoration of public access requires owner and policy approval.
+
+### Governance validation
 
 Use the validation notebooks under the [`/validation`](../validation/) folder to verify each step:
 

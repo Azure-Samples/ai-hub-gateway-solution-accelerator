@@ -246,7 +246,7 @@ param apimV2UsePrivateEndpoint = true
 - ✅ Virtual Network with subnets (APIM, Private Endpoints, Function App, **Agent** when network injection enabled)
 - ✅ Network Security Groups (one per subnet)
 - ✅ Private DNS Zones
-- ✅ Private Endpoints for all services
+- ✅ Private endpoints according to each service's configuration; the Logic App endpoint is opt-in
 - ✅ Route table (needed for APIM Developer and Premium SKUs)
 - ✅ Agent subnet delegated to `Microsoft.App/environments` for AI Foundry network injection
 
@@ -348,7 +348,7 @@ properties: {
 
 ### Logic App Subnet
 
-Dedicated subnet with `/26` or larger, delegated to `Microsoft.Web/serverFarms`:
+Dedicated subnet for **outbound VNet integration**, with `/26` or larger, delegated to `Microsoft.Web/serverFarms`. The optional inbound private endpoint uses the separate [Private Endpoints Subnet](#private-endpoints-subnet), not this delegated subnet:
 
 ```bicep
 {
@@ -385,7 +385,39 @@ Dedicated subnet with `/26` or larger for all private endpoints:
 }
 ```
 
-> For APIM V2 SKUs, private endpoints in this subnet enable private inbound connectivity.
+> For APIM V2 SKUs and the Logic App (when `logicAppUsePrivateEndpoint = true`), private endpoints in this subnet enable private inbound connectivity.
+
+### Logic App Private Connectivity
+
+Logic App private connectivity is opt-in. The defaults are `logicAppUsePrivateEndpoint = false` and `logicAppPublicNetworkAccess = true`. For private-only access, set the flags to `true` and `false`, respectively. See the [parameter reference](./parameters-usage-guide.md#logic-app-private-access) for environment variables, endpoint naming, and all four flag combinations.
+
+**Website and SCM/Kudu**
+
+One private endpoint with the `sites` subresource serves both the website and SCM/Kudu publishing endpoint. Its private DNS zone group manages these records in `privatelink.azurewebsites.net`:
+
+| Record | Target |
+|--------|--------|
+| `<app>` | Logic App private endpoint IP |
+| `<app>.scm` | Same private endpoint IP |
+
+Continue using `<app>.azurewebsites.net` and `<app>.scm.azurewebsites.net` for HTTPS, not the IP address or private-link hostnames. A second SCM endpoint, separate SCM DNS zone, and manual duplicate records are not needed when using the zone group. See [App Service private endpoint DNS](https://learn.microsoft.com/azure/app-service/overview-private-endpoint#dns).
+
+**DNS selection and ownership**
+
+When the Logic App endpoint is enabled, DNS selection follows this order:
+
+1. Use the resource ID in `existingPrivateDnsZones.logicApp` when supplied.
+2. Otherwise, reuse `privatelink.azurewebsites.net` in `dnsZoneRG`, using `dnsSubscriptionId` or the deployment subscription when that subscription setting is blank.
+3. Otherwise, for a **new VNet**, create the zone locally and link it to the new VNet.
+4. For an **existing VNet** without either DNS input, no zone is created and the endpoint's DNS zone group is skipped. The template does not reject this incomplete DNS configuration.
+
+Reused zones are not automatically linked by this Logic App configuration, even with a new VNet. Ensure the deployment identity can associate the endpoint with the selected zone, and have the network/DNS owner configure links or forwarding for the app network, publishing runners, and administration clients. VNet peering alone does not provide DNS resolution. Reuse a centrally managed zone where applicable rather than creating a conflicting zone for the same namespace.
+
+**Publishing and runtime connectivity**
+
+With public access disabled, website and SCM access require a working private endpoint and private DNS. Publishing runners and administration clients must have private network reachability; see [private-only workflow publishing](./full-deployment-guide.md#private-only-logic-app-publishing). Private connectivity does not replace authentication or authorization.
+
+These flags only control Logic App inbound access. Outbound VNet integration, routing settings, storage, Event Hub, Cosmos DB, monitoring connections, identities, and other services' access settings are unchanged. Keep those dependencies reachable for usage ingestion. This configuration applies to the main/resource-group initial-deployment templates, not the separate gateway-upgrade supporting-services templates.
 
 ---
 
@@ -544,18 +576,23 @@ All zones must be linked to your VNet:
 | `privatelink.queue.core.windows.net` | Storage Queue |
 | `privatelink.azure-api.net` | APIM V2 SKUs |
 | `privatelink.services.ai.azure.com` | Azure AI Foundry |
+| `privatelink.azurewebsites.net` | Logic App website and SCM/Kudu, when `logicAppUsePrivateEndpoint = true` |
 
 > **Azure Monitor:** Requires special Private Link Scope configuration post-deployment for centralized monitoring.
 
+> **Logic App:** Local creation and linking are conditional. For an existing VNet or reused zone, follow [DNS selection and ownership](#logic-app-private-connectivity).
+
 ## Azure services network access settings
 
-Although the accelerator deploys services with private endpoints by default with disabled public access, some services may require specific network access settings to be configured based on your network architecture and security requirements.
+Private endpoint and public network access defaults vary by service. A private endpoint does not automatically disable public access. The Logic App defaults to public access enabled with no template-created private endpoint; configure each service according to your network architecture and security requirements.
 
 | Service | Parameter | Default | Allowed Values | Description |
 |---------|-----------|---------|----------------|-------------|
 | **API Management (Developer/Premium)** | `apimNetworkType` | `External` | `External`, `Internal` | Network type for APIM VNet injection. `Internal` mode requires custom DNS configuration. |
 | **API Management (StandardV2/PremiumV2)** | `apimV2UsePrivateEndpoint` | `true` | `true`, `false` | Enable private endpoint for inbound connectivity on V2 SKUs. |
 | **API Management (StandardV2/PremiumV2)** | `apimV2PublicNetworkAccess` | `true` | `true`, `false` | Allow public network access. Set to `false` to restrict to private endpoint only. |
+| **Logic App** | `logicAppUsePrivateEndpoint` | `false` | `true`, `false` | Create an inbound private endpoint for website and SCM/Kudu access. |
+| **Logic App** | `logicAppPublicNetworkAccess` | `true` | `true`, `false` | Allow public website and SCM/Kudu access. Set to `false` only with working private connectivity and DNS. |
 | **Cosmos DB** | `cosmosDbPublicAccess` | `Disabled` | `Enabled`, `Disabled` | Public network access for Cosmos DB. Keep `Disabled` for secure deployments. |
 | **Event Hub** | `eventHubNetworkAccess` | `Enabled` | `Enabled`, `Disabled` | Public network access. Note: Must be `Enabled` during initial provisioning for APIM V2 SKUs. |
 | **AI Foundry** | `aiFoundryExternalNetworkAccess` | `Disabled` | `Enabled`, `Disabled` | External network access for the AI Foundry / AI Services resources (also serves Content Safety and Language / PII APIs from the **primary** Foundry account). |
@@ -568,6 +605,8 @@ Although the accelerator deploys services with private endpoints by default with
 param apimNetworkType = 'Internal'
 param apimV2UsePrivateEndpoint = true
 param apimV2PublicNetworkAccess = false
+param logicAppUsePrivateEndpoint = true
+param logicAppPublicNetworkAccess = false
 param cosmosDbPublicAccess = 'Disabled'
 param eventHubNetworkAccess = 'Disabled'  // Set after initial deployment
 param aiFoundryExternalNetworkAccess = 'Disabled'
@@ -577,4 +616,5 @@ param useAzureMonitorPrivateLinkScope = true
 > **Important Notes:**
 > - Event Hub must have public access `Enabled` during initial deployment when using APIM V2 SKUs. You can disable it post-deployment.
 > - When `apimNetworkType = 'Internal'`, ensure proper DNS configuration for APIM endpoints.
+> - Private-only Logic App workflow publishing requires a connected runner with private SCM DNS resolution; infrastructure provisioning alone does not publish workflows.
 > - Azure Monitor Private Link Scope requires additional post-deployment configuration for centralized monitoring as Azure Monitor private link scope is a global resource and impact all Log Analytics and Application Insights workspaces across subscriptions when connecting to the same hub network.

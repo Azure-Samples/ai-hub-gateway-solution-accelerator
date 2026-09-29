@@ -441,7 +441,7 @@ param eventHubNetworkAccess = 'Enabled'  // Required during deployment of APIM v
 - ✅ Virtual Network with subnets
 - ✅ Network Security Groups
 - ✅ Private DNS Zones
-- ✅ Private Endpoints for all services
+- ✅ Private endpoints according to each service's configuration; the Logic App endpoint is opt-in
 - ✅ Route tables (needed for APIM Developer and Premium SKUs)
 
 ---
@@ -475,6 +475,7 @@ param dnsSubscriptionId = '00000000-0000-0000-0000-000000000000'
 4. NSG required rules configured for APIM subnet
 
 **Required DNS Zones:**
+- `privatelink.azurewebsites.net` when `logicAppUsePrivateEndpoint = true`; supply `existingPrivateDnsZones.logicApp` or reuse the zone through `dnsZoneRG` / `dnsSubscriptionId`, with links or forwarding configured (see [Logic App DNS selection](./network-approach.md#logic-app-private-connectivity)).
 - `privatelink.vaultcore.azure.com`
 - `privatelink.monitor.azure.com`
 - `privatelink.servicebus.windows.net`
@@ -958,6 +959,8 @@ param apimV2UsePrivateEndpoint = true
 param apimV2PublicNetworkAccess = false
 
 // Service Network Access
+param logicAppUsePrivateEndpoint = true
+param logicAppPublicNetworkAccess = false
 param cosmosDbPublicAccess = 'Disabled'
 param eventHubNetworkAccess = 'Disabled'  // Enable during deployment, disable after for APIM Standardv2 and PremiumV2 SKUs
 
@@ -972,6 +975,22 @@ param eventHubNetworkAccess = 'Disabled'  // Enable during deployment, disable a
 It is recommended to leverage Azure Developer CLI (`azd`) for simplified deployments of both the infrastructure and application (Logic Apps workflows).
 
 Based on the configured parameter files, you can deploy using either `az deployment sub create` or `azd up`.
+
+### Private-only Logic App publishing
+
+The Logic App defaults remain `logicAppUsePrivateEndpoint = false` and `logicAppPublicNetworkAccess = true`. To deploy it with private-only website and SCM/Kudu access, use the two overrides in the production example above, or their environment-variable equivalents in the [parameter reference](./parameters-usage-guide.md#logic-app-private-access).
+
+Infrastructure provisioning uses Azure Resource Manager; workflow publishing connects to the app's SCM endpoint. A successful infrastructure deployment does not prove that the publishing machine can reach SCM. Before publishing with public access disabled:
+
+1. Prepare a workstation or self-hosted CI runner in the VNet or a connected network, with routing and HTTPS access to the private endpoint. Ordinary Cloud Shell and public hosted runners should not be assumed to have this access.
+2. Configure private DNS links or forwarding so both `<app>.azurewebsites.net` and `<app>.scm.azurewebsites.net` resolve to the private endpoint IP from that machine. For an existing VNet, supply the existing zone ID or `dnsZoneRG`; see [DNS selection and ownership](./network-approach.md#logic-app-private-connectivity).
+3. Confirm endpoint approval and private DNS/connectivity after provisioning, then publish workflows from that connected machine using the required deployment credentials and permissions. Private networking does not bypass authentication.
+
+For `azd up`, the application deployment phase runs from the machine invoking it, which therefore needs private SCM access. When using separate provisioning and application deployment steps, run the publishing step from the connected machine. This prerequisite also applies to separate workflow publishing after a direct Bicep deployment, including the existing-resource-group path below.
+
+A new deployment can start private-only; temporarily enabling public access is not required when the private publishing path is ready. Setting both flags to `true` is an optional staged-verification mode only when policy permits. It is not an instruction to rerun the full accelerator against an existing hub.
+
+The main and resource-group templates are for initial deployment. Converting an existing app requires a separately reviewed, narrowly scoped maintenance change; these flags are not added to the gateway-upgrade supporting-services templates. Network changes may restart an existing app or delay ingestion. Do not change other services' access settings just to publish the Logic App. See [post-deployment private connectivity checks](./post-deployment-guide.md#logic-app-private-connectivity-checks).
 
 ### Using `az deployment sub create`:
 
@@ -999,6 +1018,8 @@ az deployment sub create \
 
 >Note: Using `az deployment sub create` will only provision the infrastructure. You still will need to deploy the `Logic App` workflows separately after the infrastructure is ready.
 
+> With Logic App public access disabled, that separate workflow publishing step requires [private SCM connectivity](#private-only-logic-app-publishing).
+
 ### Using `azd up`:
 
 This automatically picks up the `main.bicepparam` file. You can override specific parameters using environment variables or by modifying the `main.bicepparam` file directly.
@@ -1016,6 +1037,8 @@ azd up
 ```
 
 >NOTE: Using `azd up` will use the `main.bicepparam` file for parameter values. You can modify it or set environment variables to override specific parameters. This command provisions the infrastructure and deploys the Logic App workflows in one step.
+
+> With Logic App public access disabled, run this command from a machine that meets the [private publishing prerequisites](#private-only-logic-app-publishing).
 
 ### Existing Resource Group Deployment Execution
 

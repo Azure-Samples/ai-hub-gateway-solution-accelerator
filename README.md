@@ -78,6 +78,8 @@ AI Citadel Governance Hub follows a **Central-Control-Plane** with decentralized
 
 Detailed networking approach guidance for Citadel Governance Hub can be found in the [Network Approach Guide](./guides/network-approach.md).
 
+Initial deployments support optional [private-only Logic App website and SCM/Kudu access](./guides/network-approach.md#logic-app-private-connectivity). This is opt-in; defaults remain public access enabled with no Logic App private endpoint.
+
 Below is a high-level overview of the two supported deployment approaches:
 
 #### Part of spoke network (peered to a hub VNet in the connectivity subscription)

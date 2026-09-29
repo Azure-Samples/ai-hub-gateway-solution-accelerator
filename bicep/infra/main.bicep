@@ -210,6 +210,9 @@ param keyVaultPrivateEndpointName string = ''
 @description('Azure Managed Redis private endpoint name. Leave blank to use default naming conventions.')
 param redisPrivateEndpointName string = ''
 
+@description('Logic App private endpoint name. Leave blank to use default naming conventions.')
+param logicAppPrivateEndpointName string = ''
+
 // Services network access configuration
 
 @description('Network type for API Management service. Applies only to Premium and Developer SKUs.')
@@ -221,6 +224,12 @@ param apimV2UsePrivateEndpoint bool = true
 
 @description('API Management service external network access. When false, APIM must have private endpoint.')
 param apimV2PublicNetworkAccess bool = true
+
+@description('Create a private endpoint for the Logic App. Existing VNets require existingPrivateDnsZones.logicApp or dnsZoneRG for privatelink.azurewebsites.net, with DNS links or forwarding configured.')
+param logicAppUsePrivateEndpoint bool = false
+
+@description('Allow public network access to the Logic App. When false, website and SCM access require a working private endpoint and private DNS; workflow publishing must run from a connected network.')
+param logicAppPublicNetworkAccess bool = true
 
 @description('Cosmos DB public network access.')
 @allowed([ 'Enabled', 'Disabled' ])
@@ -622,9 +631,12 @@ module resources './resources.bicep' = {
     aiFoundryPrivateEndpointName: aiFoundryPrivateEndpointName
     keyVaultPrivateEndpointName: keyVaultPrivateEndpointName
     redisPrivateEndpointName: redisPrivateEndpointName
+    logicAppPrivateEndpointName: logicAppPrivateEndpointName
     apimNetworkType: apimNetworkType
     apimV2UsePrivateEndpoint: apimV2UsePrivateEndpoint
     apimV2PublicNetworkAccess: apimV2PublicNetworkAccess
+    logicAppUsePrivateEndpoint: logicAppUsePrivateEndpoint
+    logicAppPublicNetworkAccess: logicAppPublicNetworkAccess
     cosmosDbPublicAccess: cosmosDbPublicAccess
     eventHubNetworkAccess: eventHubNetworkAccess
     aiFoundryExternalNetworkAccess: aiFoundryExternalNetworkAccess
