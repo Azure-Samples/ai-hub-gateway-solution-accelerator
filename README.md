@@ -328,7 +328,7 @@ Master AI Citadel Governance Hub implementation and operations with our detailed
 |-------|-------------|
 | [**🆕 Governance Hub Benefits**](./guides/governance-hub-benefits.md) | Detailed benefits and stakeholder value of adopting Citadel Governance Hub |
 | [**🆕 Citadel Sizing Guide**](./guides/citadel-sizing-guide.md) | Guidance on sizing the Citadel Governance Hub based on workloads and environments |
-| [**🆕 PTU Estimation Guide**](./guides/put-estimation-guide.md) | Azure OpenAI / Foundry LLM sizing guide for PTU vs Pay-as-you-Go capacity planning |
+| [**🆕 PTU Estimation Guide**](./guides/ptu-estimation-guide.md) | Azure OpenAI / Foundry LLM sizing guide for PTU vs Pay-as-you-Go capacity planning |
 ### 🏗️ **Landing zone deployment**
 
 | Guide | Description |
