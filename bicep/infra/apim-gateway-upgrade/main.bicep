@@ -685,7 +685,7 @@ module apimOpenAIRealtimeApi '../modules/apim/api.bicep' = if (updateOpenAIRealt
     apiName: 'openai-realtime-ws-api'
     path: 'openai/realtime'
     apiRevision: '1'
-    apiDispalyName: 'Azure OpenAI Realtime API'
+    apiDisplayName: 'Azure OpenAI Realtime API'
     subscriptionRequired: true
     subscriptionKeyName: 'api-key'
     openApiSpecification: 'NA'

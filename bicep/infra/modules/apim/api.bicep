@@ -6,7 +6,7 @@ param apiName string
 @description('The display name of the API')
 @minLength(1)
 @maxLength(63)
-param apiDispalyName string
+param apiDisplayName string
 
 @description('The contents of the OpenAPI definition')
 @minLength(1)
@@ -85,7 +85,7 @@ resource apiDefinition 'Microsoft.ApiManagement/service/apis@2022-08-01' = if(en
     path: (path == '') ? apiName : path
     apiRevision: apiRevision
     description: (apiDescription == '') ? apiName : apiDescription
-    displayName: apiDispalyName
+    displayName: apiDisplayName
     format: (openApiSpecification != 'NA') ? contentFormat : null
     value: (openApiSpecification != 'NA') ? openApiSpecification : null
     subscriptionRequired: subscriptionRequired
@@ -107,7 +107,7 @@ resource apiDefinitionWebSocket 'Microsoft.ApiManagement/service/apis@2022-08-01
     path: (path == '') ? apiName : path
     apiRevision: apiRevision
     description: (apiDescription == '') ? apiName : apiDescription
-    displayName: apiDispalyName
+    displayName: apiDisplayName
     subscriptionRequired: subscriptionRequired
     subscriptionKeyParameterNames: {
       header: empty(subscriptionKeyName) ? 'Ocp-Apim-Subscription-Key' : subscriptionKeyName
