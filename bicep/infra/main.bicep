@@ -284,6 +284,9 @@ param enableAPICenter bool = true
 @description('Enable Azure Managed Redis (AMR). When true (default), the Redis resource and APIM cache integration are provisioned.')
 param enableManagedRedis bool = true
 
+@description('Enable API diagnostics for monitoring and logging to Application Insights.')
+param enableAPIDiagnostics bool = false
+
 @description('Azure Monitor diagnostic log settings for inference APIs. Controls frontend/backend request/response headers, body bytes, and LLM-specific log settings.')
 param azureMonitorLogSettings object = {
   frontend: {
@@ -652,6 +655,7 @@ module resources './resources.bicep' = {
     entraAuth: entraAuth
     enableAPICenter: enableAPICenter
     enableManagedRedis: enableManagedRedis
+    enableAPIDiagnostics: enableAPIDiagnostics
     azureMonitorLogSettings: azureMonitorLogSettings
     appInsightsLogSettings: appInsightsLogSettings
     apimSku: apimSku

@@ -193,6 +193,9 @@ param embeddingsBackendId string = 'foundry-embeddings'
 //    LOGGING / DIAGNOSTICS PARAMETERS
 // =====================================================================
 
+@description('Enable API diagnostics for monitoring and logging to Application Insights.')
+param enableAPIDiagnostics bool = false
+
 @description('Azure Monitor diagnostic log settings for inference APIs')
 param azureMonitorLogSettings object = {
   frontend: {
@@ -695,7 +698,7 @@ module apimOpenAIRealtimeApi '../modules/apim/api.bicep' = if (updateOpenAIRealt
     serviceUrl: 'wss://to-be-replaced-by-policy'
     apiType: 'websocket'
     apiProtocols: ['wss']
-    enableAPIDiagnostics: false
+    enableAPIDiagnostics: enableAPIDiagnostics
   }
   dependsOn: [
     policyFragments

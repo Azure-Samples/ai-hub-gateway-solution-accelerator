@@ -38,6 +38,9 @@ param enableDocumentIntelligence bool = false
 
 param enablePIIAnonymization bool = true
 
+@description('Enable API diagnostics for monitoring and logging to Application Insights.')
+param enableAPIDiagnostics bool = false
+
 param contentSafetyServiceUrl string
 param aiLanguageServiceUrl string
 
@@ -258,7 +261,7 @@ module apimAiSearchIndexApi './api.bicep' = if (enableAzureAISearch) {
     apiDescription: 'Azure AI Search Index Client APIs'
     policyDocument: loadTextContent('./policies/ai-search-index-api-policy.xml')
     enableAPIDeployment: true
-    enableAPIDiagnostics: false
+    enableAPIDiagnostics: enableAPIDiagnostics
   }
   dependsOn: [
     policyFragments
@@ -282,7 +285,7 @@ module apimOpenAIRealTimetApi './api.bicep' = if (enableOpenAIRealtime) {
     serviceUrl: 'wss://to-be-replaced-by-policy'
     apiType: 'websocket'
     apiProtocols: ['wss']
-    enableAPIDiagnostics: false
+    enableAPIDiagnostics: enableAPIDiagnostics
   }
   dependsOn: [
     policyFragments
@@ -303,7 +306,7 @@ module apimDocumentIntelligenceLegacy './api.bicep' = if (enableDocumentIntellig
     apiDescription: 'Uses (/formrecognizer) url path. Extracts content, layout, and structured data from documents.'
     policyDocument: loadTextContent('./policies/doc-intelligence-api-policy.xml')
     enableAPIDeployment: true
-    enableAPIDiagnostics: false
+    enableAPIDiagnostics: enableAPIDiagnostics
   }
   dependsOn: [
     policyFragments
@@ -324,7 +327,7 @@ module apimDocumentIntelligence './api.bicep' = if (enableDocumentIntelligence) 
     apiDescription: 'Uses (/documentintelligence) url path. Extracts content, layout, and structured data from documents.'
     policyDocument: loadTextContent('./policies/doc-intelligence-api-policy.xml')
     enableAPIDeployment: true
-    enableAPIDiagnostics: false
+    enableAPIDiagnostics: enableAPIDiagnostics
   }
   dependsOn: [
     policyFragments
@@ -992,7 +995,7 @@ module weatherAPI './api.bicep' = if (isMCPSampleDeployed) {
     apiDescription: 'Weather API for getting dynamic weather information for a given location.'
     policyDocument: loadTextContent('./sample/weather/policy.xml')
     enableAPIDeployment: true
-    enableAPIDiagnostics: false
+    enableAPIDiagnostics: enableAPIDiagnostics
   }
   dependsOn: [
   ]

@@ -135,6 +135,7 @@ param enableUnifiedAiApi = bool(readEnvironmentVariable('ENABLE_UNIFIED_AI_API',
 // ============================================================================
 // INFERENCE API DIAGNOSTIC LOG SETTINGS
 // ============================================================================
+param enableAPIDiagnostics = bool(readEnvironmentVariable('ENABLE_API_DIAGNOSTICS', 'false'))
 
 // Azure Monitor diagnostic log settings for inference APIs
 // Controls frontend/backend request/response headers, body bytes, and LLM-specific log settings.
