@@ -35,8 +35,12 @@ param subscriptionRequired bool = true
 @description('API Revision number. Default is 1')
 param apiRevision string = '1'
 
-@description('Ability to override the subscription key name. Default is Ocp-Apim-Subscription-Key')
-param subscriptionKeyName string = ''
+@description('Header name callers use to present the subscription (API) key. Accepts the LLM-style "api-key" (default) or the APIM-native "Ocp-Apim-Subscription-Key".')
+@allowed([
+  'api-key'
+  'Ocp-Apim-Subscription-Key'
+])
+param subscriptionKeyName string = 'api-key'
 
 param enableAPIDeployment bool = true
 
@@ -46,6 +50,10 @@ param enableAPIDiagnostics bool
 
 // Assume the content format is JSON format if the ending is .json - otherwise, it's YAML
 var contentFormat = startsWith(openApiSpecification, '{') ? 'openapi+json' : 'openapi'
+
+// Query-string key name mirrors the header: APIM-native header uses the 'subscription-key' query param,
+// the LLM-style 'api-key' header uses an 'api-key' query param.
+var subscriptionKeyQueryName = subscriptionKeyName == 'Ocp-Apim-Subscription-Key' ? 'subscription-key' : 'api-key'
 
 @description('The type of the API')
 @allowed([
@@ -90,7 +98,8 @@ resource apiDefinition 'Microsoft.ApiManagement/service/apis@2022-08-01' = if(en
     value: (openApiSpecification != 'NA') ? openApiSpecification : null
     subscriptionRequired: subscriptionRequired
     subscriptionKeyParameterNames: {
-      header: empty(subscriptionKeyName) ? 'Ocp-Apim-Subscription-Key' : subscriptionKeyName
+      header: subscriptionKeyName
+      query: subscriptionKeyQueryName
     }
     type: apiType
     protocols: apiProtocols
@@ -110,7 +119,8 @@ resource apiDefinitionWebSocket 'Microsoft.ApiManagement/service/apis@2022-08-01
     displayName: apiDispalyName
     subscriptionRequired: subscriptionRequired
     subscriptionKeyParameterNames: {
-      header: empty(subscriptionKeyName) ? 'Ocp-Apim-Subscription-Key' : subscriptionKeyName
+      header: subscriptionKeyName
+      query: subscriptionKeyQueryName
     }
     type: apiType
     protocols: apiProtocols

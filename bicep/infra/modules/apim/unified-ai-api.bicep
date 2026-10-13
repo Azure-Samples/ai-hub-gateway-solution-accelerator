@@ -40,6 +40,17 @@ param azureMonitorLogSettings object = {
   }
 }
 
+@description('Header name callers use to present the subscription (API) key. Accepts the LLM-style "api-key" (default) or the APIM-native "Ocp-Apim-Subscription-Key".')
+@allowed([
+  'api-key'
+  'Ocp-Apim-Subscription-Key'
+])
+param subscriptionKeyName string = 'api-key'
+
+// Query-string key name mirrors the header: APIM-native header uses the 'subscription-key' query param,
+// the LLM-style 'api-key' header uses an 'api-key' query param.
+var subscriptionKeyQueryName = subscriptionKeyName == 'Ocp-Apim-Subscription-Key' ? 'subscription-key' : 'api-key'
+
 // ------------------
 //    RESOURCES
 // ------------------
@@ -62,8 +73,8 @@ resource unifiedAiApi 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' 
       'https'
     ]
     subscriptionKeyParameterNames: {
-      header: 'api-key'
-      query: 'api-key'
+      header: subscriptionKeyName
+      query: subscriptionKeyQueryName
     }
     subscriptionRequired: true
     type: 'http'
