@@ -304,6 +304,9 @@ param appInsightsLogSettings object = {
   body: { bytes: 0 }
 }
 
+@description('Enable default diagnostics for non-inference APIs')
+param enableOtherAPIDiagnostics bool = false
+
 //
 // COMPUTE SKU & SIZE - SKUs and capacity settings for services
 //
@@ -1020,6 +1023,7 @@ module apim './modules/apim/apim.bicep' = {
     isMCPSampleDeployed: false
     azureMonitorLogSettings: azureMonitorLogSettings
     appInsightsLogSettings: appInsightsLogSettings
+    enableOtherAPIDiagnostics: enableOtherAPIDiagnostics
     enableUnifiedAiApi: enableUnifiedAiApi
     enableJwtAuth: entraAuth
     jwtTenantId: resolvedEntraTenantId
