@@ -671,7 +671,8 @@ var primaryFoundryName = !empty(aiFoundryInstances[0].name) ? aiFoundryInstances
 // Primary Foundry endpoint - serves APIM AI Gateway as both:
 //   1. Backend URL for `content-safety-backend` (Content Safety API)
 //   2. Named-value `piiServiceUrl` (Language Service / PII detection API)
-// Both APIs are exposed on the AI Services account base endpoint.
+//   3. Named-value `documentIntelligenceServiceUrl` (Document Intelligence API)
+// All of these APIs are exposed on the AI Services account base endpoint.
 var primaryFoundryEndpoint = 'https://${primaryFoundryName}.cognitiveservices.azure.com/'
 var primaryFoundryEmbeddingsBackendUrl = '${primaryFoundryEndpoint}openai/deployments/${primaryFoundryEmbeddingModelName}/embeddings'
 
@@ -995,6 +996,7 @@ module apim './modules/apim/apim.bicep' = {
     apimSubnetId: useExistingVnet ? vnetExisting.outputs.apimSubnetId : vnet.outputs.apimSubnetId
     aiLanguageServiceUrl: primaryFoundryEndpoint
     contentSafetyServiceUrl: primaryFoundryEndpoint
+    documentIntelligenceServiceUrl: primaryFoundryEndpoint
     apimNetworkType: apimNetworkType
     enablePIIAnonymization: enableAIGatewayPiiRedaction
     enableAIModelInference: enableAIModelInference
