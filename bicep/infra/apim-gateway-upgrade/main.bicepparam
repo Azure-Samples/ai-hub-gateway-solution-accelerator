@@ -145,7 +145,6 @@ param embeddingsBackendUrl = ''
 //    LOGGING / DIAGNOSTICS SETTINGS
 //    Customize what is captured in Application Insights and Azure Monitor.
 // =====================================================================
-param enableAPIDiagnostics = false
 
 param updateAppInsightsDiagnostics = true
 
