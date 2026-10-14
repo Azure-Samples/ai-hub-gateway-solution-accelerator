@@ -42,7 +42,8 @@ param enableAPIDeployment bool = true
 
 param apimLoggerId string = 'azuremonitor'
 
-@description('Enable API diagnostics for monitoring and logging to Application Insights.')
+// NOTE: This enables diagnostics for non-inference APIs created by this module only - main inference APIs have their own diagnostics configuration.
+@description('Enable default API diagnostics for monitoring and logging to Application Insights')
 param enableAPIDiagnostics bool = false
 
 // Assume the content format is JSON format if the ending is .json - otherwise, it's YAML
