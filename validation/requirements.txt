@@ -1,46 +1,39 @@
-# This is a comprehensive requirements.txt file for all labs to ensure that one installation covers everything.
+# Shared environment for the 13 active notebooks directly in validation-local.
+# Python 3.11; start with citadel-environment-setup.ipynb.
+# Archived notebooks and other validation directories have separate requirements.
+#
+# Direct dependencies are pinned together; transitive dependencies are resolved by
+# pip. This is not a full lockfile. See notebook-setup-guide.md for update policy.
+# Only explicitly pinned previews are allowed; do not pass a global --pre flag.
+# Azure CLI / azd are external tools, NOT Python dependencies.
 
-# Do not include azure-functions-worker in this file
-# The Python Worker is managed by the Azure Functions platform
-# Manually managing azure-functions-worker may cause unexpected issues
+# Notebook kernel, requirement verification, HTTP, authentication, and charts
+ipykernel==7.3.0
+ipython==9.15.0
+packaging==26.2
+requests==2.34.2
+httpx==0.28.1
+msal==1.39.0
+nest-asyncio==1.6.0
+numpy==2.4.6
+pandas==3.0.3
+matplotlib==3.11.2
 
-# Azure CLI is a system prerequisite, not a Python dependency. Install it using
-# https://learn.microsoft.com/cli/azure/install-azure-cli and verify with `az --version`.
-# The notebooks invoke the external `az` command and do not import `azure.cli`.
+# Shared APIM helpers, Key Vault integration, and optional PII Cosmos analysis
+azure-identity==1.26.0
+azure-mgmt-apimanagement==5.0.0
+azure-keyvault-secrets==4.11.3
+azure-cosmos==4.16.2
 
-requests
-jsonref
-python-dotenv
-numpy
-pandas
-matplotlib
-redis
-msal
-openai
-openai[realtime]
-azure-identity
-opentelemetry-api
-opentelemetry-sdk
-opentelemetry-instrumentation-openai-v2
-opentelemetry-semantic-conventions-ai
-azure-monitor-opentelemetry
-azure-monitor-ingestion
-azure-ai-projects
-azure-ai-agents
-azure-ai-inference[prompts]
-azure-search-documents
-azure-functions
-azure-mgmt-apimanagement
-
-# MCP Labs
-mcp
-autogen-core 
-autogen-ext[openai,azure,mcp] 
-autogen-agentchat
-semantic-kernel[mcp]
-
-# Agent Framework
-agent-framework
-agent-framework-core
-langchain
-langchain-openai
+# Agent SDK APIs used by Agent Frameworks and Publish Contract.
+# Use modular distributions instead of agent-framework (which installs all
+# provider integrations). Release numbers differ; pip checks core compatibility.
+agent-framework-core==1.20.0
+agent-framework-openai==1.15.0
+agent-framework-a2a==1.0.0b261002
+a2a-sdk==1.1.1
+azure-ai-projects==2.8.0
+openai==3.26.0
+opentelemetry-semantic-conventions-ai==0.5.1
+langchain==1.4.3
+langchain-openai==1.6.7

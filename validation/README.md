@@ -6,6 +6,10 @@ This testing suite provides a comprehensive, end-to-end validation framework for
 
 The recommended execution order is:
 
+**Environment prerequisite:** first run [Validation Environment Setup](citadel-environment-setup.ipynb) to prepare the shared Python 3.11 environment for all 13 active scenario notebooks in this directory. It does not require a deployed gateway and is not part of the numbered cloud-validation sequence. Archived notebooks are outside its scope.
+
+Use the dedicated `.venv-validation-local` kernel, leaving any existing `.venv` for other labs unchanged. Pip does not uninstall unrelated frameworks when installing a requirements file; isolation prevents their dependency constraints from conflicting with this suite.
+
 > **Strongly recommended baseline (steps 1–4):** these four notebooks together exercise the core gateway plumbing — backend onboarding, full model surface area, access-contract provisioning, and real-world agent consumption. Run them in order on every new Governance Hub deployment before moving on to the optional scenario-specific notebooks.
 
 1. **Backend Contracts (LLM Onboarding)** — Register AI backends and deploy routing logic into APIM ⭐ *strongly recommended*
@@ -21,27 +25,29 @@ The recommended execution order is:
 11. **Gateway Alerting** — Trigger real alerts: provision a restrictive access contract, force throttling (HTTP 429) *and* quota exhaustion (HTTP 403), deploy Azure Monitor metric alerts on the `AI Gateway Alert` custom metric, and verify the metrics + rules
 12. **Publish Contract** — Publish three protected AI assets (API→MCP tool, remote MCP tool, Foundry A2A agent), then validate MCP handshakes, the A2A agent card + JSON-RPC call, `mcp-usage`/`a2a-usage` custom metrics, and per-asset circuit breakers
 
-Each notebook is self-contained with initialization, deployment, testing, visualization, and cleanup stages, enabling both interactive exploration and repeatable validation.
+Each scenario notebook has its own initialization, deployment, testing, visualization, and cleanup stages, using the shared environment prepared once by the setup notebook.
 
 ---
 
 ## Prerequisites
 
-> **First time running these notebooks?** Follow the [Validation Notebook Setup Guide](notebook-setup-guide.md) to create the repository's isolated `.venv`, install dependencies, select the correct VS Code kernel, and verify the notebook working directory.
+> **First time running these notebooks?** Start with [Validation Environment Setup](citadel-environment-setup.ipynb). It guides `.venv-validation-local` creation and kernel selection, resolves and installs the complete dependency set, then verifies direct versions and SDK imports. The [Validation Notebook Setup Guide](notebook-setup-guide.md) provides terminal alternatives, version policy, and troubleshooting. In every scenario notebook, select the same `.venv-validation-local` and use `validation-local` as the working directory.
 
 Before running any notebook, ensure the following are in place:
 
 - **Citadel Governance Hub** deployed ([Full Deployment Guide](../guides/full-deployment-guide.md) or [Quick Deployment Guide](../guides/quick-deployment-guide.md))
 - **Azure CLI** installed and authenticated (`az login`)
-- **Python 3.11** with the repository-root `.venv` selected as the notebook kernel
-- **Dependencies** installed into `.venv` from the repository root (Windows PowerShell):
+- **Python 3.11** with the repository-root `.venv-validation-local` selected as the notebook kernel
+- **Dependencies** installed into `.venv-validation-local` from the repository root (Windows PowerShell):
     ```powershell
-    py -3.11 -m venv .venv
-    .\.venv\Scripts\python.exe -m pip install --upgrade pip setuptools wheel
-    .\.venv\Scripts\python.exe -m pip install -r .\validation\requirements.txt
-    .\.venv\Scripts\python.exe -m pip install ipykernel
+    py -3.11 -m venv .venv-validation-local
+    .\.venv-validation-local\Scripts\python.exe -m pip install --upgrade pip setuptools wheel
+    .\.venv-validation-local\Scripts\python.exe -m pip install --dry-run --ignore-installed -r .\validation-local\requirements.txt
+    .\.venv-validation-local\Scripts\python.exe -m pip install -r .\validation-local\requirements.txt
   ```
-- **VS Code** with the Jupyter extension (recommended for running notebooks)
+- **VS Code** with the Python and Jupyter extensions (recommended for running notebooks)
+
+After installation, restart the `.venv-validation-local` kernel and run setup **step 1 followed by step 4** for full version/API verification. Stop if any pip command fails. [requirements.txt](requirements.txt) pins all direct dependencies, including one explicit A2A preview; no global `--pre` or per-notebook upgrades are needed. Transitive versions are resolved by pip, so this is not a full lockfile. See the [version policy](notebook-setup-guide.md#shared-dependencies-and-version-policy) for updates and same-platform snapshots.
 
 > **Note:** Currently the [apimtools.py](../shared/apimtools.py) script is used for interacting with the APIM instance and it uses `DefaultAzureCredential` from the Azure Identity library for authentication which tries to get credentials from `EnvironmentCredential`, `WorkloadIdentityCredential`, `ManagedIdentityCredential`, and `AzureCliCredential` in that order. If you are running the notebooks through an Azure VM that has any of the above credentials it will be used automatically. If you want to use only the signed in Azure CLI credentials, you can replace `DefaultAzureCredential` with `AzureCliCredential` in the script through find/replace. Make sure to restart the notebook kernel after making this change to ensure the new authentication method is used.
 
@@ -57,19 +63,19 @@ Before running any notebook, ensure the following are in place:
 | Unified AI API (`unified-ai`) imported in APIM | Unified AI API, Model Aliases (full coverage) | Required for the wildcard `/unified-ai/**` routing patterns |
 | `resolve-model-alias` policy fragment + alias-aware backend onboarding | Model Aliases | Re-deployed by the notebook itself via the LLM backend onboarding Bicep with `modelAliases` populated |
 | Entra ID App Registration | JWT Authentication | Client credentials (client ID + secret) with app roles configured |
-| MSAL Library | JWT Authentication | Optional — for interactive device code flow token acquisition |
+| MSAL Library | JWT Authentication | Included in the shared setup; used for optional interactive device code flow token acquisition |
 | Google Gemini API | Unified AI API | Optional — for testing Gemini routing pattern |
 | Unified AI API (`unified-ai`) imported in APIM | Extended Providers Backend Onboarding | Required for native `/bedrock/**`, `/gemini/**`, and `/claude/**` routing |
 | AWS Bedrock / GCP Gemini / Anthropic API keys | Extended Providers Backend Onboarding | Optional per provider — fill the `REPLACE_*` placeholders to enable each backend's tests |
 | Azure Key Vault (provider secrets) | Extended Providers Backend Onboarding | Optional — recommended over inline secrets to hold non-Azure provider keys |
 | Target model pooled across 2+ backends with `sessionAwareModel: true` | Session Affinity | Required — the notebook enables it for you by regenerating the LLM backend onboarding Bicep into a `-local.bicepparam` |
 | Unified AI API (`unified-ai`) imported in APIM | Session Affinity | Required — the Responses API is called at `/unified-ai/openai/responses` |
-| `openai`, `httpx`, `pandas` Python packages | Session Affinity | Installed via `../shared/requirements.txt` — used for the OpenAI SDK + per-session cookie jar + visualization |
+| `openai`, `httpx`, `pandas` Python packages | Session Affinity | Included in the shared [requirements.txt](requirements.txt) — used for the OpenAI SDK + per-session cookie jar + visualization |
 ---
 
 ## Initializing Variables from `azd` Environment
 
-Every validation notebook supports a one-line **`init_from_azd = True`** toggle in its first code cell that auto-populates Citadel Governance Hub variables (resource group, location, Key Vault name, LLM backend config, Foundry account/project, Entra IDs, Cosmos account, …) directly from your active `azd` environment.
+Every scenario validation notebook supports a one-line **`init_from_azd = True`** toggle in its first code cell that auto-populates Citadel Governance Hub variables (resource group, location, Key Vault name, LLM backend config, Foundry account/project, Entra IDs, Cosmos account, …) directly from your active `azd` environment. The environment setup notebook does not need an `azd` environment or Azure credentials.
 
 This is the recommended path when the accelerator was deployed with `azd up`, because the relevant deployment outputs (`AZURE_RESOURCE_GROUP`, `AZURE_LOCATION`, `LLM_BACKEND_CONFIG`, `KEY_VAULT_NAME`, `AI_FOUNDRY_SERVICES`, `ENTRA_*`, `COSMOS_DB_ACCOUNT_NAME`, …) are already written to the active `azd` env file by the Bicep deployment.
 
@@ -347,7 +353,7 @@ This notebook instantiates three AI agents — each using a different framework 
 | 1 | **Verify Azure CLI** — Confirm authentication and subscription context |
 | 2 | **Initialize APIM Client** — Discover APIs and supported models |
 | 3 | **Retrieve API keys** — Fetch subscription keys for each access contract |
-| 4 | **Install packages** — Install agent framework dependencies (`agent-framework`, `azure-ai-projects`, `langchain`, `langchain-openai`) |
+| 4 | **Confirm shared environment** — Use the `.venv-validation-local` prepared and verified by [Validation Environment Setup](citadel-environment-setup.ipynb); installation has moved out of this notebook |
 | 5 | **Microsoft Agent Framework** — Sales conversation via Key Vault integration |
 | 6 | **Foundry Agent SDK** — HR conversation via Foundry project connection |
 | 7 | **LangChain** — Support conversation via direct endpoint configuration |
@@ -857,6 +863,8 @@ quota_max_seconds        = 360     # Phase 2 time budget to reach the 403
 ---
 
 ## Recommended Execution Order
+
+Run [Validation Environment Setup](citadel-environment-setup.ipynb) once before this sequence, and rerun its verification after changing the central requirements. All scenario notebooks use the same `.venv-validation-local`; package setup does not replace the Azure prerequisites listed above.
 
 > **Strongly recommended baseline:** run notebooks **1 → 4** in order on every new Citadel Governance Hub deployment. Steps **5 → 11** are optional, scenario-specific validations that can be run independently afterwards.
 
