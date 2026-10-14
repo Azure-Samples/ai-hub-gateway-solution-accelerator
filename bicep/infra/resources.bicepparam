@@ -135,7 +135,6 @@ param enableUnifiedAiApi = bool(readEnvironmentVariable('ENABLE_UNIFIED_AI_API',
 // ============================================================================
 // INFERENCE API DIAGNOSTIC LOG SETTINGS
 // ============================================================================
-param enableAPIDiagnostics = bool(readEnvironmentVariable('ENABLE_API_DIAGNOSTICS', 'false'))
 
 // Azure Monitor diagnostic log settings for inference APIs
 // Controls frontend/backend request/response headers, body bytes, and LLM-specific log settings.
@@ -162,6 +161,8 @@ param appInsightsLogSettings = {
   headers: [ 'Content-type', 'User-agent', 'x-ms-region', 'x-ratelimit-remaining-tokens', 'x-ratelimit-remaining-requests' ]
   body: { bytes: 8192 }
 }
+
+param enableOtherAPIDiagnostics = bool(readEnvironmentVariable('ENABLE_OTHER_API_DIAGNOSTICS', 'false'))
 
 // ============================================================================
 // COMPUTE SKU & SIZE - SKUs and capacity settings for services
