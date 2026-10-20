@@ -885,7 +885,7 @@ module foundry 'modules/foundry/foundry.bicep' = {
     lawId: monitoring.outputs.logAnalyticsWorkspaceId
     apimPrincipalId: apimManagedIdentity.outputs.managedIdentityPrincipalId
     foundryProjectName: 'citadel-governance-project'
-    appInsightsInstrumentationKey: monitoring.outputs.foundryApplicationInsightsInstrumentationKey
+    appInsightsConnectionString: monitoring.outputs.foundryApplicationInsightsConnectionString
     appInsightsId: monitoring.outputs.foundryApplicationInsightsId
     publicNetworkAccess: aiFoundryExternalNetworkAccess
     disableKeyAuth: false

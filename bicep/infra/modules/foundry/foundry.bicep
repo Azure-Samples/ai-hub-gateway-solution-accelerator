@@ -38,14 +38,14 @@ param modelsConfig array = []
 param lawId string = ''
 
 @description('APIM Pricipal Id')
-param  apimPrincipalId string
+param apimPrincipalId string
 
 @description('AI Foundry project name')
-param  foundryProjectName string = 'citadel-governance-project'
+param foundryProjectName string = 'citadel-governance-project'
 
-@description('The instrumentation key for Application Insights')
+@description('The full connection string for Application Insights')
 @secure()
-param appInsightsInstrumentationKey string = ''
+param appInsightsConnectionString string = ''
 
 @description('The resource ID for Application Insights')
 param appInsightsId string = ''
@@ -224,7 +224,7 @@ resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
   }
 }]
 
-resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/connections@2025-06-01' = [for (config, i) in aiServicesConfig: if (length(appInsightsId) > 0 && length(appInsightsInstrumentationKey) > 0) {
+resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/connections@2025-06-01' = [for (config, i) in aiServicesConfig: if (length(appInsightsId) > 0 && length(appInsightsConnectionString) > 0) {
   parent: foundryResources[i]
   name: '${foundryResources[i].name}-appInsights-connection'
   properties: {
@@ -241,7 +241,7 @@ resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/connections
       ResourceId: appInsightsId
     }
     credentials: {
-      key: appInsightsInstrumentationKey
+      key: appInsightsConnectionString
     }    
   }
 }]
