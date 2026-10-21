@@ -10,7 +10,7 @@ This is a **standalone operation** — no redeployment of the main landing zone 
 
 | Resource | Description |
 |----------|-------------|
-| **Entra ID App Registration** | App with OAuth2 scope (`access_as_user`), app role (`Task.ReadWrite`), sign-in audience `AzureADMyOrg` |
+| **Entra ID App Registration** | App with OAuth2 scope (`access_as_user`), app roles (`Model.Invoke`, `MCP.Invoke`, `Agent.Invoke`), sign-in audience `AzureADMyOrg` |
 | **Application ID URI** | Set to `api://{appId}` — used as the JWT audience for token validation |
 | **Service Principal** | Service principal for the app registration |
 | **Client Secret** | 2-year client secret stored in Key Vault as `ENTRA-APP-CLIENT-SECRET` |
@@ -113,11 +113,46 @@ Future redeployments will not overwrite the APIM named values with `'not-configu
 
 The script is fully idempotent:
 - **App Registration**: Searched by `displayName` — reuses existing if found
+- **App Roles**: Adds missing gateway roles and updates their names, values, and descriptions by stable role ID; preserves existing assignments, enabled state, allowed member types, and custom roles
 - **Service Principal**: Searched by `appId` — reuses existing if found  
 - **Client Secret**: Always generates a fresh secret and updates Key Vault
 - **azd Variables**: Always overwritten with current values
 
 Re-running the script after a partial failure or for secret rotation is safe.
+
+### App Role Authorization
+
+The gateway defines only three capability-specific app roles: `Model.Invoke`,
+`MCP.Invoke`, and `Agent.Invoke`. Assign each client only the roles it needs.
+Clients needing all three capabilities should be assigned all three roles;
+there is no umbrella role.
+
+Set each access contract's `requiredRoles` to the appropriate role and enable JWT
+validation with `jwtRequired=true`. For bring-your-own app registrations, define
+the same role values before assigning them to clients.
+
+The setup script defines roles but does not create client app-role assignments.
+Assign roles **directly to each application's or managed identity's service
+principal**. Security-group app-role assignments apply to signed-in users;
+service-principal group membership does not produce those roles in tokens.
+See the [client identity and permissions guide](../../../guides/jwt-client-identity-permissions.md)
+for direct application assignments and user-group assignments.
+
+App roles and exposed delegated permission scopes share Entra ID's default limit
+of **700 permission definitions per application or service principal** and also
+count toward the separate **1,200-entry application manifest limit**. This setup
+defines three roles and one delegated scope (`access_as_user`), using four distinct
+definitions. Role assignments to callers are not permission definitions. See
+[Microsoft's app role limits](https://learn.microsoft.com/en-us/entra/identity-platform/howto-add-app-roles-in-apps#app-role-limits).
+
+### Offline Role Regression Tests
+
+```powershell
+pwsh .\tests\test-app-roles.ps1
+```
+
+These tests mock Azure CLI calls and verify new registrations, in-place role
+updates, assignment-setting preservation, idempotency, and update failures.
 
 ## Bring Your Own App Registration
 

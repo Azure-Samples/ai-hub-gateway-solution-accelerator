@@ -413,7 +413,7 @@ class NotebookExecutionTests(unittest.TestCase):
         namespace = self.namespace()
         namespace.update({
             "no_role_token_fixture": "", "active_token": "genuine-role-bearing-fixture",
-            "token_claims": lambda token: {"roles": ["Models.Read"], "exp": 9999999999},
+            "token_claims": lambda token: {"roles": ["Model.Invoke"], "exp": 9999999999},
             "api_endpoints": [{"name": "models"}], "time": time, "transport": Mock(),
         })
         exec(notebook_cell("jwt-authentication", "no_role_token = no_role_token_fixture"), namespace)
@@ -469,7 +469,7 @@ class NotebookExecutionTests(unittest.TestCase):
             exec(notebook_cell("jwt-authentication", "role_product_policy ="), namespace)
         root = ET.fromstring(namespace["role_product_policy"])
         self.assertEqual(root.find(".//set-variable[@name='jwtRequired']").get("value"), "true")
-        self.assertEqual(root.find(".//set-variable[@name='requiredRoles']").get("value"), "Models.Read")
+        self.assertEqual(root.find(".//set-variable[@name='requiredRoles']").get("value"), "Model.Invoke")
         self.assertEqual(root.find(".//set-variable[@name='allowedModels']").get("value"), "future-model")
         self.assertIsNotNone(root.find(".//include-fragment[@fragment-id='validate-model-access']"))
         namespace["deploy_contract"].assert_not_called()

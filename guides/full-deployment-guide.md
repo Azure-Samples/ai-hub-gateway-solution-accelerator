@@ -889,6 +889,11 @@ The setup script automatically:
 4. Configures APIM JWT named values directly: `JWT-TenantId`, `JWT-AppRegistrationId`, `JWT-Issuer`, `JWT-OpenIdConfigUrl`
 5. Stores `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_AUDIENCE` as azd environment variables for future deployments
 
+Role definitions do not grant client permissions. Assign `Model.Invoke`,
+`MCP.Invoke`, and/or `Agent.Invoke` directly to each application's or managed
+identity's service principal. Security-group role assignments apply to users,
+not service-principal members. See [Client Identity and Permissions](./jwt-client-identity-permissions.md).
+
 > **Prerequisite:** The deploying user must have `Application.ReadWrite.All` or the `Application Developer` role in Entra ID.
 
 See [Entra ID Setup README](../bicep/infra/entra-id-setup/README.md) for full details.

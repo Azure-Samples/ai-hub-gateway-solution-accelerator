@@ -596,10 +596,14 @@ The gateway's Entra ID app registration defines the following app roles (provisi
 
 | App Role | Value | Description |
 |----------|-------|-------------|
-| ReadWrite | `Task.ReadWrite` | Full read and write access to all gateway capabilities |
-| Models.Read | `Models.Read` | Access to LLM model endpoints (chat completions, embeddings) |
-| MCP.Read | `MCP.Read` | Access to MCP tool endpoints |
-| Agent.Read | `Agent.Read` | Access to agent endpoints |
+| Model.Invoke | `Model.Invoke` | Invoke LLM model endpoints (chat completions, embeddings) |
+| MCP.Invoke | `MCP.Invoke` | Invoke MCP tool endpoints |
+| Agent.Invoke | `Agent.Invoke` | Invoke agent endpoints |
+
+Assign these roles directly to application service principals and managed
+identities. Security-group assignments supply app roles to users, not to service
+principals that are group members. The gateway evaluates the token's `roles`
+claim; it does not resolve group membership or infer roles from a `groups` claim.
 
 > **Full setup guides:**
 > - [JWT Authentication Guide](../../../guides/entraid-auth-validation.md) — Gateway-level configuration
@@ -613,8 +617,8 @@ The gateway's Entra ID app registration defines the following app roles (provisi
     <!-- Enable JWT requirement -->
     <set-variable name="jwtRequired" value="true" />
 
-    <!-- Require the Models.Read app role -->
-    <set-variable name="requiredRoles" value="Models.Read" />
+    <!-- Require the Model.Invoke app role -->
+    <set-variable name="requiredRoles" value="Model.Invoke" />
 
     <!-- Other policies (model access, capacity, etc.) -->
 </inbound>
@@ -628,7 +632,7 @@ The gateway's Entra ID app registration defines the following app roles (provisi
     <set-variable name="jwtRequired" value="true" />
 
     <!-- Client must have at least one of these roles -->
-    <set-variable name="requiredRoles" value="Models.Read,Agent.Read" />
+    <set-variable name="requiredRoles" value="Model.Invoke,Agent.Invoke" />
 </inbound>
 ```
 
@@ -648,8 +652,8 @@ When a required role is missing, the policy returns:
     "error": {
         "message": "Access denied. Required app role not found in token.",
         "code": "insufficient_role",
-        "required_roles": "Models.Read",
-        "token_roles": "Agent.Read"
+        "required_roles": "Model.Invoke",
+        "token_roles": "Agent.Invoke"
     }
 }
 ```
@@ -658,7 +662,7 @@ When a required role is missing, the policy returns:
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `requiredRoles` | Comma-separated list of accepted app roles (OR logic) | `"Models.Read"` or `"Models.Read,Agent.Read"` |
+| `requiredRoles` | Comma-separated list of accepted app roles (OR logic) | `"Model.Invoke"` or `"Model.Invoke,Agent.Invoke"` |
 
 > **NOTE:** The `requiredRoles` variable is opt-in. If not set or empty, no role check is performed — this ensures backward compatibility with existing access contracts that only use `jwtRequired`.
 
@@ -666,7 +670,7 @@ When a required role is missing, the policy returns:
 
 | Variable | Description | Example Values |
 |----------|-------------|----------------|
-| `jwt-roles` | App roles extracted from the JWT token | `"Models.Read,Agent.Read"` or `""` |
+| `jwt-roles` | App roles extracted from the JWT token | `"Model.Invoke,Agent.Invoke"` or `""` |
 
 **Recommended Policy Ordering:**
 
@@ -678,7 +682,7 @@ When a required role is missing, the policy returns:
     <set-variable name="jwtRequired" value="true" />
 
     <!-- 2. App Role Authorization -->
-    <set-variable name="requiredRoles" value="Models.Read" />
+    <set-variable name="requiredRoles" value="Model.Invoke" />
 
     <!-- 3. Model extraction and access control -->
     <include-fragment fragment-id="set-llm-requested-model" />

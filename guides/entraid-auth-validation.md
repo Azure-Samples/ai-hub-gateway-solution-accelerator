@@ -102,10 +102,11 @@ Use the [JWT Authentication Validation Notebook](../validation/citadel-jwt-authe
 
 Client applications (AI agents, backend services, automation pipelines) need their own identity to acquire JWT tokens. The gateway validates the token's audience, issuer, signature, and expiry — but does **not** restrict which specific client applications can connect. Access control is enforced via the APIM subscription key (API key), which ties each request to a specific Access Contract.
 
-For organizations that want to **further restrict** which identities can request tokens scoped to the gateway, Entra ID groups and app role assignments provide fine-grained permission management.
+For fine-grained authorization, access contracts can require app roles in addition to a valid token. Assign roles **directly to application service principals and managed identities**. Assign roles to users directly or through security groups; service principals do not inherit group-assigned app roles.
 
 See the dedicated **[JWT Client Identity and Permissions Guide](./jwt-client-identity-permissions.md)** for:
-- Granting gateway access via Entra ID security groups (recommended for scale)
+- Direct app-role assignments for service principals and managed identities
+- Security-group app-role assignments for signed-in users only
 - Configuring service principal identities (client ID + secret)
 - Configuring Azure Managed Identity (zero-credential for Azure-hosted agents)
 - Using external identity providers (Auth0, Okta)
@@ -212,10 +213,12 @@ The gateway's Entra ID app registration (provisioned by `entra-id-setup/setup.ps
 
 | App Role | Value | Description |
 |----------|-------|-------------|
-| ReadWrite | `Task.ReadWrite` | Full read and write access to all gateway capabilities |
-| Models.Read | `Models.Read` | Access to LLM model endpoints (chat completions, embeddings) |
-| MCP.Read | `MCP.Read` | Access to MCP tool endpoints |
-| Agent.Read | `Agent.Read` | Access to agent endpoints |
+| Model.Invoke | `Model.Invoke` | Invoke LLM model endpoints (chat completions, embeddings) |
+| MCP.Invoke | `MCP.Invoke` | Invoke MCP tool endpoints |
+| Agent.Invoke | `Agent.Invoke` | Invoke agent endpoints |
+
+Assign clients only the capability-specific roles they need. A client needing
+all three capabilities should be assigned all three roles; there is no umbrella role.
 
 ### Enabling Role Authorization
 
@@ -226,7 +229,7 @@ Set `requiredRoles` in the product policy alongside `jwtRequired`:
     <inbound>
         <base />
         <set-variable name="jwtRequired" value="true" />
-        <set-variable name="requiredRoles" value="Models.Read" />
+        <set-variable name="requiredRoles" value="Model.Invoke" />
     </inbound>
     <backend><base /></backend>
     <outbound><base /></outbound>
@@ -237,7 +240,7 @@ Set `requiredRoles` in the product policy alongside `jwtRequired`:
 Multiple roles (OR logic — any match grants access):
 
 ```xml
-<set-variable name="requiredRoles" value="Models.Read,Agent.Read" />
+<set-variable name="requiredRoles" value="Model.Invoke,Agent.Invoke" />
 ```
 
 ### How It Works
@@ -246,8 +249,8 @@ Multiple roles (OR logic — any match grants access):
 Product Policy                          Security Handler Fragment
 ─────────────                          ──────────────────────────
 jwtRequired = "true"           ──►     Enforce JWT validation
-requiredRoles = "Models.Read"  ──►     Check 'roles' claim in validated JWT
-                                       If Models.Read in token → allow
+requiredRoles = "Model.Invoke" ──►     Check 'roles' claim in validated JWT
+                                       If Model.Invoke in token → allow
                                        If not → 403 Forbidden
 (requiredRoles not set)        ──►     Skip role check (backward compatible)
 ```
@@ -262,10 +265,11 @@ requiredRoles = "Models.Read"  ──►     Check 'roles' claim in validated JW
 
 ### Assigning Roles to Clients
 
-Client service principals and managed identities must have the required app role assigned. See the [JWT Client Identity and Permissions Guide](./jwt-client-identity-permissions.md) for:
-- Assigning roles via Entra ID groups (recommended)
-- Direct role assignment via CLI
+Client service principals and managed identities must have the required app role assigned **directly to their service principal**. Adding them to a group with an app-role assignment does not supply roles in their tokens. Users can receive roles through direct assignments or security groups. See the [JWT Client Identity and Permissions Guide](./jwt-client-identity-permissions.md) for:
+- Direct application and managed-identity role assignment via CLI or application-permission admin consent
+- User-role assignments directly or through security groups
 - Verifying roles appear in the `roles` claim
+- [Permission-definition limits](./jwt-client-identity-permissions.md#app-role-limits), shared by app roles and exposed delegated scopes
 
 ## Security Considerations
 
@@ -310,7 +314,7 @@ Client service principals and managed identities must have the required app role
 
 ## Related Resources
 
-- [JWT Client Identity and Permissions Guide](./jwt-client-identity-permissions.md) — Configuring client identities, group-based access, and onboarding
+- [JWT Client Identity and Permissions Guide](./jwt-client-identity-permissions.md) — Direct application role assignments, user-group assignments, and onboarding
 - [Access Contracts Policy Guide](../bicep/infra/citadel-access-contracts/citadel-access-contracts-policy.md#jwt-authentication-policy) — Configuring JWT per-product
 - [JWT Authentication Validation Notebook](../validation/citadel-jwt-authentication-tests.ipynb) — End-to-end testing across all endpoints
 - [Entra ID Setup README](../bicep/infra/entra-id-setup/README.md) — Provisioning Entra ID for JWT

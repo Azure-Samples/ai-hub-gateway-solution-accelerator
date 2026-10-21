@@ -40,6 +40,13 @@
     pwsh ./setup.ps1 -EnvironmentName "citadel-dev" -KeyVaultName "kv-abc123" -ApimResourceGroup "rg-citadel-dev" -ApimName "apim-abc123"
 
 .NOTES
+    App-role definitions do not create client app-role assignments.
+    Assign roles directly to application and managed-identity service principals.
+    Security-group assignments supply user roles, not roles for service-principal members.
+    The three roles and access_as_user scope use four permission definitions.
+    Entra ID defaults to 700 definitions shared by roles and exposed delegated scopes;
+    these also count toward the separate 1,200-entry application manifest limit.
+
     Prerequisites:
     - Azure CLI authenticated (az login) with Application.ReadWrite.All permission
     - Key Vault must exist and deployer must have Key Vault Secrets Officer role
@@ -142,35 +149,27 @@ $existingApp = az ad app list --display-name $AppDisplayName --output json 2>$nu
 $gatewayAppRoles = @(
     @{
         allowedMemberTypes = @("User", "Application")
-        description        = "Full read and write access to all gateway capabilities"
-        displayName        = "ReadWrite"
-        isEnabled          = $true
-        id                 = "00000000-0000-0000-0000-000000000002"
-        value              = "Task.ReadWrite"
-    }
-    @{
-        allowedMemberTypes = @("User", "Application")
-        description        = "Access to LLM model endpoints (chat completions, embeddings)"
-        displayName        = "Models.Read"
+        description        = "Invoke LLM model endpoints (chat completions, embeddings)"
+        displayName        = "Model.Invoke"
         isEnabled          = $true
         id                 = "00000000-0000-0000-0000-000000000003"
-        value              = "Models.Read"
+        value              = "Model.Invoke"
     }
     @{
         allowedMemberTypes = @("User", "Application")
-        description        = "Access to MCP tool endpoints"
-        displayName        = "MCP.Read"
+        description        = "Invoke MCP tool endpoints"
+        displayName        = "MCP.Invoke"
         isEnabled          = $true
         id                 = "00000000-0000-0000-0000-000000000004"
-        value              = "MCP.Read"
+        value              = "MCP.Invoke"
     }
     @{
         allowedMemberTypes = @("User", "Application")
-        description        = "Access to agent endpoints"
-        displayName        = "Agent.Read"
+        description        = "Invoke agent endpoints"
+        displayName        = "Agent.Invoke"
         isEnabled          = $true
         id                 = "00000000-0000-0000-0000-000000000005"
-        value              = "Agent.Read"
+        value              = "Agent.Invoke"
     }
 )
 
@@ -182,21 +181,32 @@ if ($existingApp -and $existingApp.Count -gt 0) {
 
     # ── 1a. Ensure app roles are up-to-date on existing registration ──
     Write-Host "  Checking app roles..." -ForegroundColor Yellow
-    $currentRoleIds = @()
-    if ($app.appRoles) {
-        $currentRoleIds = $app.appRoles | ForEach-Object { $_.id }
+    $updatedRoles = @($app.appRoles | Where-Object { $null -ne $_ })
+    $rolesChanged = $false
+    foreach ($gatewayRole in $gatewayAppRoles) {
+        $currentRole = $updatedRoles | Where-Object { $_.id -eq $gatewayRole.id }
+        if (-not $currentRole) {
+            $updatedRoles += $gatewayRole
+            $rolesChanged = $true
+            continue
+        }
+        # Keep role IDs and assignment settings while updating canonical role metadata.
+        foreach ($property in @("displayName", "value", "description")) {
+            if ($currentRole.$property -cne $gatewayRole[$property]) {
+                $currentRole.$property = $gatewayRole[$property]
+                $rolesChanged = $true
+            }
+        }
     }
-    $missingRoles = $gatewayAppRoles | Where-Object { $_.id -notin $currentRoleIds }
-    if ($missingRoles.Count -gt 0) {
-        Write-Host "  Adding $($missingRoles.Count) missing app role(s)..." -ForegroundColor Yellow
-        $updatedRoles = @($app.appRoles) + @($missingRoles)
+    if ($rolesChanged) {
+        Write-Host "  Updating app roles..." -ForegroundColor Yellow
         $patchPayload = @{ appRoles = $updatedRoles }
         $patchTempFile = [System.IO.Path]::GetTempFileName()
         try {
             $patchPayload | ConvertTo-Json -Depth 10 | Set-Content -Path $patchTempFile -Encoding UTF8
             az rest --method PATCH --uri "https://graph.microsoft.com/v1.0/applications/$appObjectId" --headers "Content-Type=application/json" --body "@$patchTempFile" --output none
             if ($LASTEXITCODE -ne 0) {
-                Write-Host "  Warning: Failed to update app roles. Continuing..." -ForegroundColor Yellow
+                throw "Failed to update app roles. Check Microsoft Graph permissions and retry setup."
             } else {
                 Write-Host "  App roles updated successfully" -ForegroundColor Green
             }
@@ -229,40 +239,7 @@ if ($existingApp -and $existingApp.Count -gt 0) {
                 }
             )
         }
-        appRoles = @(
-            @{
-                allowedMemberTypes = @("User", "Application")
-                description        = "Full read and write access to all gateway capabilities"
-                displayName        = "ReadWrite"
-                isEnabled          = $true
-                id                 = "00000000-0000-0000-0000-000000000002"
-                value              = "Task.ReadWrite"
-            }
-            @{
-                allowedMemberTypes = @("User", "Application")
-                description        = "Access to LLM model endpoints (chat completions, embeddings)"
-                displayName        = "Models.Read"
-                isEnabled          = $true
-                id                 = "00000000-0000-0000-0000-000000000003"
-                value              = "Models.Read"
-            }
-            @{
-                allowedMemberTypes = @("User", "Application")
-                description        = "Access to MCP tool endpoints"
-                displayName        = "MCP.Read"
-                isEnabled          = $true
-                id                 = "00000000-0000-0000-0000-000000000004"
-                value              = "MCP.Read"
-            }
-            @{
-                allowedMemberTypes = @("User", "Application")
-                description        = "Access to agent endpoints"
-                displayName        = "Agent.Read"
-                isEnabled          = $true
-                id                 = "00000000-0000-0000-0000-000000000005"
-                value              = "Agent.Read"
-            }
-        )
+        appRoles = $gatewayAppRoles
         requiredResourceAccess = @(
             @{
                 resourceAppId  = "00000003-0000-0000-c000-000000000000"
@@ -425,5 +402,9 @@ Write-Host ""
 Write-Host "  APIM is now configured for JWT authentication." -ForegroundColor Cyan
 Write-Host "  No redeployment needed. Configure access contracts" -ForegroundColor Cyan
 Write-Host "  with jwtAuth.enabled=true to enforce JWT per product." -ForegroundColor Cyan
+Write-Host "  For role authorization, assign the required Invoke roles directly" -ForegroundColor Cyan
+Write-Host "  to each application or managed-identity service principal." -ForegroundColor Cyan
+Write-Host "  Security-group role assignments apply to users, not service-principal members." -ForegroundColor Cyan
+Write-Host "  See guides/jwt-client-identity-permissions.md for assignment instructions." -ForegroundColor Cyan
 Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Green
 Write-Host ""

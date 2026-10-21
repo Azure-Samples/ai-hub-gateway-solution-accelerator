@@ -101,6 +101,21 @@ def no_role_fixture(roles=None, expired=False):
 
 
 class NotebookExperienceStructureTests(unittest.TestCase):
+    def test_jwt_guidance_separates_application_and_user_assignments(self):
+        notebook = json.loads(
+            (ROOT / "validation" / "citadel-jwt-authentication-tests.ipynb").read_text(encoding="utf-8")
+        )
+        source = "\n".join("".join(cell["source"]) for cell in notebook["cells"])
+        self.assertIn("Assign roles directly to application and managed-identity service principals", source)
+        self.assertIn("security group containing the user", source)
+        self.assertNotIn("CLI group membership", source)
+        guide = (ROOT / "guides" / "jwt-client-identity-permissions.md").read_text(encoding="utf-8")
+        self.assertIn("Service principals do not inherit app roles from group membership", guide)
+        self.assertNotRegex(guide, r"az ad group member add[^\n]*--member-id \$(?:clientSpId|miPrincipalId)")
+        for text in (source, guide):
+            self.assertIn("700 permission definitions per application or service principal", text)
+            self.assertIn("1,200-entry application manifest limit", text)
+
     def test_all_fifteen_notebooks_have_guides_steps_and_no_saved_results(self):
         self.assertEqual(len(NOTEBOOKS), 15)
         for path in NOTEBOOKS:
@@ -340,13 +355,31 @@ class MandatoryInitializationTests(unittest.TestCase):
 
     def test_jwt_no_role_fixture_must_be_unexpired_and_have_no_roles(self):
         name = "citadel-jwt-authentication-tests.ipynb"
-        for token in ("not-a-jwt", no_role_fixture(["Models.Read"]), no_role_fixture(expired=True)):
+        for token in ("not-a-jwt", no_role_fixture(["Model.Invoke"]), no_role_fixture(expired=True)):
             namespace = configured(name)
             namespace.update(entra_client_secret="fixture-secret", no_role_token_fixture=token)
             context = context_fixture()
             context.config["entra_client_id"] = "fixture-client"
             with self.subTest(fixture=token[:9]), self.assertRaisesRegex(ValueError, "actual unexpired no-role JWT"):
                 initialize(name, namespace, context)
+
+    def test_jwt_roleless_application_token_explains_direct_assignments(self):
+        name = "citadel-jwt-authentication-tests.ipynb"
+        namespace = configured(name)
+        token = no_role_fixture()
+        namespace.update(entra_client_secret="fixture-secret", no_role_token_fixture=token)
+        context = context_fixture()
+        context.config["entra_client_id"] = "fixture-client"
+        initialize(name, namespace, context)
+        response = SimpleNamespace(status_code=200, headers={}, json=lambda: {
+            "access_token": token, "expires_in": 3600,
+        })
+        output = io.StringIO()
+        with patch("requests.post", return_value=response), contextlib.redirect_stdout(output):
+            exec(cells(name)[3], namespace)
+        self.assertEqual(namespace["jwt_token"], token)
+        self.assertIn("Assign gateway app roles directly to the client service principal", output.getvalue())
+        self.assertIn("do not inherit app roles from group membership", output.getvalue())
 
     def test_jwt_device_selection_requires_fixture_not_a_prompt(self):
         name = "citadel-jwt-authentication-tests.ipynb"
@@ -365,7 +398,7 @@ class MandatoryInitializationTests(unittest.TestCase):
         namespace = configured(name)
         namespace.update(token_source="device_flow", use_device_flow=True, entra_client_secret="",
                          no_role_token_fixture=no_role_fixture(),
-                         device_token_fixture=no_role_fixture(roles=["Models.Read"]))
+                         device_token_fixture=no_role_fixture(roles=["Model.Invoke"]))
         context = context_fixture()
         context.config["entra_client_id"] = "fixture-client"
         initialize(name, namespace, context)
