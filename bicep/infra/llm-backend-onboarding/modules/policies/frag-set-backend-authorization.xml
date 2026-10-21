@@ -292,21 +292,27 @@
                 }
 
                 // If path is chat/completions, embeddings, or images/embeddings, use /models/{path}
-                if (lowerPath.Contains("chat/completions"))
-                {
-                    return string.Format("models/{0}", path);
-                }
+                //if (lowerPath.Contains("chat/completions"))
+                //{
+                //    return string.Format("models/{0}", path);
+                //}
 
                 // If embeddings endpoint, route to /openai/deployments/{model}/embeddings to leverage Azure OpenAI backend for embeddings
-                if (lowerPath.Contains("embeddings"))
-                {
-                    string requestedModel = (string)context.Variables["requestedModel"];
-                    return string.Format("openai/deployments/{0}/{1}", requestedModel, path);
-                }
+                //if (lowerPath.Contains("embeddings"))
+                //{
+                //    string requestedModel = (string)context.Variables["requestedModel"];
+                //    return string.Format("openai/deployments/{0}/{1}", requestedModel, path);
+                //}
 
                 // Catch-all: /openai/v1/{path}
                 return string.Format("openai/v1/{0}", path);
             }" />
+            <choose>
+                <when condition="@((context.Variables.GetValueOrDefault<string>("rewriteTemplate", "")).TrimStart('/').StartsWith("openai/v1/", StringComparison.OrdinalIgnoreCase))">
+                    <!-- The v1 endpoint must not inherit a dated client api-version. -->
+                    <set-query-parameter name="api-version" exists-action="delete" />
+                </when>
+            </choose>
             <rewrite-uri template="@((string)context.Variables["rewriteTemplate"])" copy-unmatched-params="true" />
         </when>
         <when condition="@(context.Variables.GetValueOrDefault<string>("targetPoolType", "") == "gemini-openai")">

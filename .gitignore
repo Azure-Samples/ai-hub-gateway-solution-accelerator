@@ -418,6 +418,7 @@ infra/usecase-onboarding/samples/financial-assistant-usecase-local.sh
 **/.temp/*
 .venv/**
 .venv-validation-local/
+validation/.runs/
 validation-local/**
 bicep/infra/citadel-access-contracts/contracts
 bicep/infra/citadel-publish-contracts/contracts

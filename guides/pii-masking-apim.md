@@ -57,6 +57,28 @@ sequenceDiagram
     APIM-->>Client: Deanonymized response
 ```
 
+## Troubleshooting HTTP 400 after PII processing
+
+Check the backend error message before attributing a rejection to redaction.
+`BadRequest: API version not supported` indicates an API-version/routing mismatch,
+not proof that the anonymized JSON is malformed. This can affect both small and
+chunked requests.
+
+When the `set-backend-authorization` fragment routes a Foundry request to
+`/openai/v1/...`, it removes the client's `api-version` query parameter before
+forwarding. A dated version such as `2024-05-01-preview` is not valid for that v1
+endpoint. Other query parameters and the anonymized request body are unchanged.
+Legacy versioned routes retain their API-version behavior. See the
+[Azure OpenAI v1 API documentation](https://learn.microsoft.com/en-us/azure/foundry/openai/api-version-lifecycle).
+
+For an existing gateway, redeploy the updated `set-backend-authorization` fragment
+through the main infrastructure deployment or
+[backend onboarding](../bicep/infra/llm-backend-onboarding/README.md).
+Redeploying only the PII access contract does not update this shared routing
+fragment. Then rerun the small and large requests in the
+[PII validation notebook](../validation/citadel-pii-processing-tests.ipynb) and
+verify the correlated masking/restoration evidence as well as the HTTP status.
+
 ## Implementation Components
 
 1. **PII Detection Methods**:
@@ -1032,4 +1054,3 @@ When PII is detected in a request, the API will return a 400 Bad Request respons
 ## Conclusion
 
 Using APIM to handle PII anonymization and deanonymization requests transparently for API requests that may contain PII data is a powerful way to ensure that sensitive data is protected while still allowing for the processing of requests. By using the above approach, you can ensure that PII data is handled securely and efficiently in your APIs.
-

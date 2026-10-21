@@ -1,4 +1,4 @@
-# Shared environment for the 13 active notebooks directly in validation-local.
+# Shared environment for the 14 active scenario notebooks directly in validation.
 # Python 3.11; start with citadel-environment-setup.ipynb.
 # Archived notebooks and other validation directories have separate requirements.
 #
@@ -25,7 +25,7 @@ azure-mgmt-apimanagement==5.0.0
 azure-keyvault-secrets==4.11.3
 azure-cosmos==4.16.2
 
-# Agent SDK APIs used by Agent Frameworks and Publish Contract.
+# Agent SDK APIs used by Agent Frameworks, HR Web Search Chat, and Publish Contract.
 # Use modular distributions instead of agent-framework (which installs all
 # provider integrations). Release numbers differ; pip checks core compatibility.
 agent-framework-core==1.20.0

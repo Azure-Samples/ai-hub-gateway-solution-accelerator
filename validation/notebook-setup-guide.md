@@ -2,7 +2,7 @@
 
 This guide sets up an isolated Python environment for the notebooks in this directory. It assumes you have not created a Python virtual environment before.
 
-**Start with [Validation Environment Setup](citadel-environment-setup.ipynb).** It installs and verifies the shared dependency set for all 13 active notebooks directly in `validation-local`. The terminal instructions below are an alternative installation route, followed by the same notebook verification. Archived notebooks and other validation directories are outside this environment's scope.
+**Start with [Validation Environment Setup](citadel-environment-setup.ipynb).** It installs and verifies the shared dependency set for all 14 active scenario notebooks directly in `validation`, including the Foundry HR Web Search Chat. The terminal instructions below are an alternative installation route, followed by the same notebook verification. Archived notebooks and other validation directories are outside this environment's scope.
 
 **Use the dedicated `.venv-validation-local` environment.** Keep an existing repository `.venv` for other labs unchanged. Installing a requirements file does not uninstall packages omitted from it, so reusing a broader environment can leave incompatible, unrelated frameworks installed. The setup notebook deliberately rejects the old `.venv` kernel.
 
@@ -11,7 +11,21 @@ The finished setup has four parts that must agree:
 1. The repository has a `.venv-validation-local` virtual environment.
 2. Python packages are installed through that environment's Python executable.
 3. VS Code uses that Python executable as the notebook kernel.
-4. Notebooks run with `validation-local` as their working directory.
+4. Notebooks run with `validation` as their working directory.
+
+After setup, use **Run All** from a fresh kernel. The selected azd environment
+supplies deployment settings and models; required deployments default to allowed.
+Edit the configuration only for optional overrides or genuinely external inputs
+that are absent from azd. Every step shows a blue INFO section before execution and a
+green/amber/red RESULT section afterwards. Required parameters left blank or
+containing `REPLACE` stop initialization before deployment/testing, with all
+missing parameter names listed. Secrets must already be available through the
+documented environment/secret-store inputs; scenario execution does not prompt.
+Access Contracts requires explicit Key Vault and Foundry targets by default,
+unless their scenarios are explicitly disabled. See the
+[execution guide](README.md#step-output-and-fail-fast-initialization).
+Use `skipped_models = ["mini", "legacy"]` to exclude case-insensitive model-name
+substrings from validation without removing models from backend deployment.
 
 ## Why Use a Virtual Environment?
 
@@ -46,13 +60,13 @@ azd version
 
 `py -0p` lists the installed Python runtimes. Continue only when `py -3.11 --version` succeeds. If it fails, install the current Python 3.11 release from [python.org](https://www.python.org/downloads/) and open a new terminal. Do not use the launcher's default Python 3.14 for this environment.
 
-`azd` is optional when you set `init_from_azd = False` and provide notebook configuration manually.
+`azd` is optional when you set `from_azd = False` and provide notebook configuration manually.
 
 ## First-Time Setup on Windows
 
 ### 1. Open the repository in VS Code
 
-Open the repository root, not only the `validation-local` directory:
+Open the repository root, not only the `validation` directory:
 
 ```text
 ai-hub-gateway-solution-accelerator
@@ -103,13 +117,13 @@ The Python executable and pip paths must contain the repository path followed by
 From the repository root, first ask pip to resolve the complete dependency set without installing it:
 
 ```powershell
-.\.venv-validation-local\Scripts\python.exe -m pip install --dry-run --ignore-installed -r .\validation-local\requirements.txt
+.\.venv-validation-local\Scripts\python.exe -m pip install --dry-run --ignore-installed -r .\validation\requirements.txt
 ```
 
 Only continue if the dry run exits successfully. It checks the entire dependency graph independently of installed packages, but does not compile native packages or prove runtime API compatibility:
 
 ```powershell
-.\.venv-validation-local\Scripts\python.exe -m pip install -r .\validation-local\requirements.txt
+.\.venv-validation-local\Scripts\python.exe -m pip install -r .\validation\requirements.txt
 ```
 
 The first installation can take several minutes. Install the complete requirements in one pip invocation so its resolver checks the frameworks together. `ipykernel` is included; no separate unpinned install is needed for the terminal-only route. Azure CLI is intentionally installed separately as a system tool; the notebooks invoke the external `az` command rather than importing it as a Python package.
@@ -150,8 +164,8 @@ From the repository root:
 ```bash
 python3.11 -m venv .venv-validation-local
 .venv-validation-local/bin/python -m pip install --upgrade pip setuptools wheel
-.venv-validation-local/bin/python -m pip install --dry-run --ignore-installed -r validation-local/requirements.txt
-.venv-validation-local/bin/python -m pip install -r validation-local/requirements.txt
+.venv-validation-local/bin/python -m pip install --dry-run --ignore-installed -r validation/requirements.txt
+.venv-validation-local/bin/python -m pip install -r validation/requirements.txt
 ```
 
 If `python3.11` is unavailable, install Python 3.11 first. Use `python3` only if the following reports **3.11.x**, not simply any newer Python:
@@ -210,7 +224,7 @@ Installing packages in `.venv-validation-local` does not automatically switch an
 
 If the new environment is not listed, run **Python: Select Interpreter** from the Command Palette, choose **Enter interpreter path**, and select `.venv-validation-local\Scripts\python.exe` on Windows or `.venv-validation-local/bin/python` on macOS/Linux. Then reopen the notebook's kernel picker.
 
-1. Open [Validation Environment Setup](citadel-environment-setup.ipynb) under `validation-local`.
+1. Open [Validation Environment Setup](citadel-environment-setup.ipynb) under `validation`.
 2. Select the kernel name in the upper-right corner of the notebook editor.
 3. Choose **Select Another Kernel** if necessary.
 4. Choose **Python Environments**.
@@ -233,7 +247,7 @@ Confirm that:
 
 - `Python` contains `.venv-validation-local`.
 - `requests` is loaded from `.venv-validation-local`.
-- `Working directory` ends with `validation-local`.
+- `Working directory` ends with `validation`.
 
 ## Notebook Working Directory
 
@@ -243,12 +257,12 @@ The validation notebooks use paths such as:
 sys.path.insert(1, "../shared")
 ```
 
-They also read and generate files under `../bicep`. These paths assume the current working directory is the repository's `validation-local` directory.
+They also read and generate files under `../bicep`. These paths assume the current working directory is the repository's `validation` directory.
 
 The recommended workflow is:
 
 1. Open the repository root as the VS Code workspace.
-2. Open the notebook from the `validation-local` directory.
+2. Open the notebook from the `validation` directory.
 3. Select the repository's `.venv-validation-local` kernel.
 4. Check `os.getcwd()` with the preflight cell.
 
@@ -259,14 +273,14 @@ import os
 from pathlib import Path
 
 current_dir = Path.cwd().resolve()
-validation_dir = current_dir if current_dir.name == "validation-local" else current_dir / "validation-local"
+validation_dir = current_dir if current_dir.name == "validation" else current_dir / "validation"
 if not (validation_dir / "requirements.txt").is_file() or not (validation_dir.parent / "shared" / "utils.py").is_file():
-    raise RuntimeError("Run from the repository root or validation-local.")
+    raise RuntimeError("Run from the repository root or validation.")
 os.chdir(validation_dir)
 print(Path.cwd())
 ```
 
-This cell is safe to repeat from either the repository root or `validation-local`; other locations fail explicitly. Working-directory state is per kernel session, so confirm it in every scenario notebook.
+This cell is safe to repeat from either the repository root or `validation`; other locations fail explicitly. Working-directory state is per kernel session, so confirm it in every scenario notebook.
 
 ## Azure Authentication and Environment Selection
 
@@ -284,7 +298,7 @@ az account set --subscription "<subscription-name-or-id>"
 az account show --output table
 ```
 
-For notebooks with `init_from_azd = True`, select the deployment environment first:
+For notebooks with `from_azd = True`, select the deployment environment first:
 
 ```powershell
 azd env list
@@ -296,7 +310,7 @@ Never place access tokens, API keys, client secrets, or provider credentials in 
 
 ## Shared Dependencies and Version Policy
 
-[requirements.txt](requirements.txt) is the single source of truth for all direct dependencies of the 13 active notebooks. [Validation Environment Setup](citadel-environment-setup.ipynb) owns installation, version reporting, and SDK import/API checks. Agent Frameworks no longer installs packages, and PII analysis no longer upgrades Cosmos DB at runtime. MSAL, Key Vault, Cosmos DB, async support, and A2A are installed up front, including packages used only by optional scenarios.
+[requirements.txt](requirements.txt) is the single source of truth for all direct dependencies of the 14 active scenario notebooks. [Validation Environment Setup](citadel-environment-setup.ipynb) owns installation, version reporting, and SDK import/API checks. Agent Frameworks no longer installs packages, and PII analysis no longer upgrades Cosmos DB at runtime. MSAL, Key Vault, Cosmos DB, async support, and A2A are installed up front, including packages used only by optional scenarios.
 
 - **Python:** use Python 3.11. A virtual environment cannot change its base interpreter in place.
 - **Direct versions:** every direct dependency uses an exact `==` pin. Rerunning setup does not silently opt into newer SDK releases.
@@ -309,10 +323,10 @@ Never place access tokens, API keys, client secrets, or provider credentials in 
 For a same-platform record after successful verification, from the repository root:
 
 ```powershell
-.\.venv-validation-local\Scripts\python.exe -m pip freeze > .\.venv-validation-local\validation-local.freeze.txt
+.\.venv-validation-local\Scripts\python.exe -m pip freeze > .\.venv-validation-local\validation.freeze.txt
 ```
 
-On macOS/Linux, use `.venv-validation-local/bin/python -m pip freeze > .venv-validation-local/validation-local.freeze.txt`. The snapshot stays in the ignored `.venv-validation-local` directory. It captures the resolved environment, not a portable, hash-verified lockfile. Inspect it before sharing; private package URLs can contain sensitive data.
+On macOS/Linux, use `.venv-validation-local/bin/python -m pip freeze > .venv-validation-local/validation.freeze.txt`. The snapshot stays in the ignored `.venv-validation-local` directory. It captures the resolved environment, not a portable, hash-verified lockfile. Inspect it before sharing; private package URLs can contain sensitive data.
 
 The old all-labs dependency list included unused frameworks. Those and archived notebooks are deliberately outside this active-notebook environment. Do not combine requirements from `validation`, `shared`, or archived labs into this environment without separately validating their constraints.
 
@@ -324,7 +338,7 @@ You only create `.venv-validation-local` and install the shared requirements onc
 2. Optionally activate `.venv-validation-local` in the terminal.
 3. Run `az login` if your Azure session has expired.
 4. Select the appropriate `azd` environment when the notebook uses it.
-5. Open a notebook under `validation-local`.
+5. Open a notebook under `validation`.
 6. Confirm its kernel is `.venv-validation-local`.
 7. Run the preflight cell and confirm the working directory.
 8. Run notebook cells in order.
@@ -335,14 +349,14 @@ You only create `.venv-validation-local` and install the shared requirements onc
 
 Step 4 now captures pip's output explicitly and includes the conflict details in the raised error. A nonzero exit means installed packages have incompatible dependency constraints, not that the notebook's import-check loop is broken.
 
-For example, an older all-labs environment can contain `agent-framework-foundry` requiring `azure-ai-projects<2.8.0`, `openai-agents` requiring `openai<3`, or `semantic-kernel` requiring `pydantic<2.12`. These are not required by the active validation-local suite. Installing this suite's requirements into that environment does not remove them.
+For example, an older all-labs environment can contain `agent-framework-foundry` requiring `azure-ai-projects<2.8.0`, `openai-agents` requiring `openai<3`, or `semantic-kernel` requiring `pydantic<2.12`. These are not required by the active validation suite. Installing this suite's requirements into that environment does not remove them.
 
 Do not downgrade the central pins or disable `pip check`. Instead:
 
 1. Leave the existing `.venv` and its packages unchanged.
 2. Create `.venv-validation-local` from Python 3.11 using the setup commands above.
 3. Install the complete shared requirements into that environment.
-4. In every validation-local notebook, use **Select Another Kernel > Python Environments**, then choose `.venv-validation-local`.
+4. In every validation notebook, use **Select Another Kernel > Python Environments**, then choose `.venv-validation-local`.
 5. Restart and run setup **step 1 followed by step 4**. The printed interpreter must point to `.venv-validation-local`, and pip must report `No broken requirements found`.
 
 If the dedicated environment has itself accumulated unrelated packages, use **Recreate a damaged environment** below, targeting only `.venv-validation-local`.
@@ -359,7 +373,7 @@ print(sys.executable)
 If the path does not contain `.venv-validation-local`, select the `.venv-validation-local` kernel. If it does contain `.venv-validation-local`, install and verify through that exact interpreter from the repository root:
 
 ```powershell
-.\.venv-validation-local\Scripts\python.exe -m pip install -r .\validation-local\requirements.txt
+.\.venv-validation-local\Scripts\python.exe -m pip install -r .\validation\requirements.txt
 .\.venv-validation-local\Scripts\python.exe -c "import requests; print(requests.__file__)"
 ```
 
@@ -372,7 +386,7 @@ Avoid bare `pip` and first confirm the environment:
 ```powershell
 .\.venv-validation-local\Scripts\python.exe -m pip --version
 .\.venv-validation-local\Scripts\python.exe -m pip install --upgrade pip setuptools wheel
-.\.venv-validation-local\Scripts\python.exe -m pip install -r .\validation-local\requirements.txt
+.\.venv-validation-local\Scripts\python.exe -m pip install -r .\validation\requirements.txt
 ```
 
 Read the first `ERROR:` line in the pip output. Common causes include an unsupported Python version, a corporate proxy or package-index restriction, unavailable build tools, or a package-version conflict. Capture the complete command output when asking for help; an exit code alone does not identify the failed package.
@@ -394,15 +408,15 @@ The validation notebooks do not need Azure CLI installed as a Python package. Th
 If this error occurred before that change, verify that the requirements file no longer contains an active `azure-cli` line:
 
 ```powershell
-Select-String -Path .\validation-local\requirements.txt -Pattern '^azure-cli$'
+Select-String -Path .\validation\requirements.txt -Pattern '^azure-cli$'
 .\.venv-validation-local\Scripts\python.exe --version
 ```
 
 The first command should return no match. Then rerun the requirements installation; pip can continue using the existing environment because the failed `pymsalruntime` build did not install that package:
 
 ```powershell
-.\.venv-validation-local\Scripts\python.exe -m pip install --dry-run --ignore-installed -r .\validation-local\requirements.txt
-.\.venv-validation-local\Scripts\python.exe -m pip install -r .\validation-local\requirements.txt
+.\.venv-validation-local\Scripts\python.exe -m pip install --dry-run --ignore-installed -r .\validation\requirements.txt
+.\.venv-validation-local\Scripts\python.exe -m pip install -r .\validation\requirements.txt
 ```
 
 If the dry run fails on another package, follow **Recreate a damaged environment** with Python 3.11. Confirm the external CLI independently:
@@ -450,7 +464,7 @@ import os
 print(os.getcwd())
 ```
 
-It must end with `validation-local` because the notebooks add `../shared` to `sys.path`.
+It must end with `validation` because the notebooks add `../shared` to `sys.path`.
 
 ### PowerShell cannot run `Activate.ps1`
 
@@ -458,7 +472,7 @@ Activation is optional. Use `.\.venv-validation-local\Scripts\python.exe -m pip`
 
 ### `az` or `azd` is not recognized
 
-Install the missing CLI, close all terminals, open a new terminal, and rerun `az --version` or `azd version`. `azd` is unnecessary when `init_from_azd = False`.
+Install the missing CLI, close all terminals, open a new terminal, and rerun `az --version` or `azd version`. `azd` is unnecessary when `from_azd = False`.
 
 ### Recreate a damaged environment
 
@@ -470,8 +484,8 @@ PowerShell from the repository root:
 Remove-Item -LiteralPath .\.venv-validation-local -Recurse -Force
 py -3.11 -m venv .venv-validation-local
 .\.venv-validation-local\Scripts\python.exe -m pip install --upgrade pip setuptools wheel
-.\.venv-validation-local\Scripts\python.exe -m pip install --dry-run --ignore-installed -r .\validation-local\requirements.txt
-.\.venv-validation-local\Scripts\python.exe -m pip install -r .\validation-local\requirements.txt
+.\.venv-validation-local\Scripts\python.exe -m pip install --dry-run --ignore-installed -r .\validation\requirements.txt
+.\.venv-validation-local\Scripts\python.exe -m pip install -r .\validation\requirements.txt
 ```
 
 Select the new `.venv-validation-local` kernel, restart, then run setup steps 1 and 4. Do not copy a `.venv-validation-local` from another computer or repository; recreate it from requirements.
@@ -481,7 +495,7 @@ Select the new `.venv-validation-local` kernel, restart, then run setup steps 1 
 The setup regression tests use the standard library only. From the repository root:
 
 ```powershell
-.\.venv-validation-local\Scripts\python.exe -m unittest discover -s .\validation-local\tests -v
+.\.venv-validation-local\Scripts\python.exe -m unittest discover -s .\validation\tests -v
 ```
 
 They check notebook syntax, dependency coverage, kernel/working-directory guards, pip invocation, and failure propagation. They do not install packages, authenticate, or deploy resources. Maintainers must also verify a fresh requirements installation and the setup notebook's version/API checks when updating pins.
@@ -493,7 +507,7 @@ Use the environment's interpreter for all package operations:
 ```powershell
 .\.venv-validation-local\Scripts\python.exe -m pip list
 .\.venv-validation-local\Scripts\python.exe -m pip check
-.\.venv-validation-local\Scripts\python.exe -m pip install -r .\validation-local\requirements.txt
+.\.venv-validation-local\Scripts\python.exe -m pip install -r .\validation\requirements.txt
 ```
 
 Avoid these patterns:
