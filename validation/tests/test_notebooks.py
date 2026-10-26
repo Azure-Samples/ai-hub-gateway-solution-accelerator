@@ -8,13 +8,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 VALIDATION = ROOT / "validation"
 SCENARIOS = sorted(p for p in VALIDATION.glob("*.ipynb") if "environment-setup" not in p.name)
-BASELINE_SCENARIOS = [p for p in SCENARIOS if p.name != "citadel-foundry-hr-web-search-tests.ipynb"]
+ADDITIONAL_SCENARIOS = {
+    "citadel-foundry-hr-web-search-tests.ipynb",
+    "citadel-self-hosted-gateway-tests.ipynb",
+}
+BASELINE_SCENARIOS = [p for p in SCENARIOS if p.name not in ADDITIONAL_SCENARIOS]
 
 
 class NotebookStructureTests(unittest.TestCase):
-    def test_original_thirteen_plus_hr_web_search_are_present(self):
+    def test_original_thirteen_plus_additional_scenarios_are_present(self):
         self.assertEqual(len(BASELINE_SCENARIOS), 13)
-        self.assertEqual(len(SCENARIOS), 14)
+        self.assertTrue(ADDITIONAL_SCENARIOS.issubset({p.name for p in SCENARIOS}))
+        self.assertEqual(len(SCENARIOS), 15)
 
     def test_simplification_meets_recorded_baseline_target(self):
         code_lines = sum(

@@ -116,8 +116,8 @@ class NotebookExperienceStructureTests(unittest.TestCase):
             self.assertIn("700 permission definitions per application or service principal", text)
             self.assertIn("1,200-entry application manifest limit", text)
 
-    def test_all_fifteen_notebooks_have_guides_steps_and_no_saved_results(self):
-        self.assertEqual(len(NOTEBOOKS), 15)
+    def test_all_sixteen_notebooks_have_guides_steps_and_no_saved_results(self):
+        self.assertEqual(len(NOTEBOOKS), 16)
         for path in NOTEBOOKS:
             notebook = json.loads(path.read_text(encoding="utf-8"))
             code_index = 0

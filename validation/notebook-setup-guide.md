@@ -2,7 +2,7 @@
 
 This guide sets up an isolated Python environment for the notebooks in this directory. It assumes you have not created a Python virtual environment before.
 
-**Start with [Validation Environment Setup](citadel-environment-setup.ipynb).** It installs and verifies the shared dependency set for all 14 active scenario notebooks directly in `validation`, including the Foundry HR Web Search Chat. The terminal instructions below are an alternative installation route, followed by the same notebook verification. Archived notebooks and other validation directories are outside this environment's scope.
+**Start with [Validation Environment Setup](citadel-environment-setup.ipynb).** It installs and verifies the shared dependency set for all 15 active scenario notebooks directly in `validation`, including the Foundry HR Web Search Chat and Self-hosted Gateway validation. The terminal instructions below are an alternative installation route, followed by the same notebook verification. Archived notebooks and other validation directories are outside this environment's scope.
 
 **Use the dedicated `.venv-validation-local` environment.** Keep an existing repository `.venv` for other labs unchanged. Installing a requirements file does not uninstall packages omitted from it, so reusing a broader environment can leave incompatible, unrelated frameworks installed. The setup notebook deliberately rejects the old `.venv` kernel.
 
@@ -310,7 +310,7 @@ Never place access tokens, API keys, client secrets, or provider credentials in 
 
 ## Shared Dependencies and Version Policy
 
-[requirements.txt](requirements.txt) is the single source of truth for all direct dependencies of the 14 active scenario notebooks. [Validation Environment Setup](citadel-environment-setup.ipynb) owns installation, version reporting, and SDK import/API checks. Agent Frameworks no longer installs packages, and PII analysis no longer upgrades Cosmos DB at runtime. MSAL, Key Vault, Cosmos DB, async support, and A2A are installed up front, including packages used only by optional scenarios.
+[requirements.txt](requirements.txt) is the single source of truth for all direct dependencies of the 15 active scenario notebooks. [Validation Environment Setup](citadel-environment-setup.ipynb) owns installation, version reporting, and SDK import/API checks. Agent Frameworks no longer installs packages, and PII analysis no longer upgrades Cosmos DB at runtime. MSAL, Key Vault, Cosmos DB, async support, and A2A are installed up front, including packages used only by optional scenarios.
 
 - **Python:** use Python 3.11. A virtual environment cannot change its base interpreter in place.
 - **Direct versions:** every direct dependency uses an exact `==` pin. Rerunning setup does not silently opt into newer SDK releases.

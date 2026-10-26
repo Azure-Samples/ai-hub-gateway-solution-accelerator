@@ -116,6 +116,7 @@ with invented resources. Explicit notebook overrides still win.
 | Agent predecessor contracts | Automatically uses the latest complete local Access Contracts handoff for the selected gateway. Optional `VALIDATION_ACCESS_CONTRACTS_MANIFEST` or keyed JSON `VALIDATION_AGENT_CONTRACTS` pins an explicit source. |
 | Alert notification recipient | `VALIDATION_ALERT_EMAIL` or `ALERT_EMAIL_ADDRESS` |
 | Application Insights | `APIM_APP_INSIGHTS_NAME`, otherwise exact unambiguous APIM logger resource discovery |
+| Self-hosted gateway target | `VALIDATION_SELF_HOSTED_GATEWAY_URL` (HTTPS origin, no `/models`) and `VALIDATION_SELF_HOSTED_GATEWAY_ID` (APIM gateway resource name); notebook overrides win |
 | Optional Cosmos key authentication | `VALIDATION_COSMOS_KEY`; prefer the default identity-based access |
 
 The target JSON examples are illustrative, not valid deployed resources. Keep
@@ -125,7 +126,7 @@ substitute the hub's vault/project for these external target inputs.
 
 ## Recommended execution order
 
-The 14 scenarios are:
+The 15 scenarios are:
 
 | Order | Notebook | What it proves / prerequisites |
 |---|---|---|
@@ -143,9 +144,45 @@ The 14 scenarios are:
 | 12 | [Publish Contract](citadel-publish-contract-tests.ipynb) | MCP initialization/list/call, A2A card/invocation, mixed-asset grants, metrics, and resiliency configuration. Requires the selected source assets. |
 | 13 | [Image Models](citadel-image-models-tests.ipynb) | Real generation/edit images, body/path/header model selection, multipart requests, and negative policy cases. Uses inferred/overridden image operations and configured native provider paths. |
 | 14 | [Foundry HR Web Search Chat](citadel-foundry-hr-web-search-tests.ipynb) | A real Foundry Prompt Agent reusing the HR contract, 10 visualized turns, web-search/citation evidence, and bounded visible token-limit recovery. Run Access Contracts first. |
+| 15 | [Self-hosted Gateway](citadel-self-hosted-gateway-tests.ipynb) | Existing gateway in another cloud/on premises; provisions an access contract with default-on token limits, model RBAC, Content Safety and request PII anonymization. Authenticated `/models/deployments` discovery and a filtered GPT text-only chat loop run exclusively against the self-hosted origin. |
 
-The environment-setup notebook is a separate prerequisite, not a fourteenth
+The environment-setup notebook is a separate prerequisite, not an additional
 scenario. Archived notebooks and `validation-local` are outside this workflow.
+
+### Self-hosted gateways in other clouds or on premises
+
+The [Self-hosted Gateway notebook](citadel-self-hosted-gateway-tests.ipynb) requires
+an existing gateway, a reachable trusted HTTPS origin, and the `models` API
+already associated with that gateway. It does not install containers, change
+shared routing, or fall back to the Azure managed gateway. Azure management
+access is still required to provision the unique product/subscription.
+
+Set the external target variables above or the corresponding notebook settings.
+Keep all four feature switches on, or explicitly turn individual features off
+before initialization. Optional `model_allowlist` and `skipped_models` narrow the
+configured GPT text/chat plan; empty or invalid selections fail before deployment.
+With model RBAC on, deployment discovery must match the grant exactly. With RBAC
+off, other deployments may be visible but are never added to the text test loop.
+
+Use a gateway image supporting the selected AI policies. Configure off-cloud
+authentication and connectivity for shared inference routing, the Content Safety
+backend, and Azure AI Language. The contract reuses the PII implementation locally
+with Microsoft Entra Workload ID, not the managed identity of the Azure APIM
+resource; grant the workload identity the required Language-service permissions.
+No shared fragment is overwritten. PII is request-only anonymization with synthetic
+data and fail-closed service errors. Set `REQUESTS_CA_BUNDLE` for private CAs;
+certificate verification stays enabled.
+
+Highlighted feature tables appear at initialization, deployment and summary.
+Per-model checks require the actual edge gateway ID/current contract marker,
+token-accounting headers, completed safety-policy traversal and a masking
+transformation when enabled. RBAC denial is verified with its specific error code.
+An optional existing **benign text blocklist** fixture verifies Content Safety
+denial; without it negative enforcement is SKIP. Deliberate quota exhaustion is
+also SKIP, not claimed as proven by accounting headers. Token counters are
+gateway-local, not a global cross-cloud quota. Disabling a contract feature does
+not remove inherited global/API controls. Cleanup is opt-in and deletes only
+this run's newly created product/subscription, retaining the gateway and association.
 
 ### HR career-coaching chat with Foundry web search
 

@@ -12,7 +12,7 @@ from xml.sax.saxutils import escape
 
 
 def policy_xml(source):
-    """Escape APIM C# expressions in readable policy templates into valid XML."""
+    """Escape APIM C# attributes and body/trace text without changing structure."""
     source = re.sub(
         r'([\w:-]+)="(.*?)"(?=\s*(?:/?>|[\w:-]+="))',
         lambda match: match[1] + '="' + escape(
@@ -21,8 +21,8 @@ def policy_xml(source):
         source, flags=re.DOTALL,
     )
     source = re.sub(
-        r"(<set-body>)(.*?)(</set-body>)",
-        lambda match: match[1] + escape(match[2]) + match[3],
+        r"(<(set-body|message|metadata)(?:\s[^>]*?)?(?<!/)>)(.*?)(</\2>)",
+        lambda match: match[1] + escape(match[3]) + match[4],
         source, flags=re.DOTALL,
     )
     ET.fromstring(source)

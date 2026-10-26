@@ -142,6 +142,21 @@ class ScenarioHelperTests(unittest.TestCase):
         with self.assertRaises(ET.ParseError):
             policy_xml("<policies><broken></policies>")
 
+    def test_trace_expression_escaping_preserves_self_closing_metadata_and_siblings(self):
+        source = '''<fragment><trace source="pii" severity="error">
+<message>@(context.Variables.GetValueOrDefault<string>("reason"))</message>
+<metadata name="requestId" value="@(context.RequestId.ToString())" />
+<metadata name="details">@(context.Variables.GetValueOrDefault<string>("details"))</metadata>
+</trace><return-response><set-body>@{ return new JObject().ToString(); }</set-body></return-response></fragment>'''
+        root = ET.fromstring(policy_xml(source))
+        self.assertEqual(root.find("./trace/message").text,
+                         '@(context.Variables.GetValueOrDefault<string>("reason"))')
+        self.assertEqual(root.find("./trace/metadata[@name='requestId']").get("value"),
+                         '@(context.RequestId.ToString())')
+        self.assertEqual(root.find("./trace/metadata[@name='details']").text,
+                         '@(context.Variables.GetValueOrDefault<string>("details"))')
+        self.assertIsNotNone(root.find("./return-response/set-body"))
+
     def test_preserved_pii_policies_keep_feature_semantics(self):
         for name, inbound_fragment in [("pii_masking_policy", "pii-anonymization"),
                                        ("pii_blocking_policy", "pii-anonymization")]:
