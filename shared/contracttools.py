@@ -19,6 +19,8 @@ Public API:
   is projected through explicit field allowlists, preserving exact subscription
   identifiers and Key Vault reference names, never their credential values.
   Resolve subscription keys afresh.
+* ``scoped_deployment_name(prefix, resource_id)`` returns a stable ARM deployment
+  name scoped to the target resource, bounded to Azure's 64-character limit.
 * ``access_policy(models, tpm, quota, period, inbound_extra='', ...)`` composes
   ordered LLM access XML, with optional JWT and PII sections.
 
@@ -37,6 +39,7 @@ pass secret material to this API. CLI failures intentionally omit raw output.
 from __future__ import annotations
 
 import json
+import hashlib
 import math
 import os
 from pathlib import Path
@@ -56,6 +59,15 @@ from xml.sax.saxutils import quoteattr
 
 class ContractError(RuntimeError):
     """Invalid artifacts, unsafe credentials, or unsuccessful CLI operations."""
+
+
+def scoped_deployment_name(prefix: str, resource_id: str) -> str:
+    """Keep deployment identities stable without colliding across gateways."""
+    if not prefix.strip() or not resource_id.strip():
+        raise ContractError("Deployment prefix and target resource ID are required.")
+    identity = f"{resource_id.rstrip('/').casefold()}|{prefix.casefold()}"
+    suffix = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:12]
+    return f"{prefix[:51]}-{suffix}"
 
 
 _IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")

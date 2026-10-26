@@ -117,6 +117,11 @@ class DefaultOnboardingRunAllTests(unittest.TestCase):
 
         apim = Mock()
         apim.apim_resource_name = "fixture-apim"
+        apim.apim_service_id = (
+            "/subscriptions/fixture-sub/resourceGroups/fixture-rg/providers/"
+            "Microsoft.ApiManagement/service/fixture-apim"
+        )
+        apim.client.product.list_by_service.return_value = []
         apim.apim_resource_gateway_url = "https://gateway.example"
         apim.get_managed_identity_info.return_value = {"name": "fixture-mi", "resourceGroup": "fixture-rg"}
         apim.get_subscription_key.return_value = "fixture-not-a-live-key"

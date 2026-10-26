@@ -15,7 +15,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 from shared import utils as notebook_utils
 
-from shared.contracttools import access_policy
+from shared.contracttools import access_policy, scoped_deployment_name
 from shared.scenariotools import (
     access_parameters, cleanup_products, completion_text, contract_identity,
     policy_xml, save_manifest,
@@ -193,6 +193,8 @@ class ScenarioHelperTests(unittest.TestCase):
         reused = set()
         contract_identity(outputs(), {"actual-product"}, reused)
         self.assertFalse(reused)
+        contract_identity(outputs(), {"ACTUAL-PRODUCT"}, reused)
+        self.assertFalse(reused)
         invalid = outputs()
         invalid["subscriptions"]["value"][0]["productId"] = "different-product"
         with self.assertRaises(ValueError):
@@ -313,6 +315,7 @@ class NotebookExecutionTests(unittest.TestCase):
         utils.require_capabilities = notebook_utils.require_capabilities
         utils.run.side_effect = AssertionError("Unexpected CLI boundary in a provisioning unit test.")
         apim.apim_resource_name = "gateway"
+        apim.apim_service_id = "/subscriptions/sub/resourceGroups/rg/providers/Microsoft.ApiManagement/service/gateway"
         apim.client.api.list_by_service.return_value = [
             SimpleNamespace(name=name) for name in
             ["universal-llm-api", "azure-openai-api", "unified-ai-api", "weather-api"]
@@ -326,6 +329,7 @@ class NotebookExecutionTests(unittest.TestCase):
             "run_dir": ROOT / "validation" / ".runs" / "mocked",
             "repo_root": ROOT, "run": ValidationRun("offline"),
             "access_parameters": access_parameters, "access_policy": access_policy,
+            "scoped_deployment_name": scoped_deployment_name,
             "policy_xml": policy_xml, "normalize_policy_xml": policy_xml,
             "contract_identity": contract_identity,
             "write_parameters": Mock(return_value=ROOT / "mocked.bicepparam"),

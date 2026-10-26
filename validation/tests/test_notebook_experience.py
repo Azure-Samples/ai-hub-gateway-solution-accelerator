@@ -290,12 +290,17 @@ class MandatoryInitializationTests(unittest.TestCase):
         self.assertIn("keyvault.name", str(raised.exception))
         self.assertNotIn("https://", str(raised.exception))
 
-    def test_alerting_requires_external_notification_input_not_discoverable_observability(self):
+    def test_alerting_accepts_azd_telemetry_without_an_email(self):
         name = "citadel-alerting-tests.ipynb"
-        with self.assertRaises(ValueError) as raised:
-            initialize(name, configured(name))
-        self.assertIn("alerting.alert_email_address", str(raised.exception))
-        self.assertNotIn("alerting.app_insights_name", str(raised.exception))
+        context = context_fixture(backends=[{
+            "backendId": "fixture", "backendType": "ai-foundry",
+            "supportedModels": [{"name": "gpt-fixture"}],
+        }], capabilities={"gpt-fixture": ["chat"]})
+        context.config["APIM_APP_INSIGHTS_NAME"] = "fixture-insights"
+        namespace = configured(name)
+        initialize(name, namespace, context, apim=initialized_apim())
+        self.assertEqual(namespace["alert_email_address"], "")
+        self.assertEqual(namespace["model_name"], "gpt-fixture")
 
     def test_publication_aggregates_a2a_targets_and_observability(self):
         name = "citadel-publish-contract-tests.ipynb"

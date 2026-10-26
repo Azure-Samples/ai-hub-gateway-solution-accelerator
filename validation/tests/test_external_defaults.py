@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT / "shared"))
 import apimtools
 import utils
 import validationtools
+import consumerhelpers
 
 NAMES = ("access-contracts", "agent-frameworks", "alerting",
          "jwt-authentication", "pii-processing", "publish-contract")
@@ -95,8 +96,13 @@ def secret_environment():
 
 def apim_fixture():
     apim = Mock()
+    apim.client.product.list_by_service.return_value = []
     apim.client.product_policy = create_autospec(ProductPolicyOperations, instance=True)
     apim.apim_resource_name = "fixture-apim"
+    apim.apim_service_id = (
+        "/subscriptions/fixture-sub/resourceGroups/fixture-rg/providers/"
+        "Microsoft.ApiManagement/service/fixture-apim"
+    )
     apim.apim_resource_gateway_url = "https://fixture-apim.azure-api.net"
     apim.client.product_api.list_by_product.return_value = [
         SimpleNamespace(name="universal-llm-api")
@@ -189,7 +195,6 @@ class ExternalDefaultsTests(unittest.TestCase):
             ("access-contracts", ("VALIDATION_EXTERNAL_KEYVAULT", "VALIDATION_EXTERNAL_FOUNDRY"),
              "keyvault.name"),
             ("agent-frameworks", ("VALIDATION_AGENT_CONTRACTS",), "predecessor"),
-            ("alerting", ("VALIDATION_ALERT_EMAIL",), "alert_email_address"),
             ("publish-contract", ("VALIDATION_FOUNDRY_AGENT_NAME",), "existing agent"),
             ("pii-processing", ("COSMOS_DB_ACCOUNT_NAME",), "pii_state_evidence"),
         )
@@ -258,7 +263,8 @@ class ExternalDefaultsTests(unittest.TestCase):
                         })
                     else:
                         values["VALIDATION_SKIPPED_MODELS"] = '["GPT", "text", "FLUX"]'
-                    self.initialize(name, values=values, expected="No models selected")
+                    self.initialize(name, values=values,
+                                    expected="No eligible GPT chat model" if name == "alerting" else "No models selected")
 
     def test_unrelated_unmapped_image_model_does_not_block_chat_scenarios(self):
         for name in NAMES:
@@ -294,10 +300,7 @@ class ExternalDefaultsTests(unittest.TestCase):
         for name in ("alerting", "publish-contract"):
             with self.subTest(notebook=name):
                 namespace = self.configured(name)
-                if name == "alerting":
-                    namespace["cli_json"] = Mock(return_value=[resource_id])
-                with patch.object(utils, "run", return_value=SimpleNamespace(
-                        success=True, json_data=[resource_id])):
+                with patch.object(consumerhelpers, "cli_json", return_value={"value": [resource_id]}):
                     namespace, _ = self.initialize(name, values=values, namespace=namespace)
                 if name == "alerting":
                     self.assertEqual(namespace["app_insights_coordinates"], {
@@ -319,10 +322,7 @@ class ExternalDefaultsTests(unittest.TestCase):
                     f"/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Insights/components/{n}"
                     for n in ("one", "two")
                 ]
-                if name == "alerting":
-                    namespace["cli_json"] = Mock(return_value=component_ids)
-                with patch.object(utils, "run", return_value=SimpleNamespace(
-                        success=True, json_data=component_ids)):
+                with patch.object(consumerhelpers, "cli_json", return_value={"value": component_ids}):
                     self.initialize(name, values=values, namespace=namespace, expected="APIM_APP_INSIGHTS_NAME")
 
     def test_access_contract_handoff_carries_real_publication_and_subscription_metadata(self):

@@ -13,6 +13,7 @@ import subprocess
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 import time
 if __package__:
     from . import utils
@@ -65,6 +66,52 @@ def cli_json(*arguments: str) -> Any:
     utils.format_result("Azure query executed successfully", elapsed_seconds=round(time.perf_counter() - started, 3),
                         diagnostic=True)
     return data
+
+
+def discover_apim_app_insights(subscription_id: str, resource_group: str, service_name: str) -> dict[str, str]:
+    """Resolve the exact telemetry target through the supported APIM ARM logger API."""
+    utils.require_inputs({
+        "subscription_id": subscription_id, "resource_group": resource_group, "apim_name": service_name,
+    })
+    url = (
+        f"https://management.azure.com/subscriptions/{quote(subscription_id, safe='')}"
+        f"/resourceGroups/{quote(resource_group, safe='')}"
+        f"/providers/Microsoft.ApiManagement/service/{quote(service_name, safe='')}"
+        "/loggers?api-version=2024-05-01"
+    )
+    component_ids: dict[str, str] = {}
+    visited: set[str] = set()
+    while url:
+        if url in visited:
+            raise ValueError("APIM logger discovery returned a pagination loop.")
+        visited.add(url)
+        page = cli_json(
+            "rest", "--method", "get", "--url", url, "--query",
+            "{value:value[?properties.loggerType=='applicationInsights'].properties.resourceId,nextLink:nextLink}",
+        )
+        if not isinstance(page, dict) or not isinstance(page.get("value"), list):
+            raise ValueError("APIM logger discovery returned invalid metadata; set APIM_APP_INSIGHTS_NAME explicitly.")
+        for identifier in page["value"]:
+            if not isinstance(identifier, str) or not identifier.strip():
+                raise ValueError("An Application Insights logger has no resourceId; set APIM_APP_INSIGHTS_NAME explicitly.")
+            component_ids.setdefault(identifier.rstrip("/").casefold(), identifier)
+        url = page.get("nextLink")
+        if url is not None and (not isinstance(url, str) or not url.startswith("https://management.azure.com/")):
+            raise ValueError("APIM logger discovery returned an invalid nextLink.")
+    if len(component_ids) != 1:
+        raise ValueError(
+            f"Expected one Application Insights resource referenced by APIM loggers; found {len(component_ids)}. "
+            "Set APIM_APP_INSIGHTS_NAME to the intended gateway telemetry component."
+        )
+    parts = next(iter(component_ids.values())).strip("/").split("/")
+    if (
+        len(parts) != 8 or parts[0].casefold() != "subscriptions"
+        or parts[2].casefold() != "resourcegroups"
+        or [part.casefold() for part in parts[4:7]] != ["providers", "microsoft.insights", "components"]
+        or not all(parts[index] for index in (1, 3, 7))
+    ):
+        raise ValueError("APIM logger resourceId is not an Application Insights component; set APIM_APP_INSIGHTS_NAME.")
+    return {"subscriptionId": parts[1], "resourceGroupName": parts[3], "name": parts[7]}
 
 
 def access_artifact(root, directory, context, apim, use_case, api_names, policy):
@@ -238,12 +285,13 @@ def complete_backend_parameters(source, additions, *, confirmed_complete):
     return merged
 
 
-def review_backend_artifact(artifact, source, target, existing_ids):
+def review_backend_artifact(artifact, source, target, existing_ids, *, editable_aliases=()):
     """Recheck edited parameters before a shared-routing deployment.
 
     Fresh backend/alias edits are allowed; changes to predecessor records or
     global routing options must first be reflected in the explicitly approved
-    complete source. Compiling alone cannot establish safe merge semantics.
+    complete source. Named scenario aliases may be edited on subsequent runs.
+    Compiling alone cannot establish safe merge semantics.
     """
     compiled = artifact.compile()
     document = compiled["parametersJson"]
@@ -261,7 +309,7 @@ def review_backend_artifact(artifact, source, target, existing_ids):
             raise ValueError("Edited parameters changed a predecessor backend; review the complete source first.")
     aliases = {alias["name"]: alias for alias in effective["modelAliases"]}
     for predecessor in source["modelAliases"]:
-        if aliases.get(predecessor["name"]) != predecessor:
+        if predecessor["name"] not in editable_aliases and aliases.get(predecessor["name"]) != predecessor:
             raise ValueError("Edited parameters changed or omitted a predecessor alias.")
     for key, value in source.items():
         if key not in {"apim", "llmBackendConfig", "modelAliases"} and effective.get(key) != value:
@@ -286,8 +334,24 @@ def error_code(data):
     return error.get("code", "") if isinstance(error, dict) else ""
 
 
-def delete_owned_product(context, apim, product_id):
-    """Delete one caller-confirmed run-owned product; no subscription enumeration."""
+def product_exists(context, apim, product_id):
+    """Check exact product identity before deployment without enumerating keys."""
+    return any(
+        product.name.casefold() == product_id.casefold()
+        for product in apim.client.product.list_by_service(
+            context.config["resource_group"], apim.apim_resource_name,
+        )
+    )
+
+
+def delete_owned_product(context, apim, product_id, *, artifact):
+    """Delete only a product positively recorded as newly created by this run."""
+    resource_id = f"{apim.apim_service_id}/products/{product_id}"
+    if resource_id.casefold() not in {item.casefold() for item in artifact.cleanup_candidates()}:
+        utils.format_output("Product retained", {
+            "product_id": product_id, "reason": "Reused resource or creation ownership is unproven.",
+        }, status="info")
+        return
     cli_json(
         "apim", "product", "delete",
         "--resource-group", context.config["resource_group"],

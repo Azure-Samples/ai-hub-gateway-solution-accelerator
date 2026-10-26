@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
+from azure.core.exceptions import ResourceNotFoundError
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "shared"))
@@ -33,7 +34,7 @@ class HRWebSearchNotebookTests(unittest.TestCase):
         self.values.pop("VALIDATION_AGENT_CONTRACTS", None)
         self.account = {"id": "fixture-sub", "tenantId": "fixture-tenant"}
 
-    def run_chat_notebook(self, contract_document=None, web_calls=True, create_error=None):
+    def run_chat_notebook(self, contract_document=None, web_calls=True, create_error=None, reuse_agent=False):
         path = write_manifest(self.root, "hr-predecessor", contract_document or manifest_document(), 1_000_000_000)
         namespace = {}
         code = notebook_cells()
@@ -59,6 +60,14 @@ class HRWebSearchNotebookTests(unittest.TestCase):
         apim.get_subscription_key.assert_not_called()
         project = Mock()
         project.connections.get.return_value = SimpleNamespace(target="https://gateway.example/models")
+        if reuse_agent:
+            project.agents.get.side_effect = lambda **kwargs: SimpleNamespace(
+                versions=SimpleNamespace(latest=SimpleNamespace(
+                    name="owned-agent", version="1", definition=namespace["definition"], metadata={},
+                )),
+            )
+        else:
+            project.agents.get.side_effect = ResourceNotFoundError("No existing fixture agent")
         project.agents.create_version.return_value = SimpleNamespace(name="owned-agent", version="1")
         if create_error:
             project.agents.create_version.side_effect = create_error
@@ -68,7 +77,12 @@ class HRWebSearchNotebookTests(unittest.TestCase):
         namespace["AIProjectClient"] = factory
         namespace["DefaultAzureCredential"] = lambda: "credential"
         execute(code[2])
-        definition = project.agents.create_version.call_args.kwargs["definition"].as_dict()
+        project.agents.get.assert_called_once_with(agent_name="HR-Career-Coach")
+        if reuse_agent:
+            project.agents.create_version.assert_not_called()
+        else:
+            self.assertEqual(project.agents.create_version.call_args.kwargs["agent_name"], "HR-Career-Coach")
+        definition = namespace["definition"].as_dict()
         self.assertEqual(definition["model"], "actual-hr-connection/gpt-active")
         self.assertEqual(definition["tools"][0]["type"], "web_search")
         self.assertIs(definition["tools"][0]["external_web_access"], True)
@@ -129,6 +143,14 @@ class HRWebSearchNotebookTests(unittest.TestCase):
             exec(code[4], namespace)
         self.assertTrue(any(result.case == "web-search-observed" and result.status == "FAIL"
                             for result in namespace["run"].results))
+
+    def test_reused_agent_version_survives_cleanup_but_this_runs_conversation_is_deleted(self):
+        namespace, project, client, code = self.run_chat_notebook(reuse_agent=True)
+        self.assertFalse(namespace["agent_version_created"])
+        namespace["cleanup_enabled"] = True
+        exec(code[5], namespace)
+        project.agents.delete_version.assert_not_called()
+        client.conversations.delete.assert_called_once_with("conversation-fixture")
 
     def test_agent_creation_failure_propagates_without_direct_model_fallback(self):
         with self.assertRaisesRegex(RuntimeError, "Tool unavailable"):

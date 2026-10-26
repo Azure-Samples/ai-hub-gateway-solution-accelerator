@@ -18,7 +18,7 @@ compatibility; the active notebook directory is **`validation`**, not
 Open the repository in VS Code and use **Run All** from a fresh kernel.
 Configuration defaults use the selected azd environment; no edits are needed for
 settings or models that azd already supplies. Only genuinely external inputs
-(such as separate target resources, provider credentials, notification recipients,
+(such as separate target resources, provider credentials,
 or token/evidence fixtures) need to be supplied when absent. Scenario execution
 does not prompt for missing inputs.
 Both the repository root and this directory are supported working directories.
@@ -114,8 +114,8 @@ with invented resources. Explicit notebook overrides still win.
 | Entra client secret / role-control tokens | Automatically loaded/acquired after [Entra setup](../bicep/infra/entra-id-setup/README.md). `VALIDATION_ENTRA_CLIENT_SECRET`, `VALIDATION_JWT_NO_ROLE_TOKEN`, and `VALIDATION_JWT_DEVICE_TOKEN` are optional overrides |
 | Existing published agent | `VALIDATION_FOUNDRY_AGENT_NAME` or `FOUNDRY_AGENT_NAME`; project coordinates use `FOUNDRY_ACCOUNT_NAME`, `FOUNDRY_PROJECT_NAME`, `FOUNDRY_PROJECT_ENDPOINT`, or an unambiguous `AI_FOUNDRY_SERVICES` entry |
 | Agent predecessor contracts | Automatically uses the latest complete local Access Contracts handoff for the selected gateway. Optional `VALIDATION_ACCESS_CONTRACTS_MANIFEST` or keyed JSON `VALIDATION_AGENT_CONTRACTS` pins an explicit source. |
-| Alert notification recipient | `VALIDATION_ALERT_EMAIL` or `ALERT_EMAIL_ADDRESS` |
-| Application Insights | `APIM_APP_INSIGHTS_NAME`, otherwise exact unambiguous APIM logger resource discovery |
+| Optional alert notification recipient | `VALIDATION_ALERT_EMAIL` or `ALERT_EMAIL_ADDRESS`; no value runs rules without email. `alert_email_address=""` explicitly disables a saved recipient. |
+| Application Insights | `APIM_APP_INSIGHTS_NAME`, otherwise exact unambiguous APIM logger resource discovery using the supported ARM REST API (`az rest`) |
 | Self-hosted gateway target | `VALIDATION_SELF_HOSTED_GATEWAY_URL` (HTTPS origin, no `/models`) and `VALIDATION_SELF_HOSTED_GATEWAY_ID` (APIM gateway resource name); notebook overrides win |
 | Optional Cosmos key authentication | `VALIDATION_COSMOS_KEY`; prefer the default identity-based access |
 
@@ -140,7 +140,7 @@ The 15 scenarios are:
 | 8 | [JWT Authentication](citadel-jwt-authentication-tests.ipynb) | Universal `/models/chat/completions` and Unified OpenAI v1 `/unified-ai/v1/chat/completions` only. Run after Entra setup without manual inputs. Automatically acquires/decodes application, current-user and negative-client tokens; tests both positive identities and missing-Model.Invoke rejection. |
 | 9 | [Extended Providers](llm-backend-onboarding-extended-providers-runner.ipynb) | Bedrock, Gemini, Anthropic native versus OpenAI-compatible protocols, credential formats, and compatible aliases. Provider credentials are separate prerequisites. |
 | 10 | [Session Affinity](citadel-session-affinity-tests.ipynb) | Independent cookie jars and successful stateful response chaining. Requires a Responses-capable model served by multiple backends. |
-| 11 | [Gateway Alerting](citadel-alerting-tests.ipynb) | Restrictive capacity, HTTP 429/403, configured rules, and observed telemetry. Requires Application Insights/Monitor permissions. |
+| 11 | [Gateway Alerting](citadel-alerting-tests.ipynb) | Restrictive capacity, HTTP 429/403, configured rules, and observed telemetry. Runs from azd without email; only chat-capable names containing `gpt` but not `image` are eligible, including explicit overrides and skip filters. Requires Application Insights/Monitor permissions. |
 | 12 | [Publish Contract](citadel-publish-contract-tests.ipynb) | MCP initialization/list/call, A2A card/invocation, mixed-asset grants, metrics, and resiliency configuration. Requires the selected source assets. |
 | 13 | [Image Models](citadel-image-models-tests.ipynb) | Real generation/edit images, body/path/header model selection, multipart requests, and negative policy cases. Uses inferred/overridden image operations and configured native provider paths. |
 | 14 | [Foundry HR Web Search Chat](citadel-foundry-hr-web-search-tests.ipynb) | A real Foundry Prompt Agent reusing the HR contract, 10 visualized turns, web-search/citation evidence, and bounded visible token-limit recovery. Run Access Contracts first. |
@@ -155,7 +155,7 @@ The [Self-hosted Gateway notebook](citadel-self-hosted-gateway-tests.ipynb) requ
 an existing gateway, a reachable trusted HTTPS origin, and the `models` API
 already associated with that gateway. It does not install containers, change
 shared routing, or fall back to the Azure managed gateway. Azure management
-access is still required to provision the unique product/subscription.
+access is still required to create or update the scenario's product/subscription.
 
 Set the external target variables above or the corresponding notebook settings.
 Keep all four feature switches on, or explicitly turn individual features off
@@ -187,8 +187,8 @@ this run's newly created product/subscription, retaining the gateway and associa
 ### HR career-coaching chat with Foundry web search
 
 [Foundry HR Web Search Chat](citadel-foundry-hr-web-search-tests.ipynb) automatically
-loads the HR contract's project connection and granted model. It creates a unique
-agent version with Foundry's native `WebSearchTool`, then runs one persistent
+loads the HR contract's project connection and granted model. It creates or reuses
+the stable `HR-Career-Coach` agent with Foundry's native `WebSearchTool`, then runs one persistent
 10-turn conversation about career development, learning, privacy-conscious AI use
 and productivity. Every user message, assistant reply, actual source citation,
 usage and retry is visualized in the notebook. No separate Bing key is needed
@@ -321,6 +321,29 @@ preserve escaping, and validate the current file before deployment.
 5. Validate deployed state and make real feature requests.
 
 New run artifacts belong under ignored `.runs/<scenario>/<run-id>/`.
+
+### Stable asset identities and reruns
+
+Cloud assets use stable, scenario-specific names, not a run ID or timestamp.
+Rerunning a notebook updates the same access-contract products (IDs and display
+names), subscriptions, connections, secret names, model aliases, alerts and
+action groups. Separate feature cases, such as PII masking, blocking and analytics,
+retain separate identities. Validation aliases replace only their own named
+entries while preserving unrelated aliases and the full backend inventory.
+ARM deployment names are stable too, with a deterministic gateway-scope suffix
+and a maximum length of 64 characters so different gateways do not collide.
+
+Foundry uses the stable `HR-ChatAgent` and `HR-Career-Coach` agent names.
+An unchanged definition reuses its latest version; a changed definition creates
+a new immutable version under the same name, as required by the Foundry API.
+Only versions actually created by the current run are cleanup-eligible.
+
+Run IDs still isolate local evidence, request correlation, conversations and
+the alerting probe's token counters. Reusing a product must not inherit the
+previous probe's exhausted quota. Run a given scenario serially against a gateway:
+its policy and configuration are shared, not concurrent per-run resources.
+Existing assets with old run-suffixed names are not automatically renamed or deleted.
+
 Keep secrets out of saved notebooks, previews, manifests, and parameter files.
 Prefer Key Vault references for provider credentials. Do not print deployment
 outputs containing API keys. Retrieve the exact contract subscription rather

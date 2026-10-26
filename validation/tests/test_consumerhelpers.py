@@ -9,7 +9,7 @@ import shutil
 import sys
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from xml.etree import ElementTree as ET
 
 
@@ -188,6 +188,27 @@ class ConsumerHelperTests(unittest.TestCase):
                     artifact(dict(values, **changes)), self.source, self.target, {"existing"},
                 )
 
+    def test_review_allows_only_explicit_scenario_alias_updates_on_rerun(self):
+        own_alias = {"name": "validation-priority", "models": ["old-model"], "strategy": "priority"}
+        source = dict(self.source, modelAliases=self.source["modelAliases"] + [own_alias])
+        updated = dict(own_alias, models=["new-model"])
+        values = dict(source, apim=self.target, modelAliases=self.source["modelAliases"] + [updated])
+        artifact = SimpleNamespace(compile=lambda: {
+            "parametersJson": json.dumps({
+                "parameters": {key: {"value": value} for key, value in values.items()},
+            }),
+        })
+        with self.assertRaisesRegex(ValueError, "predecessor alias"):
+            helpers.review_backend_artifact(artifact, source, self.target, {"existing"})
+        self.assertEqual(helpers.review_backend_artifact(
+            artifact, source, self.target, {"existing"}, editable_aliases={"validation-priority"},
+        ), values)
+        values["modelAliases"] = [updated]
+        with self.assertRaisesRegex(ValueError, "predecessor alias"):
+            helpers.review_backend_artifact(
+                artifact, source, self.target, {"existing"}, editable_aliases={"validation-priority"},
+            )
+
     def test_cli_is_mocked_checked_private_and_handles_empty_deletion(self):
         with patch.object(helpers.shutil, "which", return_value="az.exe"):
             with patch.object(helpers.subprocess, "run", return_value=SimpleNamespace(returncode=0, stdout="")) as run:
@@ -234,6 +255,7 @@ class UnifiedNotebookWorkflowTests(unittest.TestCase):
         class FakeAPIM:
             apim_resource_name = "fixture-apim"
             apim_service_id = "/fixture/apim"
+            client = SimpleNamespace(product=SimpleNamespace(list_by_service=Mock(return_value=[])))
 
             def initialize_context(self, account, enumerate_subscriptions=False):
                 self.asserted_account = account

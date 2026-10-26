@@ -1,8 +1,9 @@
-"""Visible, bounded SDK-only conversation execution for the HR Foundry lab."""
+"""Reusable Foundry agents and bounded SDK-only HR conversation execution."""
 
 from __future__ import annotations
 
 import json
+import hashlib
 import math
 import re
 import time
@@ -11,6 +12,9 @@ from email.utils import parsedate_to_datetime
 from typing import Any, NoReturn
 from uuid import uuid4
 
+from azure.ai.projects import AIProjectClient
+from azure.ai.projects.models import AgentDefinition, AgentVersionDetails
+from azure.core.exceptions import ResourceNotFoundError
 from openai import APIError, APIStatusError
 
 if __package__:
@@ -19,6 +23,31 @@ if __package__:
 else:
     import utils
     from validationtools import ValidationError, ValidationRun, redact
+
+
+def ensure_agent_version(project: AIProjectClient, agent_name: str,
+                         definition: AgentDefinition) -> tuple[AgentVersionDetails, bool]:
+    """Reuse the latest definition; publish changed definitions under one name."""
+    desired = definition.as_dict()
+    fingerprint = hashlib.sha256(
+        json.dumps(desired, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    try:
+        latest = project.agents.get(agent_name=agent_name).versions.latest
+    except ResourceNotFoundError:
+        latest = None
+    if latest is not None and (
+        (latest.metadata or {}).get("validation_definition_sha256") == fingerprint
+        or latest.definition.as_dict() == desired
+    ):
+        utils.format_result("Reused Foundry agent version", agent=agent_name, version=latest.version)
+        return latest, False
+    agent = project.agents.create_version(
+        agent_name=agent_name, definition=definition,
+        metadata={"validation_definition_sha256": fingerprint},
+    )
+    utils.format_result("Published Foundry agent version", agent=agent_name, version=agent.version)
+    return agent, True
 
 
 def _seconds(value: Any) -> float | None:

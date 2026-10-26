@@ -6,6 +6,7 @@ resource deletion or manually edited default notebook configuration are needed.
 
 from contextlib import redirect_stdout
 from copy import deepcopy
+import ast
 import base64
 import io
 import json
@@ -142,7 +143,8 @@ class DeploymentDefaultsTests(unittest.TestCase):
         cells = code_cells(name)
         self.execute(cells[0], namespace)
         # Only run-owned output paths change; notebook user configuration stays untouched.
-        namespace["run_dir"] = self.directory / name
+        output_directory = self.directory / name / namespace["run_id"]
+        namespace["run_dir"] = output_directory
         namespace["APIMClientTool"] = Mock(return_value=self.apim)
         namespace.update(settings or {})
         values = values if values is not None else snapshot(external=name == PROVIDERS)
@@ -155,7 +157,7 @@ class DeploymentDefaultsTests(unittest.TestCase):
         self.assertEqual(commands.call_count, 2)
         # Initializers build the normal run path; subsequent writes stay in this test's directory.
         actual_run_dir = namespace["run_dir"]
-        namespace["run_dir"] = self.directory / name
+        namespace["run_dir"] = output_directory
         if actual_run_dir.is_dir():
             actual_run_dir.rmdir()
         namespace["deploy_contract"] = Mock(side_effect=AssertionError("No Azure deployments in tests"))
@@ -384,6 +386,42 @@ class DeploymentDefaultsTests(unittest.TestCase):
         self.assertFalse(namespace["backend_parameters"]["configureCircuitBreaker"])
         self.assertEqual(namespace["backend_parameters"]["circuitBreakerDefaults"], {"failureCount": 8})
         self.assertEqual(namespace["backend_parameters"]["awsRegion"], "direct-region")
+
+
+    def test_two_runs_update_scenario_aliases_without_duplicating_or_replacing_shared_aliases(self):
+        for name in (ALIASES, PROVIDERS):
+            with self.subTest(notebook=name):
+                first = self.generate(name, settings={"run_id": "first-run"})
+                own_aliases = first["model_aliases"] if name == ALIASES else first["new_aliases"]
+                self.assertTrue(own_aliases)
+                values = snapshot(external=name == PROVIDERS)
+                shared = json.loads(values["MODEL_ALIASES"])
+                stale = deepcopy(own_aliases)
+                for alias in stale:
+                    alias["models"] = list(reversed(alias["models"]))
+                values["MODEL_ALIASES"] = json.dumps(shared + stale)
+                second = self.generate(name, values, settings={"run_id": "second-run"})
+                expected = second["model_aliases"] if name == ALIASES else second["new_aliases"]
+                actual = second["backend_parameters"]["modelAliases"]
+                by_name = {alias["name"]: alias for alias in actual}
+                self.assertEqual(len(actual), len(by_name), "Reruns must not duplicate alias IDs")
+                self.assertEqual(len(actual), len(shared) + len(expected))
+                for alias in shared + expected:
+                    self.assertEqual(by_name[alias["name"]], alias)
+                self.assertEqual({alias["name"] for alias in own_aliases},
+                                 {alias["name"] for alias in expected})
+                second["backend_artifact"] = SimpleNamespace(compile=lambda: {
+                    "parametersJson": json.dumps({"parameters": {
+                        key: {"value": value} for key, value in second["backend_parameters"].items()
+                    }}),
+                })
+                review_cell = next(text for text in code_cells(name) if "effective = review_backend_artifact" in text)
+                statement = next(node for node in ast.walk(ast.parse(review_cell))
+                                 if isinstance(node, ast.Assign)
+                                 and any(isinstance(target, ast.Name) and target.id == "effective"
+                                         for target in node.targets))
+                self.execute(ast.unparse(statement), second)
+                self.assertEqual(second["effective"]["modelAliases"], actual)
 
 
 if __name__ == "__main__":

@@ -97,7 +97,7 @@ def contract_identity(outputs, preexisting_products, owned_products):
     subscription = subscriptions[0]
     if subscription.get("productId") != product_id or not subscription.get("name"):
         raise ValueError("Contract product/subscription outputs are inconsistent.")
-    if product_id not in preexisting_products:
+    if product_id.casefold() not in {name.casefold() for name in preexisting_products}:
         owned_products.add(product_id)
     return product_id, subscription["name"]
 
