@@ -31,6 +31,7 @@ This is a **standalone operation** — no redeployment of the main landing zone 
 | **APIM Instance** | Must exist (deployed by `azd up`) |
 | **APIM Access** | Deployer needs `API Management Service Contributor` role |
 | **azd** | Azure Developer CLI installed (for environment variable storage) |
+| **PowerShell** | Windows PowerShell 5.1 or PowerShell 7 (`pwsh`) |
 
 >NOTE: For Key Vault Access, you can assign the `Key Vault Secrets Officer` role to your user account on the Key Vault. 
 >- The main deployment does not automatically assign this role. The following command show example execution ```az role assignment create --role "Key Vault Secrets Officer" --assignee "REPLACE@TENANT.onmicrosoft.com" --scope (az keyvault show --name kv-REPLACE --query id --output tsv)```
@@ -145,14 +146,19 @@ defines three roles and one delegated scope (`access_as_user`), using four disti
 definitions. Role assignments to callers are not permission definitions. See
 [Microsoft's app role limits](https://learn.microsoft.com/en-us/entra/identity-platform/howto-add-app-roles-in-apps#app-role-limits).
 
-### Offline Role Regression Tests
+### Offline Regression Tests
 
 ```powershell
 pwsh .\tests\test-app-roles.ps1
+pwsh .\tests\test-azd-command.ps1
 ```
 
 These tests mock Azure CLI calls and verify new registrations, in-place role
 updates, assignment-setting preservation, idempotency, and update failures.
+The azd tests use a local native-process fixture to verify stderr notices,
+exit-code failures, environment reads/writes, and parameter resolution without
+accessing Azure. On Windows PowerShell 5.1, run the test scripts directly with
+`.\tests\test-app-roles.ps1` and `.\tests\test-azd-command.ps1`.
 
 ## Bring Your Own App Registration
 
@@ -177,6 +183,21 @@ entra-id-setup/
 ```
 
 ## Troubleshooting
+
+### "azd: Update available" / "NativeCommandError" in Windows PowerShell
+
+The update message is an azd notice written to stderr, not an authentication or
+provisioning failure. Windows PowerShell 5.1 can turn native stderr into a
+terminating error when `$ErrorActionPreference = "Stop"`, even with `2>$null`.
+
+The setup script handles azd stderr separately from returned environment values
+and checks the native exit code. Notices remain visible as warnings; required
+reads and writes with nonzero exit codes still stop setup. Optional APIM lookups
+report failures and allow the existing resource-discovery fallback.
+
+Run the current script again; upgrading azd is not required to address this
+notice. In Windows PowerShell, use `.\setup.ps1`; in PowerShell 7, use
+`pwsh .\setup.ps1`. Do not disable error handling for the entire setup script.
 
 ### "Not logged in to Azure CLI"
 Run `az login` and ensure you're connected to the correct tenant.

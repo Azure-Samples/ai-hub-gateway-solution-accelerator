@@ -63,9 +63,49 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Invoke-AzdCommand {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments,
+        [switch]$AllowFailure
+    )
+
+    $command = Get-Command azd -ErrorAction Stop
+    $stderrFile = [System.IO.Path]::GetTempFileName()
+    try {
+        $previousErrorActionPreference = $ErrorActionPreference
+        try {
+            # Windows PowerShell treats native stderr as errors even when the command succeeds.
+            $ErrorActionPreference = "Continue"
+            $PSNativeCommandUseErrorActionPreference = $false
+            $output = & $command @Arguments 2>$stderrFile
+            $exitCode = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
+
+        $diagnostic = Get-Content -LiteralPath $stderrFile -Raw
+        if (-not [string]::IsNullOrWhiteSpace($diagnostic)) {
+            Write-Warning $diagnostic.Trim()
+        }
+        if ($exitCode -ne 0) {
+            # Do not include argument values: env set can contain the client secret.
+            $message = "azd $($Arguments[0]) $($Arguments[1]) failed (exit code $exitCode)."
+            if ($AllowFailure) {
+                Write-Warning $message
+                return
+            }
+            throw $message
+        }
+        $output
+    } finally {
+        Remove-Item -LiteralPath $stderrFile -Force
+    }
+}
+
 # ── Resolve parameters from azd environment if not provided ──
 if ([string]::IsNullOrWhiteSpace($EnvironmentName)) {
-    $EnvironmentName = azd env get-value AZURE_ENV_NAME 2>$null
+    $EnvironmentName = Invoke-AzdCommand -Arguments @("env", "get-value", "AZURE_ENV_NAME")
     if ([string]::IsNullOrWhiteSpace($EnvironmentName)) {
         Write-Error "EnvironmentName not provided and AZURE_ENV_NAME not found in azd environment."
         exit 1
@@ -73,7 +113,7 @@ if ([string]::IsNullOrWhiteSpace($EnvironmentName)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($KeyVaultName)) {
-    $KeyVaultName = azd env get-value KEY_VAULT_NAME 2>$null
+    $KeyVaultName = Invoke-AzdCommand -Arguments @("env", "get-value", "KEY_VAULT_NAME")
     if ([string]::IsNullOrWhiteSpace($KeyVaultName)) {
         Write-Error "KeyVaultName not provided and KEY_VAULT_NAME not found in azd environment. Run 'azd up' first to create the Key Vault, then re-run this script."
         exit 1
@@ -81,10 +121,10 @@ if ([string]::IsNullOrWhiteSpace($KeyVaultName)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($ApimResourceGroup)) {
-    $ApimResourceGroup = azd env get-value AZURE_RESOURCE_GROUP 2>$null
+    $ApimResourceGroup = Invoke-AzdCommand -Arguments @("env", "get-value", "AZURE_RESOURCE_GROUP") -AllowFailure
     if ([string]::IsNullOrWhiteSpace($ApimResourceGroup)) {
         # Auto-discover from the APIM resource if APIM_NAME is known
-        $knownApimName = azd env get-value APIM_NAME 2>$null
+        $knownApimName = Invoke-AzdCommand -Arguments @("env", "get-value", "APIM_NAME") -AllowFailure
         if (-not [string]::IsNullOrWhiteSpace($knownApimName)) {
             Write-Host "  Discovering resource group from APIM '$knownApimName'..." -ForegroundColor Gray
             $apimResource = az resource list --name $knownApimName --resource-type "Microsoft.ApiManagement/service" --query "[0].resourceGroup" --output tsv 2>$null
@@ -101,7 +141,7 @@ if ([string]::IsNullOrWhiteSpace($ApimResourceGroup)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($ApimName)) {
-    $ApimName = azd env get-value APIM_NAME 2>$null
+    $ApimName = Invoke-AzdCommand -Arguments @("env", "get-value", "APIM_NAME") -AllowFailure
     if ([string]::IsNullOrWhiteSpace($ApimName)) {
         # Auto-discover APIM in the resource group
         Write-Host "  Discovering APIM instance in resource group '$ApimResourceGroup'..." -ForegroundColor Gray
@@ -379,10 +419,10 @@ Write-Host "  APIM JWT named values configured" -ForegroundColor Green
 
 # ── 6. Store values in azd environment ──
 Write-Host "[6/6] Storing values in azd environment..." -ForegroundColor Yellow
-azd env set AZURE_CLIENT_ID $appId 2>$null
-azd env set AZURE_TENANT_ID $tenantId 2>$null
-azd env set AZURE_AUDIENCE "api://$appId" 2>$null
-azd env set ENTRA_CLIENT_SECRET $clientSecret 2>$null
+Invoke-AzdCommand -Arguments @("env", "set", "AZURE_CLIENT_ID", $appId)
+Invoke-AzdCommand -Arguments @("env", "set", "AZURE_TENANT_ID", $tenantId)
+Invoke-AzdCommand -Arguments @("env", "set", "AZURE_AUDIENCE", "api://$appId")
+Invoke-AzdCommand -Arguments @("env", "set", "ENTRA_CLIENT_SECRET", $clientSecret)
 Write-Host "  Values stored in azd environment" -ForegroundColor Green
 
 # ── Summary ──
