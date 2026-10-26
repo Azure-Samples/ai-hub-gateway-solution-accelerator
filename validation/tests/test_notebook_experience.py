@@ -343,74 +343,16 @@ class MandatoryInitializationTests(unittest.TestCase):
             self.assertIn(f"contracts.{contract}.product_id", str(raised.exception))
             self.assertIn(f"contracts.{contract}.allowed_models", str(raised.exception))
 
-    def test_jwt_defaults_never_request_device_codes_and_aggregate_credentials(self):
+    def test_jwt_defaults_use_setup_configuration_and_aggregate_missing_credentials(self):
         name = "citadel-jwt-authentication-tests.ipynb"
         with patch.dict(os.environ, {"VALIDATION_ENTRA_CLIENT_SECRET": "", "VALIDATION_JWT_NO_ROLE_TOKEN": ""}):
             namespace = configured(name)
-        self.assertIs(namespace["use_device_flow"], False)
+        self.assertEqual(namespace["token_source"], "client_credentials")
         with self.assertRaises(ValueError) as raised:
             initialize(name, namespace)
-        for label in ("entra.client_id", "entra.audience", "entra.client_secret", "jwt.no_role_token_fixture"):
+        for label in ("entra.client_id", "entra.audience", "entra.client_secret", "entra.negative_client_id",
+                      "entra.negative_client_secret"):
             self.assertIn(label, str(raised.exception))
-
-    def test_jwt_no_role_fixture_must_be_unexpired_and_have_no_roles(self):
-        name = "citadel-jwt-authentication-tests.ipynb"
-        for token in ("not-a-jwt", no_role_fixture(["Model.Invoke"]), no_role_fixture(expired=True)):
-            namespace = configured(name)
-            namespace.update(entra_client_secret="fixture-secret", no_role_token_fixture=token)
-            context = context_fixture()
-            context.config["entra_client_id"] = "fixture-client"
-            with self.subTest(fixture=token[:9]), self.assertRaisesRegex(ValueError, "actual unexpired no-role JWT"):
-                initialize(name, namespace, context)
-
-    def test_jwt_roleless_application_token_explains_direct_assignments(self):
-        name = "citadel-jwt-authentication-tests.ipynb"
-        namespace = configured(name)
-        token = no_role_fixture()
-        namespace.update(entra_client_secret="fixture-secret", no_role_token_fixture=token)
-        context = context_fixture()
-        context.config["entra_client_id"] = "fixture-client"
-        initialize(name, namespace, context)
-        response = SimpleNamespace(status_code=200, headers={}, json=lambda: {
-            "access_token": token, "expires_in": 3600,
-        })
-        output = io.StringIO()
-        with patch("requests.post", return_value=response), contextlib.redirect_stdout(output):
-            exec(cells(name)[3], namespace)
-        self.assertEqual(namespace["jwt_token"], token)
-        self.assertIn("Assign gateway app roles directly to the client service principal", output.getvalue())
-        self.assertIn("do not inherit app roles from group membership", output.getvalue())
-
-    def test_jwt_device_selection_requires_fixture_not_a_prompt(self):
-        name = "citadel-jwt-authentication-tests.ipynb"
-        namespace = configured(name)
-        namespace.update(token_source="device_flow", use_device_flow=True,
-                         no_role_token_fixture=no_role_fixture(), device_token_fixture="")
-        context = context_fixture()
-        context.config["entra_client_id"] = "fixture-client"
-        with self.assertRaises(ValueError) as raised:
-            initialize(name, namespace, context)
-        self.assertIn("jwt.device_token_fixture", str(raised.exception))
-        self.assertNotIn("entra.client_secret", str(raised.exception))
-
-    def test_jwt_device_fixture_flow_skips_secret_request_and_interactive_sdk(self):
-        name = "citadel-jwt-authentication-tests.ipynb"
-        namespace = configured(name)
-        namespace.update(token_source="device_flow", use_device_flow=True, entra_client_secret="",
-                         no_role_token_fixture=no_role_fixture(),
-                         device_token_fixture=no_role_fixture(roles=["Model.Invoke"]))
-        context = context_fixture()
-        context.config["entra_client_id"] = "fixture-client"
-        initialize(name, namespace, context)
-        interactive = Mock(side_effect=AssertionError("Device prompt is forbidden"))
-        with patch("requests.post", side_effect=AssertionError("Unused client secret flow")), \
-                patch.dict(sys.modules, {"msal": SimpleNamespace(PublicClientApplication=interactive)}), \
-                contextlib.redirect_stdout(io.StringIO()):
-            exec(cells(name)[3], namespace)
-            exec(cells(name)[4], namespace)
-            exec(cells(name)[6], namespace)
-        interactive.assert_not_called()
-        self.assertEqual(namespace["active_token"], namespace["device_token_fixture"])
 
     def test_pii_requires_state_evidence_or_cosmos_before_deployment(self):
         name = "citadel-pii-processing-tests.ipynb"

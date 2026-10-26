@@ -4,6 +4,12 @@ This guide covers how to configure **client application identities** and **users
 
 > **Prerequisites:** The gateway must already be configured for JWT authentication. See the [JWT Authentication Guide](./entraid-auth-validation.md) for setup instructions on configuring the gateway's `security-handler` and APIM named values.
 
+For the included validation notebook, [Entra setup](../bicep/infra/entra-id-setup/README.md)
+prepares direct `Model.Invoke` assignments for a dedicated client and signed-in user,
+a separate `MCP.Invoke`-only negative client, and Azure CLI delegated preauthorization.
+The notebook acquires all three tokens without manual fields. The instructions
+below cover onboarding other application/user identities.
+
 ## When Do You Need This Guide?
 
 By default, the gateway's `security-handler` validates JWT tokens by checking the **audience**, **issuer**, **signature**, and **expiry** claims. Access contracts can additionally require app roles through `requiredRoles`. Acquiring a token does not establish that the caller has any app roles.

@@ -319,6 +319,8 @@ class NotebookExecutionTests(unittest.TestCase):
         ]
         return {
             "context": synthetic_context(), "apimClientTool": apim, "utils": utils,
+            "universal_api": {"name": "universal-llm-api"},
+            "unified_api": {"name": "unified-ai-api"},
             "governance_hub_resource_group": "rg", "subscription_id": "subscription",
             "location": "eastus", "apim_name": "gateway", "run_id": "offline",
             "run_dir": ROOT / "validation" / ".runs" / "mocked",

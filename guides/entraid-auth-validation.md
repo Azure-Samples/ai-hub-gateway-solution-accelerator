@@ -96,7 +96,14 @@ Content-Type: application/json
 
 ### Validation
 
-Use the [JWT Authentication Validation Notebook](../validation/citadel-jwt-authentication-tests.ipynb) to test end-to-end JWT authentication across all three API endpoints.
+Use the [JWT Authentication Validation Notebook](../validation/citadel-jwt-authentication-tests.ipynb) to test end-to-end JWT authentication on Universal `/models/chat/completions` and Unified OpenAI v1 `/unified-ai/v1/chat/completions`. The notebook does not discover or grant the legacy OpenAI API, and the Unified v1 request carries `model` in the body without an `api-version` query.
+
+After the Entra setup script succeeds, Run All uses its selected azd environment
+without manual fields. It acquires application and current Azure CLI user tokens,
+decodes/checks their scenario claims, and obtains a separate MCP.Invoke-only
+application token for the missing-Model.Invoke test. Both positive identities are
+tested. Optional token/credential overrides remain available; tokens are not
+printed, saved, or sent to external decoders. See [automatic notebook setup](../bicep/infra/entra-id-setup/README.md#run-the-jwt-notebook-without-manual-inputs).
 
 ## Configuring Client Application Identities
 
@@ -310,11 +317,11 @@ Client service principals and managed identities must have the required app role
 4. **Monitor authentication metrics** to identify potential security issues
 5. **Regularly rotate client secrets** and update configurations accordingly
 6. **Use app role authorization** (`requiredRoles`) for fine-grained access control beyond JWT authentication
-7. **Test across all three endpoints** using the [JWT Authentication Validation Notebook](../validation/citadel-jwt-authentication-tests.ipynb)
+7. **Test Universal and Unified OpenAI v1 endpoints** using the [JWT Authentication Validation Notebook](../validation/citadel-jwt-authentication-tests.ipynb)
 
 ## Related Resources
 
 - [JWT Client Identity and Permissions Guide](./jwt-client-identity-permissions.md) — Direct application role assignments, user-group assignments, and onboarding
 - [Access Contracts Policy Guide](../bicep/infra/citadel-access-contracts/citadel-access-contracts-policy.md#jwt-authentication-policy) — Configuring JWT per-product
-- [JWT Authentication Validation Notebook](../validation/citadel-jwt-authentication-tests.ipynb) — End-to-end testing across all endpoints
+- [JWT Authentication Validation Notebook](../validation/citadel-jwt-authentication-tests.ipynb) — End-to-end testing on Universal and Unified OpenAI v1
 - [Entra ID Setup README](../bicep/infra/entra-id-setup/README.md) — Provisioning Entra ID for JWT

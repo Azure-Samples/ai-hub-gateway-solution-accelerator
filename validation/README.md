@@ -111,7 +111,7 @@ with invented resources. Explicit notebook overrides still win.
 |---|---|
 | External Key Vault target | `VALIDATION_EXTERNAL_KEYVAULT` JSON: `{"subscriptionId":"<subscription>","resourceGroupName":"rg-consumers","name":"kv-consumers"}` |
 | External Foundry target | `VALIDATION_EXTERNAL_FOUNDRY` JSON: `{"subscriptionId":"<subscription>","resourceGroupName":"rg-agents","accountName":"aif-agents","projectName":"project-agents"}` |
-| Entra client secret / role-control token | `VALIDATION_ENTRA_CLIENT_SECRET` (or `ENTRA_CLIENT_SECRET`), `VALIDATION_JWT_NO_ROLE_TOKEN`; optional `VALIDATION_JWT_DEVICE_TOKEN` |
+| Entra client secret / role-control tokens | Automatically loaded/acquired after [Entra setup](../bicep/infra/entra-id-setup/README.md). `VALIDATION_ENTRA_CLIENT_SECRET`, `VALIDATION_JWT_NO_ROLE_TOKEN`, and `VALIDATION_JWT_DEVICE_TOKEN` are optional overrides |
 | Existing published agent | `VALIDATION_FOUNDRY_AGENT_NAME` or `FOUNDRY_AGENT_NAME`; project coordinates use `FOUNDRY_ACCOUNT_NAME`, `FOUNDRY_PROJECT_NAME`, `FOUNDRY_PROJECT_ENDPOINT`, or an unambiguous `AI_FOUNDRY_SERVICES` entry |
 | Agent predecessor contracts | Automatically uses the latest complete local Access Contracts handoff for the selected gateway. Optional `VALIDATION_ACCESS_CONTRACTS_MANIFEST` or keyed JSON `VALIDATION_AGENT_CONTRACTS` pins an explicit source. |
 | Alert notification recipient | `VALIDATION_ALERT_EMAIL` or `ALERT_EMAIL_ADDRESS` |
@@ -137,7 +137,7 @@ The 15 scenarios are:
 | 5 | [Model Aliases](citadel-model-aliases-tests.ipynb) | Discovery, direct controls, priority/weighted selection, and RBAC across APIs. Needs compatible alias members. |
 | 6 | [PII Processing](citadel-pii-processing-tests.ipynb) | Masking/restoration evidence, blocking, chunked large payloads, optional Cosmos analytics. Needs Language Service and appropriate telemetry access. |
 | 7 | [Unified AI API](citadel-unified-ai-api-tests.ipynb) | Native/compatible routing, Responses, streaming, authentication, denied paths, RBAC, and headers. |
-| 8 | [JWT Authentication](citadel-jwt-authentication-tests.ipynb) | Authentication and actual role enforcement across three APIs. Requires a valid `Model.Invoke`-bearing token and a valid token lacking that role. Assign app roles directly to application/managed-identity service principals; user tokens can receive roles through user-group assignments. Gateway app roles are `Model.Invoke`, `MCP.Invoke`, and `Agent.Invoke`. |
+| 8 | [JWT Authentication](citadel-jwt-authentication-tests.ipynb) | Universal `/models/chat/completions` and Unified OpenAI v1 `/unified-ai/v1/chat/completions` only. Run after Entra setup without manual inputs. Automatically acquires/decodes application, current-user and negative-client tokens; tests both positive identities and missing-Model.Invoke rejection. |
 | 9 | [Extended Providers](llm-backend-onboarding-extended-providers-runner.ipynb) | Bedrock, Gemini, Anthropic native versus OpenAI-compatible protocols, credential formats, and compatible aliases. Provider credentials are separate prerequisites. |
 | 10 | [Session Affinity](citadel-session-affinity-tests.ipynb) | Independent cookie jars and successful stateful response chaining. Requires a Responses-capable model served by multiple backends. |
 | 11 | [Gateway Alerting](citadel-alerting-tests.ipynb) | Restrictive capacity, HTTP 429/403, configured rules, and observed telemetry. Requires Application Insights/Monitor permissions. |
@@ -370,7 +370,11 @@ final verdict. A green HTTP 200 does not by itself prove PII masking, correct
 model routing, streaming completion, or a working image edit.
 
 JWT role tests need a real valid token lacking the required role; an invalid
-token's 401 is not evidence of role enforcement. Telemetry checks distinguish
+token's 401 is not evidence of role enforcement. Setup supplies a separate
+MCP.Invoke-only client, and the notebook obtains its token automatically. Decoded
+claims are checked locally; only live APIM requests prove signature acceptance.
+The current user's CLI session must be valid; required MFA/sign-in is surfaced
+as an explicit error, not an automatic interactive prompt. Telemetry checks distinguish
 configured rules, observed HTTP limits, metric ingestion, alert firing, and
 notification delivery. Never infer email delivery from a successful deployment.
 Circuit-breaker configuration is distinct from a disruptive trip/recovery test.

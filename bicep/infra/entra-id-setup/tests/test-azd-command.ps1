@@ -11,12 +11,12 @@ if ($parseErrors.Count -gt 0) {
 
 $helper = $ast.EndBlock.Statements | Where-Object {
     $_ -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
-    $_.Name -eq "Invoke-AzdCommand"
+    $_.Name -in @("Invoke-SetupCommand", "Invoke-AzdCommand")
 }
 if (-not $helper) {
     throw "Could not locate azd command helper."
 }
-Invoke-Expression $helper.Extent.Text
+foreach ($definition in $helper) { Invoke-Expression $definition.Extent.Text }
 
 function Assert-True([bool]$Condition, [string]$Message) {
     if (-not $Condition) {

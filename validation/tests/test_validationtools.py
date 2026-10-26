@@ -44,6 +44,18 @@ def cli_json(value):
 @patch("shared.validationtools.shutil.which", return_value=None)
 class ContextTests(unittest.TestCase):
     @patch("shared.validationtools.subprocess.run")
+    def test_setup_azure_entra_aliases_and_explicit_overrides(self, run, _which):
+        run.side_effect = [
+            cli_json(config(AZURE_CLIENT_ID="setup-client", AZURE_TENANT_ID="tenant",
+                            AZURE_AUDIENCE="api://setup-client")),
+            cli_json({"id": "subscription", "tenantId": "tenant"}),
+        ]
+        context = ValidationContext.load({"entra_client_id": "override-client"})
+        self.assertEqual(context.config["entra_client_id"], "override-client")
+        self.assertEqual(context.config["entra_tenant_id"], "tenant")
+        self.assertEqual(context.config["entra_audience"], "api://setup-client")
+
+    @patch("shared.validationtools.subprocess.run")
     def test_reads_environment_and_account_once_with_argument_vectors(self, run, _which):
         run.side_effect = [cli_json(config()), cli_json({"id": "subscription", "tenantId": "tenant"})]
         context = ValidationContext.load(environment="environment with spaces")
