@@ -251,7 +251,7 @@ module apimAiSearchIndexApi './api.bicep' = if (enableAzureAISearch) {
     apiName: 'azure-ai-search-index-api'
     path: 'search'
     apiRevision: '1'
-    apiDispalyName: 'Azure AI Search Index API (index services)'
+    apiDisplayName: 'Azure AI Search Index API (index services)'
     subscriptionRequired: entraAuth ? false:true
     subscriptionKeyName: 'api-key'
     openApiSpecification: loadTextContent('./ai-search-api/ai-search-index-2024-07-01-api-spec.json')
@@ -272,7 +272,7 @@ module apimOpenAIRealTimetApi './api.bicep' = if (enableOpenAIRealtime) {
     apiName: 'openai-realtime-ws-api'
     path: 'openai/realtime'
     apiRevision: '1'
-    apiDispalyName: 'Azure OpenAI Realtime API'
+    apiDisplayName: 'Azure OpenAI Realtime API'
     subscriptionRequired: entraAuth ? false : true
     subscriptionKeyName: 'api-key'
     openApiSpecification: 'NA'
@@ -296,7 +296,7 @@ module apimDocumentIntelligenceLegacy './api.bicep' = if (enableDocumentIntellig
     apiName: 'document-intelligence-api-legacy'
     path: 'formrecognizer'
     apiRevision: '1'
-    apiDispalyName: 'Document Intelligence API (Legacy)'
+    apiDisplayName: 'Document Intelligence API (Legacy)'
     subscriptionRequired: entraAuth ? false:true
     subscriptionKeyName: 'Ocp-Apim-Subscription-Key'
     openApiSpecification: loadTextContent('./doc-intel-api/document-intelligence-2024-11-30-compressed.openapi.yaml')
@@ -317,7 +317,7 @@ module apimDocumentIntelligence './api.bicep' = if (enableDocumentIntelligence) 
     apiName: 'document-intelligence-api'
     path: 'documentintelligence'
     apiRevision: '1'
-    apiDispalyName: 'Document Intelligence API'
+    apiDisplayName: 'Document Intelligence API'
     subscriptionRequired: entraAuth ? false:true
     subscriptionKeyName: 'Ocp-Apim-Subscription-Key'
     openApiSpecification: loadTextContent('./doc-intel-api/document-intelligence-2024-11-30-compressed.openapi.yaml')
@@ -985,7 +985,7 @@ module weatherAPI './api.bicep' = if (isMCPSampleDeployed) {
     apiName: 'weather-api'
     path: 'weather'
     apiRevision: '1'
-    apiDispalyName: 'Weather API'
+    apiDisplayName: 'Weather API'
     subscriptionRequired: false
     subscriptionKeyName: 'api-key'
     openApiSpecification: loadTextContent('./sample/weather/openapi.json')

@@ -6,7 +6,7 @@ param apiName string
 @description('The display name of the API')
 @minLength(1)
 @maxLength(63)
-param apiDispalyName string
+param apiDisplayName string
 
 @description('The contents of the OpenAPI definition')
 @minLength(1)
@@ -71,21 +71,21 @@ resource apimService 'Microsoft.ApiManagement/service@2022-08-01' existing = {
   name: serviceName
 }
 
-var isWebSotcketAPI = contains(apiProtocols, 'ws') || contains(apiProtocols, 'wss')
+var isWebSocketAPI = contains(apiProtocols, 'ws') || contains(apiProtocols, 'wss')
 
 var logSettings = {
   headers: [ 'Content-type', 'User-agent', 'x-ms-region', 'x-ratelimit-remaining-tokens' , 'x-ratelimit-remaining-requests' ]
   body: { bytes: 0 }
 }
 
-resource apiDefinition 'Microsoft.ApiManagement/service/apis@2022-08-01' = if(enableAPIDeployment && !isWebSotcketAPI) {
+resource apiDefinition 'Microsoft.ApiManagement/service/apis@2022-08-01' = if(enableAPIDeployment && !isWebSocketAPI) {
   name: apiName
   parent: apimService
   properties: {
     path: (path == '') ? apiName : path
     apiRevision: apiRevision
     description: (apiDescription == '') ? apiName : apiDescription
-    displayName: apiDispalyName
+    displayName: apiDisplayName
     format: (openApiSpecification != 'NA') ? contentFormat : null
     value: (openApiSpecification != 'NA') ? openApiSpecification : null
     subscriptionRequired: subscriptionRequired
@@ -100,14 +100,14 @@ resource apiDefinition 'Microsoft.ApiManagement/service/apis@2022-08-01' = if(en
 
 
 // If the API is a WebSocket API, we need to create it differently (both the api and policy)
-resource apiDefinitionWebSocket 'Microsoft.ApiManagement/service/apis@2022-08-01' = if(enableAPIDeployment && isWebSotcketAPI) {
+resource apiDefinitionWebSocket 'Microsoft.ApiManagement/service/apis@2022-08-01' = if(enableAPIDeployment && isWebSocketAPI) {
   name: apiName
   parent: apimService
   properties: {
     path: (path == '') ? apiName : path
     apiRevision: apiRevision
     description: (apiDescription == '') ? apiName : apiDescription
-    displayName: apiDispalyName
+    displayName: apiDisplayName
     subscriptionRequired: subscriptionRequired
     subscriptionKeyParameterNames: {
       header: empty(subscriptionKeyName) ? 'Ocp-Apim-Subscription-Key' : subscriptionKeyName
@@ -118,13 +118,13 @@ resource apiDefinitionWebSocket 'Microsoft.ApiManagement/service/apis@2022-08-01
   }
 }
 
-resource apiDefinitionWebSocketHandshake 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' existing = if(enableAPIDeployment && isWebSotcketAPI && policyDocument != 'NA') {
+resource apiDefinitionWebSocketHandshake 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' existing = if(enableAPIDeployment && isWebSocketAPI && policyDocument != 'NA') {
   name: 'onHandshake'
   parent: apiDefinitionWebSocket
 }
 
 // https://learn.microsoft.com/azure/templates/microsoft.apimanagement/service/apis/policies
-resource apiDefinitionWebSocketHandshakePolicy 'Microsoft.ApiManagement/service/apis/operations/policies@2024-06-01-preview' = if(enableAPIDeployment && isWebSotcketAPI && policyDocument != 'NA') {
+resource apiDefinitionWebSocketHandshakePolicy 'Microsoft.ApiManagement/service/apis/operations/policies@2024-06-01-preview' = if(enableAPIDeployment && isWebSocketAPI && policyDocument != 'NA') {
   name: 'policy'
   parent: apiDefinitionWebSocketHandshake
   properties: {
@@ -134,7 +134,7 @@ resource apiDefinitionWebSocketHandshakePolicy 'Microsoft.ApiManagement/service/
 }
 
 
-resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' = if(enableAPIDeployment && policyDocument != 'NA' && !isWebSotcketAPI) {
+resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' = if(enableAPIDeployment && policyDocument != 'NA' && !isWebSocketAPI) {
   name: 'policy'
   parent: apiDefinition
   properties: {
@@ -143,7 +143,7 @@ resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' = 
   }
 }
 
-resource apiDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2024-06-01-preview' = if(enableAPIDiagnostics && enableAPIDeployment && !isWebSotcketAPI) {
+resource apiDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2024-06-01-preview' = if(enableAPIDiagnostics && enableAPIDeployment && !isWebSocketAPI) {
   parent: apiDefinition
   name: 'azuremonitor'
   properties: {
@@ -197,7 +197,7 @@ resource apiDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2024-0
   }
 }
 
-resource apiDiagnosticsAppInsights 'Microsoft.ApiManagement/service/apis/diagnostics@2022-08-01' = if (enableAPIDiagnostics && enableAPIDeployment && !isWebSotcketAPI) {
+resource apiDiagnosticsAppInsights 'Microsoft.ApiManagement/service/apis/diagnostics@2022-08-01' = if (enableAPIDiagnostics && enableAPIDeployment && !isWebSocketAPI) {
   name: 'applicationinsights'
   parent: apiDefinition
   properties: {
