@@ -75,7 +75,7 @@ param foundryConfig = {
   authType: 'ProjectManagedIdentity'
   managedIdentityAudience: 'https://cognitiveservices.azure.com'
   deploymentInPath: 'false'
-  isSharedToAll: false
+  isSharedToAll: true
   inferenceAPIVersion: '2024-05-01-preview'
   deploymentAPIVersion: ''
   staticModels: []

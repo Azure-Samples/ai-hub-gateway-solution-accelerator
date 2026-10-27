@@ -86,7 +86,18 @@ pwsh ./setup.ps1
 
 The script creates the Entra ID app registration + service principal, stores a client secret in Key Vault (`ENTRA-APP-CLIENT-SECRET`), and **directly configures the APIM JWT named values** (`JWT-TenantId`, `JWT-AppRegistrationId`, `JWT-Issuer`, `JWT-OpenIdConfigUrl`). APIM is JWT-ready immediately afterward.
 
-**Prerequisites:** deployer needs `Application.ReadWrite.All` (or Application Developer role), `Key Vault Secrets Officer` on the hub Key Vault, and `API Management Service Contributor` on APIM. Key Vault public network access may need to be temporarily enabled to run the script.
+**Prerequisites:** run as the Azure CLI user who will execute JWT validation, with
+application-management and app-role-assignment permissions (for example Cloud
+Application Administrator), `Key Vault Secrets Officer` on the hub Key Vault, and
+`API Management Service Contributor` on APIM. Application Developer alone does
+not cover the validation assignments. Key Vault public network access may need
+to be temporarily enabled to run the script.
+
+Setup also prepares the application, current-user and missing-model-role test
+identities. The [JWT notebook](../validation/citadel-jwt-authentication-tests.ipynb)
+then loads the selected azd environment and acquires/decodes all three tokens
+without manual fields. Conditional access or expired sessions still require a
+valid user sign-in; the notebook reports that requirement explicitly.
 
 JWT is then **enforced per use case** by setting `jwtAuth.enabled: true` in the relevant access contract (Step 2).
 

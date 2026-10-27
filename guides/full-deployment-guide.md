@@ -888,8 +888,18 @@ The setup script automatically:
 3. Generates a client secret and stores it in Key Vault as `ENTRA-APP-CLIENT-SECRET`
 4. Configures APIM JWT named values directly: `JWT-TenantId`, `JWT-AppRegistrationId`, `JWT-Issuer`, `JWT-OpenIdConfigUrl`
 5. Stores `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_AUDIENCE` as azd environment variables for future deployments
+6. Prepares direct validation role assignments for a dedicated client service principal
+   and signed-in user, an MCP.Invoke-only negative client, and Azure CLI delegated
+   preauthorization. The JWT notebook loads these outputs without manual inputs
 
-> **Prerequisite:** The deploying user must have `Application.ReadWrite.All` or the `Application Developer` role in Entra ID.
+For additional clients, role definitions do not grant permissions. Assign `Model.Invoke`,
+`MCP.Invoke`, and/or `Agent.Invoke` directly to each application's or managed
+identity's service principal. Security-group role assignments apply to users,
+not service-principal members. See [Client Identity and Permissions](./jwt-client-identity-permissions.md).
+
+> **Prerequisite:** Run as an Azure CLI user with application-management and
+> app-role-assignment permissions, for example Cloud Application Administrator.
+> Application Developer alone is not enough for the validation assignments.
 
 See [Entra ID Setup README](../bicep/infra/entra-id-setup/README.md) for full details.
 

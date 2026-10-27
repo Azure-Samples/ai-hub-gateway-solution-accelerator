@@ -17,7 +17,7 @@
         - jwtAudience (optional): Custom audience override. Falls back to {{JWT-AppRegistrationId}} named value
         - jwtIssuer (optional): Custom issuer override. Falls back to {{JWT-Issuer}} named value
         - jwtOpenIdConfigUrl (optional): Custom OpenID config URL override. Falls back to {{JWT-OpenIdConfigUrl}} named value
-        - requiredRoles (optional): Set by product policy. Comma-separated list of required app roles (e.g., "Models.Read,Agent.Read").
+        - requiredRoles (optional): Set by product policy. Comma-separated list of required app roles (e.g., "Model.Invoke,Agent.Invoke").
                                     If set, at least one role must be present in the JWT 'roles' claim. If empty/unset, no role check is performed.
 
         Output Variables:

@@ -260,7 +260,7 @@ resource foundryRg 'Microsoft.Resources/resourceGroups@2022-09-01' existing = if
 }
 
 // Generate connection name based on config or use case naming
-var foundryConnectionPrefix = !empty(foundryConfig.connectionNamePrefix) ? foundryConfig.connectionNamePrefix : 'Hub-${useCase.businessUnit}-${useCase.useCaseName}-${useCase.environment}'
+var foundryConnectionPrefix = !empty(foundryConfig.?connectionNamePrefix) ? foundryConfig.connectionNamePrefix : 'Hub-${useCase.businessUnit}-${useCase.useCaseName}-${useCase.environment}'
 
 module foundryConnections 'modules/foundryConnection.bicep' = [for (s, i) in services: if (useTargetFoundry) {
   name: 'foundry-${s.code}-${productPostfix}'

@@ -1,6 +1,9 @@
 import os, sys, json, requests
 sys.path.insert(1, '../shared')  # add the shared directory to the Python path
-import utils
+if __package__:
+    from . import utils
+else:
+    import utils
 from azure.identity import DefaultAzureCredential
 from azure.mgmt.apimanagement import ApiManagementClient
 from azure.mgmt.apimanagement.models import SubscriptionKeysContract 
@@ -10,6 +13,71 @@ class APIMClientTool:
         self.resource_group_name = resource_group_name
         self.apim_resource_name = apim_resource_name
         self.azure_endpoint: str = None
+
+    def initialize_context(self, account: dict, enumerate_subscriptions: bool = False):
+        """Initialize from a verified account without a second CLI account lookup."""
+        self.subscription_id = account["id"]
+        self.tenant_id = account["tenantId"]
+        self.current_user = account["user"]["name"]
+        self.client = ApiManagementClient(
+            credential=DefaultAzureCredential(), subscription_id=self.subscription_id
+        )
+        if not self.apim_resource_name:
+            services = list(self.client.api_management_service.list_by_resource_group(
+                self.resource_group_name
+            ))
+            if len(services) != 1:
+                raise RuntimeError(
+                    f"Expected exactly one APIM service in {self.resource_group_name}; "
+                    f"found {len(services)}. Supply apim_name explicitly."
+                )
+            self.apim_resource_name = services[0].name
+        service = self.client.api_management_service.get(
+            self.resource_group_name, self.apim_resource_name
+        )
+        if not service.gateway_url:
+            raise RuntimeError("APIM has no gateway URL.")
+        self.apim_service_id = service.id
+        self.apim_resource_gateway_url = service.gateway_url.rstrip("/")
+        self.apim_subscriptions = []
+        if enumerate_subscriptions:
+            for subscription in self.client.subscription.list(
+                self.resource_group_name, self.apim_resource_name
+            ):
+                self.apim_subscriptions.append({
+                    "name": subscription.name,
+                    "key": self.get_subscription_key(subscription.name),
+                })
+        return self
+
+    def get_subscription_key(self, name: str) -> str:
+        """Read only the exact subscription requested by a contract."""
+        if not name or "/" in name:
+            raise ValueError("An exact APIM subscription name is required.")
+        secret = self.client.subscription.list_secrets(
+            self.resource_group_name, self.apim_resource_name, name
+        )
+        if not secret.primary_key:
+            raise RuntimeError(f"Subscription {name!r} has no primary key.")
+        return secret.primary_key
+
+    def discover_api_exact(self, path: str) -> dict:
+        """Return an independent descriptor, without changing legacy discovery state."""
+        matches = [
+            api for api in self.client.api.list_by_service(
+                self.resource_group_name, self.apim_resource_name
+            )
+            if (api.path or "").strip("/") == path.strip("/")
+        ]
+        if len(matches) != 1:
+            raise RuntimeError(
+                f"Expected exactly one API with path {path!r}; found {len(matches)}."
+            )
+        api = matches[0]
+        return {
+            "id": api.id, "name": api.name, "path": api.path,
+            "url": f"{self.apim_resource_gateway_url.rstrip('/')}/{api.path.strip('/')}",
+        }
 
     def initialize(self):
         output = utils.run("az account show", "Retrieved az account", "Failed to get the current az account")
@@ -327,4 +395,3 @@ class APIMClientTool:
                 'name': None,
                 'resourceGroup': self.resource_group_name
             }
-

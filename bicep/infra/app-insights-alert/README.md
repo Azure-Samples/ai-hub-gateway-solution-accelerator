@@ -2,7 +2,9 @@
 
 Provisions **Azure Monitor alert rules** on the gateway's `AI Gateway Alert` custom metric
 (namespace `ai-gateway-alerts`) emitted by the [`raise-alert-events`](../modules/apim/policies/frag-raise-alert-events.xml)
-APIM policy fragment, plus an **email Action Group** that notifies your team when a rule fires.
+APIM policy fragment, plus an **Action Group** that optionally emails your team when a rule fires.
+Email is not required: with no primary or additional recipients, the action group has
+an empty receiver list while alert rules still evaluate and fire.
 
 One alert rule is created per entry in the `alerts` parameter, each **filtered by the `alertType`
 dimension** and wired to a single shared action group. This turns the gateway's opt-in alert metrics
@@ -49,14 +51,14 @@ opted-in on the relevant access contracts).
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
 | `appInsights` | ✅ | — | `{ subscriptionId, resourceGroupName, name }` of the App Insights component. |
-| `alertEmailAddress` | ✅ | — | Primary email that receives notifications. |
+| `alertEmailAddress` | | `''` | Optional primary email. Empty omits that receiver; rules remain enabled. |
 | `alertResourceGroupName` | | App Insights RG | RG to create the alert rules + action group in. |
 | `additionalEmailReceivers` | | `[]` | Extra recipients: `[{ name, email }]`. |
 | `metricNamespace` | | `ai-gateway-alerts` | Custom metric namespace (matches the fragment). |
 | `metricName` | | `AI Gateway Alert` | Custom metric name (matches the fragment). |
 | `productNameFilter` | | `''` | Scope **all** rules to one access contract. Use the APIM product **display name** (space-separated, e.g. `LLM Ops AlertProbe DEV`) — matches the `productName` dimension, **not** the hyphenated product id. |
 | `alertMode` | | `logQuery` | `logQuery` = scheduled query (log search) alerts on `customMetrics` (immediate). `metric` = metric alerts on the `ai-gateway-alerts` namespace (after it registers). |
-| `namePrefix` | | `ai-gateway` | Prefix for the action group + rule names. |
+| `namePrefix` | | `ai-gateway` | Prefix for the action group + rule names. Internal nested deployment names use deterministic hashes so timestamped prefixes cannot exceed ARM's 64-character deployment-name limit. |
 | `actionGroupShortName` | | `aigwalerts` | Action group short name (≤ 12 chars). |
 | `alertsEnabled` | | `true` | Enable rules on creation. |
 | `alerts` | | throttling + quota-exceeded + backend-failure | Array of rule definitions (see below). |
@@ -87,7 +89,7 @@ Each `alerts` entry:
 
 ```bash
 # 1) Fill in bicepparam values (or export the azd env vars it reads).
-#    Required: appInsights.name, appInsights.resourceGroupName, alertEmailAddress.
+#    Required: appInsights.name, appInsights.resourceGroupName. Email is optional.
 
 # 2) Deploy at subscription scope.
 az deployment sub create \
