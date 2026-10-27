@@ -8,7 +8,7 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -20,6 +20,24 @@ from test_external_defaults import apim_fixture, cells, execute, snapshot
 
 
 class AlertingDefaultsTests(unittest.TestCase):
+    def test_configuration_refreshes_a_cached_consumer_module_missing_new_helpers(self):
+        cached = ModuleType("consumerhelpers")
+        cached.__dict__.update(vars(consumerhelpers))
+        cached.__dict__.pop("product_exists")
+        namespace = {}
+        with patch.dict(sys.modules, {"consumerhelpers": cached}), \
+                contextlib.redirect_stdout(io.StringIO()):
+            execute(cells("alerting")[0], namespace)
+        self.assertTrue(callable(namespace["product_exists"]))
+        self.assertIs(namespace["product_exists"], cached.product_exists)
+        self.assertEqual(cached.__file__, consumerhelpers.__file__)
+
+    def test_configuration_surfaces_helper_reload_failures(self):
+        with patch("importlib.reload", side_effect=RuntimeError("Helper refresh failed")), \
+                contextlib.redirect_stdout(io.StringIO()), \
+                self.assertRaisesRegex(RuntimeError, "Helper refresh failed"):
+            execute(cells("alerting")[0], {})
+
     def initialize(self, *, email=None, model_override=None, skip=None, models=None, discover=False,
                    saved_email=None):
         namespace = {}

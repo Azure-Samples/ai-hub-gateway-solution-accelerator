@@ -16,6 +16,10 @@ compatibility; the active notebook directory is **`validation`**, not
 `validation-local`. Do not install or upgrade packages inside scenario notebooks.
 
 Open the repository in VS Code and use **Run All** from a fresh kernel.
+Restart the kernel after updating repository helpers or installed packages:
+Python otherwise keeps previously imported modules cached. Alerting's configuration
+cell explicitly refreshes its consumer helpers before importing their functions,
+so rerunning that cell also picks up newly added helpers.
 Configuration defaults use the selected azd environment; no edits are needed for
 settings or models that azd already supplies. Only genuinely external inputs
 (such as separate target resources, provider credentials,
