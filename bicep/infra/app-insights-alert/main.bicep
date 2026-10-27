@@ -35,8 +35,8 @@ param namePrefix string = 'ai-gateway'
 @maxLength(12)
 param actionGroupShortName string = 'aigwalerts'
 
-@description('Primary email address that receives alert notifications.')
-param alertEmailAddress string
+@description('Optional primary email address for notifications. Empty = no primary email receiver; alert rules still run.')
+param alertEmailAddress string = ''
 
 @description('Optional additional email receivers. Each item: { name: string, email: string }.')
 param additionalEmailReceivers array = []
@@ -116,12 +116,12 @@ param alerts array = [
 
 // Effective email receiver list = primary address + any additional receivers.
 var emailReceivers = concat(
-  [
+  !empty(trim(alertEmailAddress)) ? [
     {
       name: 'primary'
-      email: alertEmailAddress
+      email: trim(alertEmailAddress)
     }
-  ],
+  ] : [],
   additionalEmailReceivers
 )
 
@@ -138,7 +138,7 @@ resource appInsightsComponent 'Microsoft.Insights/components@2020-02-02' existin
 
 // ---- Action Group (email notifications) ----
 module actionGroup 'modules/action-group.bicep' = {
-  name: 'deploy-${namePrefix}-action-group'
+  name: 'deploy-ag-${uniqueString(namePrefix, appInsightsComponent.id)}'
   scope: alertRg
   params: {
     name: '${namePrefix}-alerts-ag'
@@ -151,7 +151,7 @@ module actionGroup 'modules/action-group.bicep' = {
 // Uses the customMetrics table so it works immediately (no waiting for the metric namespace).
 module logQueryAlertRules 'modules/log-query-alert.bicep' = [
   for alert in alerts: if (alertMode == 'logQuery') {
-    name: 'deploy-${namePrefix}-logalert-${alert.name}'
+    name: 'deploy-logalert-${uniqueString(namePrefix, alert.name, appInsightsComponent.id)}'
     scope: alertRg
     params: {
       name: '${namePrefix}-${alert.name}-alert'
@@ -175,7 +175,7 @@ module logQueryAlertRules 'modules/log-query-alert.bicep' = [
 // ---- OPT-IN: one metric alert per entry in `alerts` (requires the metric namespace to be registered) ----
 module metricAlertRules 'modules/metric-alert.bicep' = [
   for alert in alerts: if (alertMode == 'metric') {
-    name: 'deploy-${namePrefix}-alert-${alert.name}'
+    name: 'deploy-metricalert-${uniqueString(namePrefix, alert.name, appInsightsComponent.id)}'
     scope: alertRg
     params: {
       name: '${namePrefix}-${alert.name}-alert'

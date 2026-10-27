@@ -1,4 +1,13 @@
-import datetime, json, os, subprocess, requests, time, traceback
+import json, os, subprocess, time, traceback
+import html
+import re
+import warnings
+import sys
+from urllib.parse import urlsplit
+from contextlib import contextmanager
+from contextvars import ContextVar
+from collections.abc import Mapping
+from typing import Any, Callable, Generator
 
 # Define ANSI escape code constants vor clarity in the print commands below
 RESET_FORMATTING = "\x1b[0m"
@@ -7,12 +16,486 @@ BOLD_RED = "\x1b[1;31m"
 BOLD_GREEN = "\x1b[1;32m"
 BOLD_YELLOW = "\x1b[1;33m"
 
-print_command = lambda command='': print(f"⚙️ {BOLD_BLUE}Running: {command} {RESET_FORMATTING}")
-print_error = lambda message, output='', duration='': print(f"❌ {BOLD_YELLOW}{message}{RESET_FORMATTING} ⌚ {datetime.datetime.now().time()} {duration}{' ' if output else ''}{output}")
-print_info = lambda message: print(f"👉🏽 {BOLD_BLUE}{message}{RESET_FORMATTING}")
-print_message = lambda message, output='', duration='': print(f"👉🏽 {BOLD_GREEN}{message}{RESET_FORMATTING} ⌚ {datetime.datetime.now().time()} {duration}{' ' if output else ''}{output}")
-print_ok = lambda message, output='', duration='': print(f"✅ {BOLD_GREEN}{message}{RESET_FORMATTING} ⌚ {datetime.datetime.now().time()} {duration}{' ' if output else ''}{output}")
-print_warning = lambda message, output='', duration='': print(f"⚠️ {BOLD_YELLOW}{message}{RESET_FORMATTING} ⌚ {datetime.datetime.now().time()} {duration}{' ' if output else ''}{output}")
+
+_OUTPUT_STEPS: ContextVar[tuple[list[str], ...]] = ContextVar("output_steps", default=())
+_VERBOSE_OUTPUT: ContextVar[bool] = ContextVar("verbose_output", default=False)
+_UNSET_OUTPUT = object()
+_OUTPUT_STYLES = {
+    "INFO": ("#2563eb", BOLD_BLUE),
+    "SUCCESS": ("#15803d", BOLD_GREEN),
+    "PASS": ("#15803d", BOLD_GREEN),
+    "WARNING": ("#b45309", BOLD_YELLOW),
+    "SKIP": ("#b45309", BOLD_YELLOW),
+    "FAIL": ("#b91c1c", BOLD_RED),
+    "ERROR": ("#b91c1c", BOLD_RED),
+    "BLOCKED": ("#b91c1c", BOLD_RED),
+}
+_DARK_OUTPUT_COLORS = {
+    "INFO": "#93c5fd", "SUCCESS": "#86efac", "PASS": "#86efac",
+    "WARNING": "#fcd34d", "SKIP": "#fcd34d",
+    "FAIL": "#fca5a5", "ERROR": "#fca5a5", "BLOCKED": "#fca5a5",
+}
+_PANEL_STYLE = (
+    "color-scheme:light dark;background:light-dark(#fff,#1f2937);"
+    "color:light-dark(#111827,#f9fafb);padding:6px 10px;margin:4px 0;"
+    "border-radius:4px;border:1px solid #8884;"
+)
+
+
+def _report_safe(value: Any) -> Any:
+    # Import lazily: validationtools also uses these formatters.
+    if __package__:
+        from .validationtools import redact
+    else:
+        from validationtools import redact
+    return redact(value)
+
+
+def _notebook_display() -> bool:
+    try:
+        from IPython import get_ipython
+    except ModuleNotFoundError as error:
+        if error.name != "IPython":
+            raise
+        return False
+    shell = get_ipython()
+    return shell is not None and getattr(shell, "kernel", None) is not None
+
+
+def _display_preview(value: Any, depth: int = 0) -> Any:
+    if depth > 8:
+        return "[Nested details omitted from display]"
+    if isinstance(value, Mapping):
+        return {
+            str(key): f"[Image payload omitted; {len(item)} characters]" if str(key) == "b64_json"
+            and isinstance(item, str) else _display_preview(item, depth + 1)
+            for key, item in value.items()
+        }
+    if isinstance(value, (list, tuple)):
+        shown = [_display_preview(item, depth + 1) for item in value[:20]]
+        return shown + ([f"[{len(value) - 20} more entries]"] if len(value) > 20 else [])
+    if isinstance(value, str) and len(value) > 4000:
+        return value[:4000] + f"\n[Display truncated; {len(value)} characters total]"
+    return value
+
+
+def set_output_verbose(enabled: bool = True) -> None:
+    """Opt into detailed payloads and routine sub-command logs for debugging."""
+    if not isinstance(enabled, bool):
+        raise ValueError("Output verbosity must be a boolean.")
+    _VERBOSE_OUTPUT.set(enabled)
+
+
+def _compact_value(value: Any) -> str:
+    if isinstance(value, Mapping):
+        limit = 8 if all(not isinstance(item, (Mapping, list, tuple)) for item in value.values()) else 3
+        text = ", ".join(f"{key}={_compact_value(item)}" for key, item in list(value.items())[:limit]) \
+            + (" ..." if len(value) > limit else "")
+    elif isinstance(value, (list, tuple)):
+        shown = ", ".join(_compact_value(item) for item in value[:8])
+        text = shown + (f" ... ({len(value)} entries)" if len(value) > 8 else "")
+    else:
+        text = str(value).replace("\n", " ")
+    return text[:240] + (" ..." if len(text) > 240 else "")
+
+
+def _compact_details(value: Any, *, errors: bool = False) -> str:
+    if isinstance(value, Mapping):
+        return " | ".join(
+            ("" if re.fullmatch(r"value_\d+", str(key)) else f"{str(key).replace('_', ' ')}: ")
+            + (item.replace("\n", " ") if errors and key in ("details", "reason", "error", "actual")
+               and isinstance(item, str) else _compact_value(item))
+            for key, item in value.items()
+            if item is not None
+            and not (isinstance(item, str) and not item)
+            and not (isinstance(item, (Mapping, list, tuple)) and not len(item))
+        )
+    return _compact_value(value)
+
+
+def format_output(title: str, details: Any = None, *, status: str = "info",
+                  part: str = "RESULT", track_status: bool = True,
+                  diagnostic: bool = False) -> None:
+    """Display escaped, redacted HTML in a notebook, or ANSI output in a terminal."""
+    status = status.upper()
+    part = part.upper()
+    if status not in _OUTPUT_STYLES or part not in ("INFO", "RESULT"):
+        raise ValueError("Output requires a known status and INFO or RESULT part.")
+    if part == "RESULT" and track_status:
+        for events in _OUTPUT_STEPS.get():
+            events.append(status)
+    if diagnostic and status in ("INFO", "SUCCESS", "PASS") and not _VERBOSE_OUTPUT.get():
+        return
+    safe_title = str(_report_safe(title))
+    has_details = details is not None
+    safe_details = _display_preview(_report_safe(details)) if details is not None else {}
+    color, ansi = _OUTPUT_STYLES[status]
+    text = (safe_details if isinstance(safe_details, str)
+            else json.dumps(safe_details, indent=2, default=str, ensure_ascii=False))
+    compact = not _VERBOSE_OUTPUT.get()
+    summary = _compact_details(safe_details, errors=status in ("ERROR", "FAIL", "BLOCKED"))
+    if _notebook_display():
+        from IPython.display import HTML, display
+        heading = f"{part} | {safe_title}" if part == "INFO" else f"{status} | {safe_title}"
+        content = (
+            f'<span style="margin-left:10px">{html.escape(summary)}</span>'
+            if compact and has_details else
+            f'<pre style="white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0 0">{html.escape(text)}</pre>'
+            if has_details else ""
+        )
+        if compact and has_details and ("..." in summary or len(text) > len(summary) + 100):
+            content += (
+                '<details style="margin-top:4px"><summary>Details</summary>'
+                f'<pre style="white-space:pre-wrap;overflow-wrap:anywhere">{html.escape(text)}</pre></details>'
+            )
+        display(HTML(
+            f'<section style="{_PANEL_STYLE}border-left:4px solid {color}">'
+            f'<strong style="color:{color};color:light-dark({color},{_DARK_OUTPUT_COLORS[status]})">'
+            f'{html.escape(heading)}</strong>'
+            + content
+            + "</section>"
+        ))
+    else:
+        encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+        heading = f"{ansi}{part} | {status} | {safe_title}{RESET_FORMATTING}"
+        if compact and summary:
+            heading += " | " + summary
+        print(heading.encode(encoding, errors="backslashreplace").decode(encoding), flush=True)
+        if has_details and not compact:
+            print(text.encode(encoding, errors="backslashreplace").decode(encoding), flush=True)
+
+
+def format_command(command: str | list[str], *, title: str = "Command",
+                   diagnostic: bool = False, **details: Any) -> None:
+    """Show a command and its non-secret coordinates before execution."""
+    if isinstance(command, list):
+        arguments = command.copy()
+        for index, argument in enumerate(arguments[:-1]):
+            if re.fullmatch(r"--(?:client-secret|password|api-key|access-token|token|key|secret)", argument, re.I):
+                arguments[index + 1] = "[REDACTED]"
+        display_command = subprocess.list2cmdline(arguments)
+    else:
+        display_command = re.sub(
+            r"""(?ix)(--(?:client-secret|password|api-key|access-token|token|key|secret)\s+)
+            (?:"[^"]*"|'[^']*'|\S+)""",
+            r"\1[REDACTED]", command,
+        )
+    format_output(title, {"command": display_command, **details}, part="INFO", status="INFO",
+                  diagnostic=diagnostic)
+
+
+def format_result(title: str, *, status: str = "success", diagnostic: bool = False, **details: Any) -> None:
+    format_output(title, details, status=status, part="RESULT", diagnostic=diagnostic)
+
+
+def format_table(title: str, rows: list[Mapping[str, Any]], *, status: str = "info") -> None:
+    """Render a redacted result table with status-colored rows and a terminal fallback."""
+    status = status.upper()
+    if status not in _OUTPUT_STYLES:
+        raise ValueError("Table requires a known output status.")
+    safe_rows = _report_safe(rows)
+    if not safe_rows:
+        format_output(title, safe_rows, status=status)
+        return
+    if not _notebook_display():
+        format_output(title, status=status)
+        columns = list(dict.fromkeys(key for row in safe_rows for key in row))
+        encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+        lines = [" | ".join(columns)]
+        for row in safe_rows:
+            row_status = str(row.get("status", row.get("result", status))).upper()
+            _, ansi = _OUTPUT_STYLES.get(row_status, _OUTPUT_STYLES[status])
+            lines.append(ansi + " | ".join(_compact_value(row.get(key, "")) for key in columns)
+                         + RESET_FORMATTING)
+        for line in lines:
+            print(line.encode(encoding, errors="backslashreplace").decode(encoding), flush=True)
+        return
+    from IPython.display import HTML, display
+    columns = list(dict.fromkeys(key for row in safe_rows for key in row))
+    color, _ = _OUTPUT_STYLES[status]
+    heading = html.escape(str(_report_safe(title)))
+    header = "".join(f"<th style='text-align:left;padding:6px'>{html.escape(key)}</th>" for key in columns)
+    body = []
+    for row in safe_rows:
+        row_status = str(row.get("status", row.get("result", status))).upper()
+        row_color, _ = _OUTPUT_STYLES.get(row_status, _OUTPUT_STYLES[status])
+        cells = []
+        for column in columns:
+            value = _display_preview(row.get(column, ""))
+            text = str(value) if isinstance(value, (str, bool, int, float)) else json.dumps(value, default=str)
+            cells.append(f"<td style='padding:6px;border-top:1px solid #8884'>{html.escape(text)}</td>")
+        dark_color = _DARK_OUTPUT_COLORS.get(row_status, _DARK_OUTPUT_COLORS[status])
+        body.append(f"<tr style='color:{row_color};color:light-dark({row_color},{dark_color})'>"
+                    + "".join(cells) + "</tr>")
+    display(HTML(
+        f"<section style='{_PANEL_STYLE}'>"
+        f"<strong style='color:{color};color:light-dark({color},{_DARK_OUTPUT_COLORS[status]})'>"
+        f"{status} | {heading}</strong>"
+        "<div style='max-height:500px;overflow:auto'><table style='border-collapse:collapse'>"
+        f"<thead><tr>{header}</tr></thead><tbody>{''.join(body)}</tbody></table></div></section>"
+    ))
+    for events in _OUTPUT_STEPS.get():
+        events.append(status)
+
+
+def format_chat_message(role: str, text: str, *, turn: int | None = None,
+                        status: str = "success", citations: list[Mapping[str, Any]] | None = None,
+                        details: Mapping[str, Any] | None = None) -> None:
+    """Render a full chat message with escaped text, safe source links and usage."""
+    status = status.upper()
+    if role not in ("user", "assistant", "system") or status not in _OUTPUT_STYLES:
+        raise ValueError("Chat output requires a valid role and status.")
+    safe_text = str(_report_safe(text))
+    title = f"Turn {turn} | {role.title()}" if turn is not None else role.title()
+    safe_details = _report_safe(details or {})
+    sources = []
+    for citation in _report_safe(citations or []):
+        url = citation.get("url")
+        if not isinstance(url, str):
+            continue
+        try:
+            parsed = urlsplit(url)
+        except ValueError:
+            continue
+        if parsed.scheme not in ("https", "http") or not parsed.hostname or parsed.username or parsed.password:
+            continue
+        sources.append((str(citation.get("title") or parsed.hostname), url))
+    if _notebook_display():
+        from IPython.display import HTML, display
+        color, _ = _OUTPUT_STYLES["INFO" if role == "user" else status]
+        links = "".join(
+            f'<li><a href="{html.escape(url, quote=True)}" target="_blank" rel="noopener noreferrer">'
+            f'{html.escape(label)}</a></li>' for label, url in sources
+        )
+        display(HTML(
+            f'<article style="{_PANEL_STYLE}margin-left:{"18px" if role == "user" else "0"};'
+            f'border-left:4px solid {color}">'
+            f'<strong>{html.escape(title)}</strong>'
+            f'<div style="white-space:pre-wrap;overflow-wrap:anywhere;margin-top:6px">{html.escape(safe_text)}</div>'
+            + (f'<ul style="margin-bottom:4px">{links}</ul>' if links else "")
+            + (f'<small>{html.escape(_compact_details(safe_details))}</small>' if safe_details else "")
+            + "</article>"
+        ))
+        if status in ("WARNING", "ERROR", "FAIL", "BLOCKED"):
+            for events in _OUTPUT_STEPS.get():
+                events.append(status)
+    else:
+        format_output(title, {
+            "message": safe_text, "sources": [{"title": label, "url": url} for label, url in sources],
+            **safe_details,
+        }, status="INFO" if role == "user" else status)
+
+
+def http_call(callback: Callable[..., Any], url: str, **kwargs: Any) -> Any:
+    """Log before/after a native requests call without changing its response shape."""
+    payload = kwargs.get("json") or kwargs.get("data")
+    model = payload.get("model") if isinstance(payload, Mapping) else None
+    if model is None:
+        model = (kwargs.get("headers") or {}).get("x-ai-model")
+    if model is None and isinstance(kwargs.get("files"), Mapping):
+        multipart_model = kwargs["files"].get("model")
+        if isinstance(multipart_model, tuple) and len(multipart_model) > 1:
+            model = multipart_model[1]
+    method = getattr(callback, "__name__", "HTTP request").upper()
+    format_output("HTTP request", {
+        "method": method, "endpoint": url, "model": model,
+        "query": kwargs.get("params", {}), "timeout seconds": kwargs.get("timeout"),
+    }, part="INFO")
+    started = time.perf_counter()
+    try:
+        response = callback(url, **kwargs)
+    except Exception as error:
+        format_result("HTTP request failed", status="ERROR", endpoint=url,
+                      error_type=type(error).__name__, details=str(error))
+        raise
+    if kwargs.get("stream"):
+        format_http_response(response, elapsed=time.perf_counter() - started,
+                             body="Streaming response opened; events have not been consumed. Validate completion below.")
+    else:
+        format_http_response(response, elapsed=time.perf_counter() - started)
+    return response
+
+
+def format_http_response(response: Any, *, elapsed: float | None = None,
+                         body: Any = _UNSET_OUTPUT, parse_error: str | None = None) -> None:
+    """Show actual HTTP evidence; feature success is judged by its expected outcome."""
+    if body is _UNSET_OUTPUT:
+        try:
+            body = response.json()
+        except ValueError:
+            body = response.text
+    successful = 200 <= response.status_code < 300
+    response_status = "SUCCESS" if successful else "ERROR" if response.status_code >= 500 else "WARNING"
+    details = {
+        "HTTP status": response.status_code, "elapsed seconds": round(elapsed, 3) if elapsed is not None else None,
+        "response": body, "parsing issue": parse_error,
+    }
+    if not _VERBOSE_OUTPUT.get() and isinstance(body, Mapping):
+        if isinstance(body.get("error"), Mapping):
+            details["response"] = body["error"]
+        elif isinstance(body.get("choices"), list) and body["choices"]:
+            first = body["choices"][0]
+            if isinstance(first, Mapping):
+                message = first.get("message")
+                content = message.get("content") if isinstance(message, Mapping) else None
+                details["response"] = content or first.get("text") or body
+        elif isinstance(body.get("data"), list) and body["data"]:
+            first = body["data"][0]
+            if isinstance(first, Mapping) and isinstance(first.get("embedding"), list):
+                details["response"] = f"{len(body['data'])} embedding(s), {len(first['embedding'])} dimensions"
+            elif isinstance(first, Mapping) and ("b64_json" in first or "url" in first):
+                details["response"] = f"{len(body['data'])} image(s) returned"
+        elif body.get("id") and body.get("status"):
+            details["response"] = {"id": body["id"], "status": body["status"]}
+        if body.get("usage"):
+            details["usage"] = body["usage"]
+    else:
+        if _VERBOSE_OUTPUT.get():
+            details["headers"] = dict(response.headers)
+    selected_headers = {key: value for key, value in response.headers.items()
+                        if key.lower().startswith("uaig-") or key.lower() in ("retry-after", "x-ms-region")}
+    if selected_headers:
+        details["routing"] = selected_headers
+    format_output("HTTP response", details, status=response_status, track_status=False)
+    if not successful:
+        for events in _OUTPUT_STEPS.get():
+            events.append("HTTP_ERROR" if response.status_code >= 500 else "HTTP_WARNING")
+
+
+def print_command(command: str = "") -> None:
+    format_command(command)
+
+
+def print_info(message: str) -> None:
+    format_output(message, part="INFO")
+
+
+def print_message(message: str, output: Any = "", duration: str = "") -> None:
+    format_result(message, output=output, duration=duration)
+
+
+def print_ok(message: str, output: Any = "", duration: str = "") -> None:
+    format_result(message, output=output, duration=duration)
+
+
+def print_warning(message: str, output: Any = "", duration: str = "") -> None:
+    format_result(message, status="WARNING", output=output, duration=duration)
+
+
+def print_error(message: str, output: Any = "", duration: str = "") -> None:
+    format_result(message, status="ERROR", output=output, duration=duration)
+
+
+def require_inputs(values: Mapping[str, Any]) -> None:
+    """Reject all missing/nested placeholder inputs without echoing their values."""
+    missing: list[str] = []
+
+    def visit(label: str, value: Any) -> None:
+        if isinstance(value, os.PathLike):
+            value = os.fspath(value)
+        if isinstance(value, Mapping) and value:
+            for key, item in value.items():
+                visit(f"{label}.{key}", item)
+        elif isinstance(value, (list, tuple)) and value:
+            for index, item in enumerate(value):
+                visit(f"{label}[{index}]", item)
+        elif (
+            value is None or value is False or value == "" or value == {} or value == []
+            or (isinstance(value, str) and (
+                not value.strip() or re.search(
+                    r"REPLACE|<[^>]+>|\$\{[^}]+\}|^(?:your[-_ ].*|TODO|CHANGEME|placeholder)$", value, re.I
+                )
+            ))
+        ):
+            missing.append(label)
+
+    for label, value in values.items():
+        visit(str(label), value)
+    if missing:
+        raise ValueError(
+            "Initialization stopped: required parameters were not supplied: "
+            + ", ".join(missing)
+            + ". Set these inputs in the configuration cell (or the documented environment/secret store) "
+            "and rerun initialization. Disabled optional scenarios do not require their inputs."
+        )
+
+
+def require_capabilities(catalog: Any, model_names: list[str] | None = None) -> None:
+    """Require a nonempty eligible plan; inferred operations are valid defaults."""
+    names = [name for name in (
+        list(dict.fromkeys(entry.name for entry in catalog.entries))
+        if model_names is None else model_names
+    ) if not catalog.is_skipped(name)]
+    if not names:
+        raise ValueError("No models selected for validation; review skipped_models and operation overrides.")
+    require_inputs({"deployed model catalogue": names})
+    missing = [name for name in names if not catalog.operations(name)]
+    if missing:
+        raise ValueError(
+            "Initialization stopped: no operations resolved for " + ", ".join(missing)
+            + ". Set VALIDATION_MODEL_CAPABILITIES in the selected azd environment or overrides['capabilities']. "
+            "Alternatively enable the default infer_operations behavior."
+        )
+
+
+@contextmanager
+def notebook_step(title: str, inputs: Any = None, expected: str | None = None,
+                  namespace: Mapping[str, Any] | None = None) -> Generator[None, None, None]:
+    """Give every cell a before/after output without hiding its code or exceptions."""
+    events: list[str] = []
+    token = _OUTPUT_STEPS.set((*_OUTPUT_STEPS.get(), events))
+    run = namespace.get("run") if namespace is not None else None
+    initial_results = list(getattr(run, "results", ()))
+    if isinstance(inputs, Mapping) and not _VERBOSE_OUTPUT.get():
+        inputs = {
+            key: value for key, value in inputs.items()
+            if isinstance(value, (str, int, float, bool, Mapping, list, tuple, os.PathLike))
+            and key not in {"run", "apim", "context", "transport", "b"}
+        }
+    format_output(title, {"inputs": inputs, "expected output": expected} if _VERBOSE_OUTPUT.get()
+                  else inputs, part="INFO")
+    started = time.perf_counter()
+    try:
+        with warnings.catch_warnings(record=True) as captured:
+            warnings.simplefilter("always")
+            try:
+                yield
+            finally:
+                messages = list(dict.fromkeys(str(warning.message) for warning in captured))
+                if messages:
+                    format_output(title, {"warnings": messages}, status="WARNING")
+    except BaseException as error:
+        format_output(title, {
+            "error type": type(error).__name__, "details": str(error),
+            "elapsed seconds": round(time.perf_counter() - started, 3),
+        }, status="WARNING" if isinstance(error, (KeyboardInterrupt, SystemExit)) else "ERROR")
+        raise
+    else:
+        current_run = namespace.get("run") if namespace is not None else None
+        results = list(getattr(current_run, "results", ()))
+        new_results = (results[len(initial_results):] if current_run is run else results)
+        statuses = events + [
+            "WARNING" if result.status == "BLOCKED" and not result.required else result.status
+            for result in new_results
+        ]
+        issues = any(status in ("FAIL", "ERROR", "BLOCKED") for status in statuses)
+        caution = any(status in ("WARNING", "SKIP") for status in statuses)
+        if not new_results and "HTTP_ERROR" in statuses:
+            issues = True
+        if not new_results and "HTTP_WARNING" in statuses:
+            caution = True
+        status = "ERROR" if issues else "WARNING" if caution else "SUCCESS"
+        result_details: dict[str, Any] = {"elapsed seconds": round(time.perf_counter() - started, 3)}
+        if new_results:
+            passed = sum(result.status == "PASS" for result in new_results)
+            result_details["checks"] = f"{passed}/{len(new_results)} passed"
+            for outcome in ("FAIL", "SKIP", "BLOCKED"):
+                count = sum(result.status == outcome for result in new_results)
+                if count:
+                    result_details[outcome.lower()] = count
+        format_output(title, result_details, status=status)
+    finally:
+        _OUTPUT_STEPS.reset(token)
 
 def mask_sensitive_values(data, sensitive_keys=None):
     """
@@ -336,27 +819,18 @@ def get_deployment_output(output, output_property, output_label = '', secure = F
         raise Exception(error)
 
 def print_response(response):
-    print("Response headers: ", response.headers)
-
-    if (response.status_code == 200):
-        print_ok(f"Status Code: {response.status_code}")
-        data = json.loads(response.text)
-        print(json.dumps(data, indent=4))
-    else:
-        print_warning(f"Status Code: {response.status_code}")
-        print(response.text)
+    format_http_response(response)
 
 def print_response_code(response):
-    # Check the response status code and apply formatting
     if 200 <= response.status_code < 300:
-        status_code_str = f"{BOLD_GREEN}{response.status_code} - {response.reason}{RESET_FORMATTING}"
-    elif response.status_code >= 400:
-        status_code_str = f"{BOLD_RED}{response.status_code} - {response.reason}{RESET_FORMATTING}"
+        status = "SUCCESS"
     else:
-        status_code_str = str(response.status_code)
-
-    # Print the response status with the appropriate formatting
-    print(f"Response status: {status_code_str}")
+        status = "ERROR" if response.status_code >= 500 else "WARNING"
+        for events in _OUTPUT_STEPS.get():
+            events.append("HTTP_ERROR" if response.status_code >= 500 else "HTTP_WARNING")
+    format_output("HTTP response status", {
+        "HTTP status": response.status_code, "reason": response.reason,
+    }, status=status, track_status=False)
 
 # Simple: print full error body (JSON if available, else raw text)
 def print_full_http_error(response):
@@ -405,6 +879,13 @@ def run(command, ok_message = '', error_message = '', print_output = False, prin
 
     if (ok_message or error_message):
         print_message(ok_message if success else error_message, combined_text if not success or print_output  else "", f"[{int(minutes)}m:{int(seconds)}s]")
+    else:
+        format_result(
+            "Command executed successfully" if success else "Command failed",
+            status="SUCCESS" if success else "ERROR",
+            elapsed_seconds=round(time.time() - start_time, 3),
+            details=combined_text if not success or print_output else "",
+        )
 
     return Output(success, output_text)
 
@@ -430,6 +911,7 @@ def create_bicep_params(policy_xml_filepath, parameters_filepath, bicep_paramete
     return bicep_parameters
 
 def update_api_policy(subscription_id, resource_group_name, apim_service_name, api_id, policy_xml):
+    import requests
     # We first need to obtain an access token for the REST API
     output = run(f"az account get-access-token --resource https://management.azure.com/",
         f"Successfully obtained access token", f"Failed to obtain access token")
@@ -460,6 +942,7 @@ def update_api_policy(subscription_id, resource_group_name, apim_service_name, a
             print_full_http_error(response)
 
 def update_api_operation_policy(subscription_id, resource_group_name, apim_service_name, api_id, operation_id, policy_xml):
+    import requests
     # We first need to obtain an access token for the REST API
     output = run(f"az account get-access-token --resource https://management.azure.com/",
         f"Successfully obtained access token", f"Failed to obtain access token")
@@ -502,4 +985,3 @@ def get_trace(apim_service_id, trace_id) -> str | None:
     output = run(f"az rest --method post --uri {apim_service_id}/gateways/managed/listTrace?api-version=2023-05-01-preview --body \"{str(request)}\"",
             "Retrieved trace details", "Failed to get the trace details")
     return output.json_data if output.success and output.json_data else None
-

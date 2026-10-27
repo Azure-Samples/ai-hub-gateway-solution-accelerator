@@ -40,8 +40,18 @@
     pwsh ./setup.ps1 -EnvironmentName "citadel-dev" -KeyVaultName "kv-abc123" -ApimResourceGroup "rg-citadel-dev" -ApimName "apim-abc123"
 
 .NOTES
+    Prepares JWT validation: direct Model.Invoke assignments for a validation client
+    service principal and current Azure CLI user, an MCP.Invoke-only negative client,
+    and Azure CLI preauthorization for access_as_user.
+    Assign other client roles directly to application and managed-identity service principals.
+    Security-group assignments supply user roles, not roles for service-principal members.
+    The three roles and access_as_user scope use four permission definitions.
+    Entra ID defaults to 700 definitions shared by roles and exposed delegated scopes;
+    these also count toward the separate 1,200-entry application manifest limit.
+
     Prerequisites:
-    - Azure CLI authenticated (az login) with Application.ReadWrite.All permission
+    - Azure CLI authenticated as a user (az login), with application write and
+      app-role assignment permissions (e.g. Cloud Application Administrator)
     - Key Vault must exist and deployer must have Key Vault Secrets Officer role
     - APIM instance must exist (deployed via azd up)
     - azd environment configured (if not passing explicit parameters)
@@ -56,9 +66,173 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Invoke-SetupCommand {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$CommandName,
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments,
+        [switch]$AllowFailure
+    )
+
+    $command = Get-Command $CommandName -ErrorAction Stop
+    $stderrFile = [System.IO.Path]::GetTempFileName()
+    try {
+        $previousErrorActionPreference = $ErrorActionPreference
+        try {
+            # Windows PowerShell treats native stderr as errors even when the command succeeds.
+            $ErrorActionPreference = "Continue"
+            $PSNativeCommandUseErrorActionPreference = $false
+            $output = & $command @Arguments 2>$stderrFile
+            $exitCode = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
+
+        $diagnostic = Get-Content -LiteralPath $stderrFile -Raw
+        if (-not [string]::IsNullOrWhiteSpace($diagnostic)) {
+            Write-Warning $diagnostic.Trim()
+        }
+        if ($exitCode -ne 0) {
+            # Do not include argument values: env set can contain the client secret.
+            $message = "$CommandName $($Arguments[0]) $($Arguments[1]) failed (exit code $exitCode)."
+            if ($AllowFailure) {
+                Write-Warning $message
+                return
+            }
+            throw $message
+        }
+        $output
+    } finally {
+        Remove-Item -LiteralPath $stderrFile -Force
+    }
+}
+
+function Invoke-AzdCommand {
+    param([string[]]$Arguments, [switch]$AllowFailure)
+    Invoke-SetupCommand -CommandName azd -Arguments $Arguments -AllowFailure:$AllowFailure
+}
+
+function Invoke-SetupGraph {
+    param([string]$Method = "GET", [string]$Path, [hashtable]$Body)
+    $uri = if ($Path.StartsWith("https://graph.microsoft.com/v1.0/")) {
+        $Path
+    } else {
+        "https://graph.microsoft.com/v1.0/$Path"
+    }
+    $arguments = @("rest", "--method", $Method, "--uri", $uri, "--output", "json")
+    $bodyFile = $null
+    try {
+        if ($null -ne $Body) {
+            $bodyFile = [System.IO.Path]::GetTempFileName()
+            $Body | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath $bodyFile -Encoding UTF8
+            $arguments += @("--headers", "Content-Type=application/json", "--body", "@$bodyFile")
+        }
+        $result = Invoke-SetupCommand -CommandName az -Arguments $arguments
+        if ($result) { $result | ConvertFrom-Json }
+    } finally {
+        if ($bodyFile) { Remove-Item -LiteralPath $bodyFile -Force }
+    }
+}
+
+function Get-SetupGraphValues {
+    param([string]$Path)
+    do {
+        $page = Invoke-SetupGraph -Path $Path
+        if ($null -eq $page.value) { throw "Graph collection response did not contain value." }
+        $page.value
+        $Path = $page.'@odata.nextLink'
+    } while ($Path)
+}
+
+function Set-ValidationRoleAssignment {
+    param([string]$PrincipalId, [string]$ResourceId, [string]$RoleId, [string]$PrincipalType = "servicePrincipals")
+    $path = "$PrincipalType/$PrincipalId/appRoleAssignments"
+    $existing = @(Get-SetupGraphValues -Path $path) | Where-Object {
+        $_.resourceId -eq $ResourceId -and $_.appRoleId -eq $RoleId
+    }
+    if (-not $existing) {
+        $null = Invoke-SetupGraph -Method "POST" -Path $path -Body @{
+            principalId = $PrincipalId; resourceId = $ResourceId; appRoleId = $RoleId
+        }
+    }
+}
+
+function Initialize-ValidationClient {
+    param([string]$DisplayName, [string]$ResourceId, [string]$RoleId, [string]$ForbiddenRoleId = "")
+    $filter = [Uri]::EscapeDataString("displayName eq '$($DisplayName.Replace("'", "''"))'")
+    $applications = @(Get-SetupGraphValues -Path "applications?`$filter=$filter")
+    if ($applications.Count -gt 1) { throw "Multiple validation app registrations matched $DisplayName." }
+    $application = if ($applications.Count -eq 1) { $applications[0] } else {
+        Invoke-SetupGraph -Method "POST" -Path "applications" -Body @{
+            displayName = $DisplayName; signInAudience = "AzureADMyOrg"
+        }
+    }
+    if (-not $application.id -or -not $application.appId) { throw "Validation application has no IDs." }
+    $principals = @(Get-SetupGraphValues -Path "servicePrincipals?`$filter=appId eq '$($application.appId)'")
+    if ($principals.Count -gt 1) { throw "Multiple validation service principals matched $DisplayName." }
+    $principal = if ($principals.Count -eq 1) { $principals[0] } else {
+        Invoke-SetupGraph -Method "POST" -Path "servicePrincipals" -Body @{ appId = $application.appId }
+    }
+    if (-not $principal.id) { throw "Validation service principal has no object ID." }
+    if ($ForbiddenRoleId) {
+        $assignments = @(Get-SetupGraphValues -Path "servicePrincipals/$($principal.id)/appRoleAssignments")
+        if ($assignments | Where-Object { $_.resourceId -eq $ResourceId -and $_.appRoleId -eq $ForbiddenRoleId }) {
+            throw "Negative-test client unexpectedly has Model.Invoke. Remove that assignment before rerunning setup."
+        }
+    }
+    Set-ValidationRoleAssignment -PrincipalId $principal.id -ResourceId $ResourceId -RoleId $RoleId
+    $credential = Invoke-SetupGraph -Method "POST" -Path "applications/$($application.id)/addPassword" -Body @{
+        passwordCredential = @{
+            displayName = "JWT validation client"
+            endDateTime = [DateTime]::UtcNow.AddYears(1).ToString("o")
+        }
+    }
+    if (-not $credential.secretText) { throw "Validation client credential was not returned." }
+    [pscustomobject]@{ ClientId = $application.appId; ClientSecret = $credential.secretText }
+}
+
+function Initialize-JwtValidation {
+    param([string]$ApplicationId, [string]$ApplicationObjectId, [string]$DisplayName)
+    $profile = Invoke-SetupGraph -Path "me"
+    if (-not $profile.id) { throw "JWT validation setup requires a signed-in Azure CLI user." }
+    $gateway = Invoke-SetupGraph -Path "applications/$ApplicationObjectId"
+    $scope = @($gateway.api.oauth2PermissionScopes | Where-Object {
+        $_.value -eq "access_as_user" -and $_.isEnabled
+    })
+    if ($scope.Count -ne 1) { throw "Gateway must expose one enabled access_as_user delegated scope." }
+    $cliAppId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"
+    $preauthorized = @($gateway.api.preAuthorizedApplications | Where-Object { $null -ne $_ })
+    $cli = $preauthorized | Where-Object { $_.appId -eq $cliAppId }
+    if ($cli) {
+        $cli.delegatedPermissionIds = @(@($cli.delegatedPermissionIds) + @($scope[0].id) | Select-Object -Unique)
+    } else {
+        $preauthorized += @{ appId = $cliAppId; delegatedPermissionIds = @($scope[0].id) }
+    }
+    $null = Invoke-SetupGraph -Method "PATCH" -Path "applications/$ApplicationObjectId" -Body @{
+        api = @{
+            requestedAccessTokenVersion = 2; preAuthorizedApplications = $preauthorized
+            oauth2PermissionScopes = @($gateway.api.oauth2PermissionScopes)
+        }
+    }
+    $principals = @(Get-SetupGraphValues -Path "servicePrincipals?`$filter=appId eq '$ApplicationId'")
+    if ($principals.Count -ne 1) { throw "Expected exactly one gateway service principal." }
+    $resourceId = $principals[0].id
+    $modelRoleId = "00000000-0000-0000-0000-000000000003"
+    $mcpRoleId = "00000000-0000-0000-0000-000000000004"
+    Set-ValidationRoleAssignment -PrincipalId $profile.id -ResourceId $resourceId -RoleId $modelRoleId -PrincipalType "users"
+    $positive = Initialize-ValidationClient -DisplayName "$DisplayName-validation-client" -ResourceId $resourceId -RoleId $modelRoleId
+    $negative = Initialize-ValidationClient -DisplayName "$DisplayName-validation-negative" -ResourceId $resourceId -RoleId $mcpRoleId -ForbiddenRoleId $modelRoleId
+    [pscustomobject]@{
+        ClientId = $positive.ClientId; ClientSecret = $positive.ClientSecret
+        NegativeClientId = $negative.ClientId; NegativeClientSecret = $negative.ClientSecret
+        UserId = $profile.id
+    }
+}
+
 # ── Resolve parameters from azd environment if not provided ──
 if ([string]::IsNullOrWhiteSpace($EnvironmentName)) {
-    $EnvironmentName = azd env get-value AZURE_ENV_NAME 2>$null
+    $EnvironmentName = Invoke-AzdCommand -Arguments @("env", "get-value", "AZURE_ENV_NAME")
     if ([string]::IsNullOrWhiteSpace($EnvironmentName)) {
         Write-Error "EnvironmentName not provided and AZURE_ENV_NAME not found in azd environment."
         exit 1
@@ -66,7 +240,7 @@ if ([string]::IsNullOrWhiteSpace($EnvironmentName)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($KeyVaultName)) {
-    $KeyVaultName = azd env get-value KEY_VAULT_NAME 2>$null
+    $KeyVaultName = Invoke-AzdCommand -Arguments @("env", "get-value", "KEY_VAULT_NAME")
     if ([string]::IsNullOrWhiteSpace($KeyVaultName)) {
         Write-Error "KeyVaultName not provided and KEY_VAULT_NAME not found in azd environment. Run 'azd up' first to create the Key Vault, then re-run this script."
         exit 1
@@ -74,10 +248,10 @@ if ([string]::IsNullOrWhiteSpace($KeyVaultName)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($ApimResourceGroup)) {
-    $ApimResourceGroup = azd env get-value AZURE_RESOURCE_GROUP 2>$null
+    $ApimResourceGroup = Invoke-AzdCommand -Arguments @("env", "get-value", "AZURE_RESOURCE_GROUP") -AllowFailure
     if ([string]::IsNullOrWhiteSpace($ApimResourceGroup)) {
         # Auto-discover from the APIM resource if APIM_NAME is known
-        $knownApimName = azd env get-value APIM_NAME 2>$null
+        $knownApimName = Invoke-AzdCommand -Arguments @("env", "get-value", "APIM_NAME") -AllowFailure
         if (-not [string]::IsNullOrWhiteSpace($knownApimName)) {
             Write-Host "  Discovering resource group from APIM '$knownApimName'..." -ForegroundColor Gray
             $apimResource = az resource list --name $knownApimName --resource-type "Microsoft.ApiManagement/service" --query "[0].resourceGroup" --output tsv 2>$null
@@ -94,7 +268,7 @@ if ([string]::IsNullOrWhiteSpace($ApimResourceGroup)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($ApimName)) {
-    $ApimName = azd env get-value APIM_NAME 2>$null
+    $ApimName = Invoke-AzdCommand -Arguments @("env", "get-value", "APIM_NAME") -AllowFailure
     if ([string]::IsNullOrWhiteSpace($ApimName)) {
         # Auto-discover APIM in the resource group
         Write-Host "  Discovering APIM instance in resource group '$ApimResourceGroup'..." -ForegroundColor Gray
@@ -130,6 +304,9 @@ if (-not $account) {
     exit 1
 }
 $tenantId = $account.tenantId
+if ($account.user.type -ne "user") {
+    throw "Run setup with Azure CLI signed in as a user (az login); user-token validation cannot use an SP login."
+}
 Write-Host "  Tenant:       $tenantId" -ForegroundColor Gray
 Write-Host "  User:         $($account.user.name)" -ForegroundColor Gray
 Write-Host ""
@@ -142,35 +319,27 @@ $existingApp = az ad app list --display-name $AppDisplayName --output json 2>$nu
 $gatewayAppRoles = @(
     @{
         allowedMemberTypes = @("User", "Application")
-        description        = "Full read and write access to all gateway capabilities"
-        displayName        = "ReadWrite"
-        isEnabled          = $true
-        id                 = "00000000-0000-0000-0000-000000000002"
-        value              = "Task.ReadWrite"
-    }
-    @{
-        allowedMemberTypes = @("User", "Application")
-        description        = "Access to LLM model endpoints (chat completions, embeddings)"
-        displayName        = "Models.Read"
+        description        = "Invoke LLM model endpoints (chat completions, embeddings)"
+        displayName        = "Model.Invoke"
         isEnabled          = $true
         id                 = "00000000-0000-0000-0000-000000000003"
-        value              = "Models.Read"
+        value              = "Model.Invoke"
     }
     @{
         allowedMemberTypes = @("User", "Application")
-        description        = "Access to MCP tool endpoints"
-        displayName        = "MCP.Read"
+        description        = "Invoke MCP tool endpoints"
+        displayName        = "MCP.Invoke"
         isEnabled          = $true
         id                 = "00000000-0000-0000-0000-000000000004"
-        value              = "MCP.Read"
+        value              = "MCP.Invoke"
     }
     @{
         allowedMemberTypes = @("User", "Application")
-        description        = "Access to agent endpoints"
-        displayName        = "Agent.Read"
+        description        = "Invoke agent endpoints"
+        displayName        = "Agent.Invoke"
         isEnabled          = $true
         id                 = "00000000-0000-0000-0000-000000000005"
-        value              = "Agent.Read"
+        value              = "Agent.Invoke"
     }
 )
 
@@ -182,21 +351,32 @@ if ($existingApp -and $existingApp.Count -gt 0) {
 
     # ── 1a. Ensure app roles are up-to-date on existing registration ──
     Write-Host "  Checking app roles..." -ForegroundColor Yellow
-    $currentRoleIds = @()
-    if ($app.appRoles) {
-        $currentRoleIds = $app.appRoles | ForEach-Object { $_.id }
+    $updatedRoles = @($app.appRoles | Where-Object { $null -ne $_ })
+    $rolesChanged = $false
+    foreach ($gatewayRole in $gatewayAppRoles) {
+        $currentRole = $updatedRoles | Where-Object { $_.id -eq $gatewayRole.id }
+        if (-not $currentRole) {
+            $updatedRoles += $gatewayRole
+            $rolesChanged = $true
+            continue
+        }
+        # Keep role IDs and assignment settings while updating canonical role metadata.
+        foreach ($property in @("displayName", "value", "description")) {
+            if ($currentRole.$property -cne $gatewayRole[$property]) {
+                $currentRole.$property = $gatewayRole[$property]
+                $rolesChanged = $true
+            }
+        }
     }
-    $missingRoles = $gatewayAppRoles | Where-Object { $_.id -notin $currentRoleIds }
-    if ($missingRoles.Count -gt 0) {
-        Write-Host "  Adding $($missingRoles.Count) missing app role(s)..." -ForegroundColor Yellow
-        $updatedRoles = @($app.appRoles) + @($missingRoles)
+    if ($rolesChanged) {
+        Write-Host "  Updating app roles..." -ForegroundColor Yellow
         $patchPayload = @{ appRoles = $updatedRoles }
         $patchTempFile = [System.IO.Path]::GetTempFileName()
         try {
             $patchPayload | ConvertTo-Json -Depth 10 | Set-Content -Path $patchTempFile -Encoding UTF8
             az rest --method PATCH --uri "https://graph.microsoft.com/v1.0/applications/$appObjectId" --headers "Content-Type=application/json" --body "@$patchTempFile" --output none
             if ($LASTEXITCODE -ne 0) {
-                Write-Host "  Warning: Failed to update app roles. Continuing..." -ForegroundColor Yellow
+                throw "Failed to update app roles. Check Microsoft Graph permissions and retry setup."
             } else {
                 Write-Host "  App roles updated successfully" -ForegroundColor Green
             }
@@ -229,40 +409,7 @@ if ($existingApp -and $existingApp.Count -gt 0) {
                 }
             )
         }
-        appRoles = @(
-            @{
-                allowedMemberTypes = @("User", "Application")
-                description        = "Full read and write access to all gateway capabilities"
-                displayName        = "ReadWrite"
-                isEnabled          = $true
-                id                 = "00000000-0000-0000-0000-000000000002"
-                value              = "Task.ReadWrite"
-            }
-            @{
-                allowedMemberTypes = @("User", "Application")
-                description        = "Access to LLM model endpoints (chat completions, embeddings)"
-                displayName        = "Models.Read"
-                isEnabled          = $true
-                id                 = "00000000-0000-0000-0000-000000000003"
-                value              = "Models.Read"
-            }
-            @{
-                allowedMemberTypes = @("User", "Application")
-                description        = "Access to MCP tool endpoints"
-                displayName        = "MCP.Read"
-                isEnabled          = $true
-                id                 = "00000000-0000-0000-0000-000000000004"
-                value              = "MCP.Read"
-            }
-            @{
-                allowedMemberTypes = @("User", "Application")
-                description        = "Access to agent endpoints"
-                displayName        = "Agent.Read"
-                isEnabled          = $true
-                id                 = "00000000-0000-0000-0000-000000000005"
-                value              = "Agent.Read"
-            }
-        )
+        appRoles = $gatewayAppRoles
         requiredResourceAccess = @(
             @{
                 resourceAppId  = "00000003-0000-0000-c000-000000000000"
@@ -334,10 +481,12 @@ if (-not $spCheck -or $spCheck.Count -eq 0) {
     Write-Host "  Service principal exists" -ForegroundColor Green
 }
 
-# ── 3. Generate client secret ──
-Write-Host "[3/6] Generating client secret..." -ForegroundColor Yellow
-$secretResult = az ad app credential reset --id $appObjectId --display-name "Generated by Entra ID Setup" --years 2 --output json | ConvertFrom-Json
-$clientSecret = $secretResult.password
+Write-Host "  Preparing application, signed-in user and missing-model-role validation identities..." -ForegroundColor Yellow
+$validationIdentity = Initialize-JwtValidation -ApplicationId $appId -ApplicationObjectId $appObjectId -DisplayName $AppDisplayName
+
+# ── 3. Use the dedicated validation client credential ──
+Write-Host "[3/6] Preparing client credential..." -ForegroundColor Yellow
+$clientSecret = $validationIdentity.ClientSecret
 
 if ([string]::IsNullOrWhiteSpace($clientSecret)) {
     Write-Error "Failed to create client secret."
@@ -402,10 +551,18 @@ Write-Host "  APIM JWT named values configured" -ForegroundColor Green
 
 # ── 6. Store values in azd environment ──
 Write-Host "[6/6] Storing values in azd environment..." -ForegroundColor Yellow
-azd env set AZURE_CLIENT_ID $appId 2>$null
-azd env set AZURE_TENANT_ID $tenantId 2>$null
-azd env set AZURE_AUDIENCE "api://$appId" 2>$null
-azd env set ENTRA_CLIENT_SECRET $clientSecret 2>$null
+Invoke-AzdCommand -Arguments @("env", "set", "AZURE_CLIENT_ID", $appId)
+Invoke-AzdCommand -Arguments @("env", "set", "AZURE_TENANT_ID", $tenantId)
+Invoke-AzdCommand -Arguments @("env", "set", "AZURE_AUDIENCE", "api://$appId")
+Invoke-AzdCommand -Arguments @("env", "set", "ENTRA_CLIENT_SECRET", $clientSecret)
+Invoke-AzdCommand -Arguments @("env", "set", "ENTRA_CLIENT_ID", $validationIdentity.ClientId)
+Invoke-AzdCommand -Arguments @("env", "set", "ENTRA_TENANT_ID", $tenantId)
+Invoke-AzdCommand -Arguments @("env", "set", "ENTRA_AUDIENCE", "api://$appId")
+Invoke-AzdCommand -Arguments @("env", "set", "ENTRA_VALIDATION_NEGATIVE_CLIENT_ID", $validationIdentity.NegativeClientId)
+Invoke-AzdCommand -Arguments @("env", "set", "ENTRA_VALIDATION_NEGATIVE_CLIENT_SECRET", $validationIdentity.NegativeClientSecret)
+Invoke-AzdCommand -Arguments @("env", "set", "ENTRA_VALIDATION_USER_ID", $validationIdentity.UserId)
+Invoke-AzdCommand -Arguments @("env", "set", "AZURE_RESOURCE_GROUP", $ApimResourceGroup)
+Invoke-AzdCommand -Arguments @("env", "set", "APIM_NAME", $ApimName)
 Write-Host "  Values stored in azd environment" -ForegroundColor Green
 
 # ── Summary ──
@@ -415,6 +572,8 @@ Write-Host "  Entra ID Setup Complete!" -ForegroundColor Green
 Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Green
 Write-Host "  App Display Name:     $AppDisplayName" -ForegroundColor Gray
 Write-Host "  Client ID:            $appId" -ForegroundColor Gray
+Write-Host "  Validation Client:    $($validationIdentity.ClientId)" -ForegroundColor Gray
+Write-Host "  Negative Client:      $($validationIdentity.NegativeClientId)" -ForegroundColor Gray
 Write-Host "  Tenant ID:            $tenantId" -ForegroundColor Gray
 Write-Host "  App ID URI:           api://$appId" -ForegroundColor Gray
 Write-Host "  Audience:             api://$appId" -ForegroundColor Gray
@@ -425,5 +584,12 @@ Write-Host ""
 Write-Host "  APIM is now configured for JWT authentication." -ForegroundColor Cyan
 Write-Host "  No redeployment needed. Configure access contracts" -ForegroundColor Cyan
 Write-Host "  with jwtAuth.enabled=true to enforce JWT per product." -ForegroundColor Cyan
+Write-Host "  For role authorization, assign the required Invoke roles directly" -ForegroundColor Cyan
+Write-Host "  to each application or managed-identity service principal." -ForegroundColor Cyan
+Write-Host "  Security-group role assignments apply to users, not service-principal members." -ForegroundColor Cyan
+Write-Host "  JWT validation is ready: Model.Invoke for the validation app and signed-in user;" -ForegroundColor Cyan
+Write-Host "  an MCP.Invoke-only client supplies the missing-Model.Invoke test token." -ForegroundColor Cyan
+Write-Host "  Run validation/citadel-jwt-authentication-tests.ipynb using this azd environment." -ForegroundColor Cyan
+Write-Host "  See guides/jwt-client-identity-permissions.md for assignment instructions." -ForegroundColor Cyan
 Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Green
 Write-Host ""

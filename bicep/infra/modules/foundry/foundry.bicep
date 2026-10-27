@@ -43,11 +43,7 @@ param  apimPrincipalId string
 @description('AI Foundry project name')
 param  foundryProjectName string = 'citadel-governance-project'
 
-@description('The instrumentation key for Application Insights')
-@secure()
-param appInsightsInstrumentationKey string = ''
-
-@description('The resource ID for Application Insights')
+@description('The resource ID for Application Insights. Its connection string is retrieved from the existing resource.')
 param appInsightsId string = ''
 
 @description('Controls public network access for the Cognitive Services account')
@@ -119,6 +115,14 @@ param keyVaultUri string = ''
 
 var azureRoles = loadJsonContent('../azure-roles.json')
 var cognitiveServicesUserRoleDefinitionID = resourceId('Microsoft.Authorization/roleDefinitions', azureRoles.CognitiveServicesUser)
+
+resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = {
+  name: last(split(appInsightsId, '/'))
+  scope: resourceGroup(
+    !empty(appInsightsId) ? split(appInsightsId, '/')[2] : subscription().subscriptionId,
+    !empty(appInsightsId) ? split(appInsightsId, '/')[4] : resourceGroup().name
+  )
+}
 
 // Get existing VNet and subnet for private endpoint
 resource vnet 'Microsoft.Network/virtualNetworks@2022-01-01' existing = {
@@ -224,7 +228,7 @@ resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
   }
 }]
 
-resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/connections@2025-06-01' = [for (config, i) in aiServicesConfig: if (length(appInsightsId) > 0 && length(appInsightsInstrumentationKey) > 0) {
+resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/connections@2025-06-01' = [for (config, i) in aiServicesConfig: if (!empty(appInsightsId)) {
   parent: foundryResources[i]
   name: '${foundryResources[i].name}-appInsights-connection'
   properties: {
@@ -241,7 +245,7 @@ resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/connections
       ResourceId: appInsightsId
     }
     credentials: {
-      key: appInsightsInstrumentationKey
+      key: appInsights.properties.ConnectionString
     }    
   }
 }]

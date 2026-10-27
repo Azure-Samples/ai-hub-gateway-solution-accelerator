@@ -11,13 +11,16 @@
     Mirrors the UAIG Terraform Entra-Id module:
     - App Registration with sign_in_audience = AzureADMyOrg
     - OAuth2 permission scope (access_as_user)
-    - App role (Task.ReadWrite)
     - Identifier URI (api://{clientId})
     - Service Principal
     - Client Secret (stored in Key Vault via Bicep, value passed as env var)
 
 .NOTES
     Requires: az login with permissions to create app registrations (Application.ReadWrite.All)
+    Client authorization requires direct app-role assignments to application and
+    managed-identity service principals. Security-group role assignments apply to
+    users; service-principal group membership does not supply app roles in tokens.
+    This script does not create client app-role assignments.
 #>
 
 param(
@@ -136,3 +139,5 @@ Write-Host "  Audience: api://$appId" -ForegroundColor Gray
 Write-Host "  Client Secret: [stored in azd env as ENTRA_CLIENT_SECRET]" -ForegroundColor Gray
 Write-Host ""
 Write-Host "These values will be used by the Bicep deployment to configure APIM JWT named values." -ForegroundColor Cyan
+Write-Host "For role authorization, assign gateway app roles directly to application and managed-identity service principals." -ForegroundColor Cyan
+Write-Host "Security-group role assignments apply to users, not service-principal members. See guides/jwt-client-identity-permissions.md." -ForegroundColor Cyan

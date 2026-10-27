@@ -1015,6 +1015,6 @@ api-key: <subscription-key>
 - [Onboarding New API Types](unified-ai-api-type-onboarding.md) — Add new backend types to the Unified AI API
 - [LLM Backend Onboarding](../bicep/infra/llm-backend-onboarding/README.md) — Backend configuration reference
 - [Citadel Governance Hub Benefits](governance-hub-benefits.md) — Why a centralized AI gateway
-- [JWT Client Identity & Permissions](jwt-client-identity-permissions.md) — Client app identities and group-based access
+- [JWT Client Identity & Permissions](jwt-client-identity-permissions.md) — Direct application role assignments and user-group access
 - [PII Detection & Masking](pii-masking-apim.md) — Sensitive data protection in policy
 - [Power BI Dashboard](power-bi-dashboard.md) — Usage analytics and cost allocation

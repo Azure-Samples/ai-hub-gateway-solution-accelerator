@@ -182,6 +182,51 @@ param foundryNetworkInjectionEnabled = true
 param agentSubnetPrefix = '10.170.0.192/26'
 ```
 
+##### Logic App Private Access
+
+The usage-ingestion Logic App supports optional inbound private connectivity. Defaults remain unchanged: no template-created Logic App private endpoint and public network access enabled. These settings are available in both [main.bicepparam](../bicep/infra/main.bicepparam) and [resources.bicepparam](../bicep/infra/resources.bicepparam); custom environment parameter files must include any overrides explicitly.
+
+**Private Endpoint names**
+
+| Parameter | Environment Variable | Default | Description |
+|-----------|----------------------|---------|-------------|
+| `logicAppPrivateEndpointName` | `LOGIC_APP_PE_NAME` | `''` | Optional endpoint resource name. Empty uses `logic-pe-${resourceToken}`. |
+
+**Services network access configuration**
+
+| Parameter | Environment Variable | Default | Description |
+|-----------|----------------------|---------|-------------|
+| `logicAppUsePrivateEndpoint` | `LOGIC_APP_USE_PRIVATE_ENDPOINT` | `false` | Create a Logic App private endpoint in the existing private-endpoint subnet. |
+| `logicAppPublicNetworkAccess` | `LOGIC_APP_PUBLIC_NETWORK_ACCESS` | `true` | Allow public website and SCM/Kudu access, subject to authentication and other access controls. |
+
+**Existing Private DNS Zones**
+
+| Setting | Environment Variable | Default | Description |
+|---------|----------------------|---------|-------------|
+| `existingPrivateDnsZones.logicApp` | `EXISTING_DNS_ZONE_LOGIC_APP` | `''` | Resource ID of an existing `privatelink.azurewebsites.net` zone. Takes precedence over `dnsZoneRG` / `dnsSubscriptionId`. |
+
+The two Boolean flags are independent:
+
+| `logicAppUsePrivateEndpoint` | `logicAppPublicNetworkAccess` | Result |
+|------------------------------|-------------------------------|--------|
+| `false` | `true` | Default: public access enabled; no template-created endpoint. |
+| `true` | `true` | Private and public access enabled; optional staged verification when policy permits. |
+| `true` | `false` | Private-only website and SCM access; private connectivity and DNS are required for workflow publishing. |
+| `false` | `false` | Public access disabled without a template-created endpoint. Requires a working externally managed endpoint and DNS for website/SCM access. |
+
+The templates do not reject the last combination or enforce DNS readiness. For an existing VNet, supply the Logic App zone ID or `dnsZoneRG`, and configure zone links or forwarding. See [Logic App networking](./network-approach.md#logic-app-private-connectivity) for DNS selection and subnet details.
+
+For a private-only initial deployment, set these values in the azd environment file described above:
+
+```dotenv
+LOGIC_APP_USE_PRIVATE_ENDPOINT="true"
+LOGIC_APP_PUBLIC_NETWORK_ACCESS="false"
+```
+
+For a reused DNS zone, also set `EXISTING_DNS_ZONE_LOGIC_APP` to its resource ID; set `LOGIC_APP_PE_NAME` only when overriding the generated endpoint name. A new VNet can use automatic local zone creation when neither a zone ID nor `dnsZoneRG` is supplied.
+
+These settings apply to the main/resource-group initial-deployment templates, not the separate APIM gateway-upgrade supporting-services templates. Before deploying workflows with public access disabled, prepare a privately connected publishing machine or runner as described in the [Full Deployment Guide](./full-deployment-guide.md#private-only-logic-app-publishing).
+
 #### 4. **Feature Flags**
 Enable or disable specific capabilities:
 ```bicep

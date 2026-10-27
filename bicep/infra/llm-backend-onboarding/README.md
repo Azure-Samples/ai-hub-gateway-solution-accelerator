@@ -36,6 +36,15 @@ This package enables dynamic LLM backend routing without modifying APIM policies
 
 ## Prerequisites
 
+**Foundry v1 API versions:** When `set-backend-authorization` rewrites a request to
+`/openai/v1/...`, it removes any incoming `api-version` query parameter. Forwarding
+a dated inference/OpenAI API version to that endpoint can return HTTP 400
+`API version not supported`, including after successful PII processing. Other
+query parameters and the request body are preserved; legacy versioned routes
+keep their API-version behavior. Deploy backend onboarding (or the main
+infrastructure) to update this shared fragment on an existing gateway; deploying
+an access contract alone does not update it.
+
 - Existing deployment of AI Citadel Governance Hub with:
   - User-assigned managed identity configured
   - APIs for Universal LLM API and Azure OpenAI API

@@ -17,6 +17,8 @@ This guide provides the fastest path to deploying AI Citadel Governance Hub for 
 
 > 💡 **Tip:** You can use [Azure Cloud Shell](https://shell.azure.com) which has all tools pre-installed.
 
+> **Private-only Logic App:** Ordinary Cloud Shell and public hosted CI runners should not be assumed to reach private SCM. Workflow publishing requires a privately connected machine with suitable DNS; see [private publishing prerequisites](./full-deployment-guide.md#private-only-logic-app-publishing).
+
 ---
 
 ## 🎯 Deployment Options
@@ -65,6 +67,8 @@ This will:
 - ✅ Deploy 2 AI Foundry instances with sample models
 - ✅ Enable all core features (PII detection, content safety, API Center)
 
+The Logic App retains public access by default and does not create its own private endpoint unless explicitly enabled. Other services keep their existing defaults.
+
 **Expected deployment time:** 30-45 minutes
 
 ---
@@ -95,8 +99,12 @@ azd up
 | `COSMOS_DB_RUS` | `400` | Cosmos DB throughput |
 | `EVENTHUB_CAPACITY` | `1` | Event Hub capacity units |
 | `ENABLE_API_CENTER` | `true` | Enable API Center registry |
+| `LOGIC_APP_USE_PRIVATE_ENDPOINT` | `false` | Create a Logic App inbound private endpoint |
+| `LOGIC_APP_PUBLIC_NETWORK_ACCESS` | `true` | Allow public website and SCM/Kudu access |
 
 For full list of variables, see [/bicep/infra/main.bicepparam](../bicep/infra/main.bicepparam).
+
+For a private-only initial deployment, set `LOGIC_APP_USE_PRIVATE_ENDPOINT` to `true` and `LOGIC_APP_PUBLIC_NETWORK_ACCESS` to `false`, and run workflow publishing from a privately connected machine. For existing VNets, also configure the existing DNS zone and links or forwarding. See the [Logic App parameter reference](./parameters-usage-guide.md#logic-app-private-access) for DNS and optional endpoint-name overrides, and the [network guide](./network-approach.md#logic-app-private-connectivity) for setup details.
 
 ---
 
@@ -144,6 +152,8 @@ az deployment group create \
 ```
 
 Deploy the Logic App workflow separately after the infrastructure deployment completes.
+
+If Logic App public access is disabled, publish from a machine that meets the [private SCM prerequisites](./full-deployment-guide.md#private-only-logic-app-publishing), then complete the [private connectivity checks](./post-deployment-guide.md#logic-app-private-connectivity-checks).
 
 ---
 
