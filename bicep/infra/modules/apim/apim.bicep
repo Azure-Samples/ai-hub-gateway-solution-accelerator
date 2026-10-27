@@ -319,7 +319,7 @@ module apimDocumentIntelligence './api.bicep' = if (enableDocumentIntelligence) 
     apiRevision: '1'
     apiDispalyName: 'Document Intelligence API'
     subscriptionRequired: entraAuth ? false:true
-    subscriptionKeyName: 'Ocp-Apim-Subscription-Key'
+    subscriptionKeyName: 'api-key'
     openApiSpecification: loadTextContent('./doc-intel-api/document-intelligence-2024-11-30-compressed.openapi.yaml')
     apiDescription: 'Uses (/documentintelligence) url path. Extracts content, layout, and structured data from documents.'
     policyDocument: loadTextContent('./policies/doc-intelligence-api-policy.xml')
