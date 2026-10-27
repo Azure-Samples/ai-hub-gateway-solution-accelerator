@@ -1,5 +1,12 @@
 # Citadel validation notebooks
 
+For private developer access before running these application scenarios, use the
+optional [Developer VPN deployment and validation notebook](../validation-local/citadel-developer-vpn-validation.ipynb)
+and its [Bicep deployment notes](../bicep/infra/developer-vpn/README.md).
+It creates a separate connectivity resource group and does not require private
+APIM data-plane access to bootstrap. Provisioning is explicitly gated because
+VPN Gateway and DNS Private Resolver incur ongoing charges.
+
 These notebooks have two purposes: **prove the deployed feature works**, and
 **show how it is configured, deployed, and consumed**. Feature definitions,
 policy previews, requests, SDK integration, and expected outcomes stay visible.
