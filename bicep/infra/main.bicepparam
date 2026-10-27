@@ -166,7 +166,7 @@ param appInsightsLogSettings = {
 // ============================================================================
 // COMPUTE SKU & SIZE - SKUs and capacity settings for services
 // ============================================================================
-param apimSku = readEnvironmentVariable('APIM_SKU', 'StandardV2')
+param apimSku = readEnvironmentVariable('APIM_SKU', 'Developer')
 param apimSkuUnits = int(readEnvironmentVariable('APIM_SKU_UNITS', '1'))
 param eventHubCapacityUnits = int(readEnvironmentVariable('EVENTHUB_CAPACITY', '1'))
 param cosmosDbRUs = int(readEnvironmentVariable('COSMOS_DB_RUS', '400'))
@@ -212,32 +212,32 @@ param aiFoundryInstances = [
 //   - inferenceApiVersion: API version for inference-type requests (e.g., '2024-05-01-preview' for non-OpenAI models)
 param aiFoundryModelsConfig = [
   {
-    name: 'gpt-4.1'
+    name: 'gpt-6.1-sol'
     publisher: 'OpenAI'
-    version: '2025-04-14'
+    version: '2026-09-29'
     sku: 'GlobalStandard'
     capacity: 100
-    retirementDate: '2026-10-14'
+    retirementDate: '2027-10-14'
     apiVersion: '2025-04-01-preview'
     timeout: 180
     aiserviceIndex: 0
   }
   {
-    name: 'gpt-5.2'
+    name: 'gpt-6-luna'
     publisher: 'OpenAI'
-    version: '2025-12-11'
+    version: '2026-09-22'
     sku: 'GlobalStandard'
     capacity: 100
     retirementDate: '2027-02-05'
     aiserviceIndex: 0
   }
   {
-    name: 'gpt-image-1.5'
+    name: 'gpt-image-2'
     publisher: 'OpenAI'
-    version: '2025-12-16'
+    version: '2026-04-21'
     sku: 'GlobalStandard'
     capacity: 2
-    retirementDate: '2026-12-16'
+    retirementDate: '2027-12-16'
     inferenceApiVersion: '2025-04-01-preview'
     apiVersion: '2025-04-01-preview'
     aiserviceIndex: 0
@@ -299,9 +299,9 @@ param aiFoundryModelsConfig = [
     aiserviceIndex: 1
   }
   {
-    name: 'gpt-5.2'
+    name: 'gpt-6-luna'
     publisher: 'OpenAI'
-    version: '2025-12-11'
+    version: '2026-09-22'
     sku: 'GlobalStandard'
     capacity: 100
     retirementDate: '2027-02-05'
