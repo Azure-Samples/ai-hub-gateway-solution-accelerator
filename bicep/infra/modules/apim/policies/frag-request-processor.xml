@@ -147,6 +147,39 @@
     <!-- Signal that path-builder handles URI construction — set-backend-authorization should skip URL rewriting -->
     <set-variable name="skipBackendUrlRewrite" value="true" />
 
+    <set-variable name="is-decision-request" value="@{
+        var apiType = context.Variables.GetValueOrDefault<string>("api-type", "");
+        return apiType == "decisions" || apiType == "decisions-openai-v1" || apiType == "systemone";
+    }" />
+    <choose>
+        <when condition="@((bool)context.Variables["is-decision-request"])">
+            <choose>
+                <when condition="@{
+                    var path = context.Variables.GetValueOrDefault<string>("routing-processed-path", "").TrimEnd('/');
+                    var basePath = context.Variables.GetValueOrDefault<string>("api-base-path", "");
+                    return !path.Equals(basePath, StringComparison.OrdinalIgnoreCase);
+                }">
+                    <trace source="Request-Processor-Blocked" severity="error">
+                        <message>Unsupported Decision operation path.</message>
+                    </trace>
+                    <return-response>
+                        <set-status code="403" reason="Forbidden" />
+                        <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+                        <set-body>{"error":{"code":"PathNotAllowed","message":"The requested Decision path is not allowed."}}</set-body>
+                    </return-response>
+                </when>
+                <when condition="@(context.Request.Method != "POST")">
+                    <return-response>
+                        <set-status code="405" reason="Method Not Allowed" />
+                        <set-header name="Allow" exists-action="override"><value>POST</value></set-header>
+                        <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+                        <set-body>{"error":{"code":"unsupported_operation","message":"Decision inference requires POST."}}</set-body>
+                    </return-response>
+                </when>
+            </choose>
+        </when>
+    </choose>
+
     <!-- Parse request body for POST/PUT/PATCH methods -->
     <choose>
         <when condition="@(context.Request.Method == "GET" || context.Request.Method == "DELETE")">

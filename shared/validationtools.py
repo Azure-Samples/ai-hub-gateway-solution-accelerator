@@ -341,7 +341,10 @@ class ModelCatalog:
                     operations = model["operations"] if model.get("operations") is not None else model["capabilities"]
                     operation_source = "metadata"
                 else:
-                    operations = infer_model_operations(name) if self.infer_operations else []
+                    operations = (
+                        ["systemone"] if self.infer_operations and backend_type == "azure-decision"
+                        else infer_model_operations(name) if self.infer_operations else []
+                    )
                     operation_source = "inferred" if self.infer_operations else "unmapped"
                 operations = self._operations(operations, name)
                 retired = model.get("retirementDate", model.get("retirement_date"))

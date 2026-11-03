@@ -384,6 +384,16 @@ Master AI Citadel Governance Hub implementation and operations with our detailed
 
 ## 🏷️ Release Version
 
+**Release 1.1.0 adds Decision / SystemOne inference through Unified AI API:**
+`POST /unified-ai/v1/decisions` (also `/unified-ai/openai/v1/decisions`) reuses
+Foundry/OpenAI backends; `POST /unified-ai/providers/microsoft/v1/systemone` uses
+the dedicated `azure-decision` backend type. Native payloads are preserved.
+See the [Decision models guide](./guides/decision-models-guide.md),
+[validation notebook](./validation/citadel-decision-models-tests.ipynb), and
+[release history](./releases/1.1.0.md). Existing routes and contract parameters
+remain compatible. Decision capacity is request-governed; built-in token
+accounting is not claimed for these new schemas.
+
 The accelerator tracks its release state in a single source-of-truth manifest at the repository
 root — [`release.json`](./release.json). Instead of one monolithic version, it uses **independent,
 component-scoped version tracks** so a change in one subsystem does not force re-versioning of

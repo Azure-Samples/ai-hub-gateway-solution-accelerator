@@ -112,7 +112,16 @@
              <include-fragment fragment-id="format-translator" /> -->
 
         <!-- Step 11: Token usage metrics [SHARED with Azure OpenAI / Universal LLM] -->
-        <include-fragment fragment-id="set-llm-usage" />
+        <choose>
+            <when condition="@(context.Variables.GetValueOrDefault<bool>("is-decision-request", false))">
+                <trace source="Decision-Usage" severity="information">
+                    <message>Decision usage remains in the native response. Built-in token metrics are not supported for this schema; use request-based capacity policies.</message>
+                </trace>
+            </when>
+            <otherwise>
+                <include-fragment fragment-id="set-llm-usage" />
+            </otherwise>
+        </choose>
 
         <!-- CORS Configuration for AI Foundry Compatibility -->
         <include-fragment fragment-id="ai-foundry-compatibility" />

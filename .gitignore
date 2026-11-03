@@ -21,6 +21,10 @@ mono_crash.*
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
+# Keep versioned release documentation, but not binary release output.
+!/releases/
+/releases/*
+!/releases/*.md
 x64/
 x86/
 [Ww][Ii][Nn]32/

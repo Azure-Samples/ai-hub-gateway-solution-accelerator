@@ -12,7 +12,8 @@ Public API:
   ``compile_parameters(params_file)`` compiles the actual, possibly edited file
   with ``az bicep build-params --stdout`` (no Azure calls or ARM files).
 * ``deploy_contract(params_file, location, name, required_outputs=())`` compiles
-  first, then explicitly deploys at subscription scope. It returns raw ARM
+  first, deploys at subscription scope with output suppressed, then reads the
+  persisted deployment state and projected outputs as JSON. It returns raw ARM
   output envelopes, ``{name: {type: ..., value: ...}}``, never credentials.
   Secret-bearing outputs are excluded from the CLI projection; unexpected
   credential fields are removed defensively. Known endpoint/subscription/Foundry metadata
@@ -49,8 +50,10 @@ import subprocess
 import time
 if __package__:
     from . import utils
+    from .scenariotools import parse_policy_xml
 else:
     import utils
+    from scenariotools import parse_policy_xml
 from dataclasses import dataclass
 from typing import Any, Iterable
 from xml.etree import ElementTree as ET
@@ -132,7 +135,7 @@ def _check_secrets(value: Any) -> None:
             raise ContractError("Credential-shaped text rejected; use a secret reference.")
         if re.match(r"^\s*(?:<!--.*?-->\s*)*<policies(?:\s|>)", value, re.DOTALL):
             try:
-                root = ET.fromstring(value)
+                root = parse_policy_xml(value)
             except ET.ParseError:
                 raise ContractError("Policy XML is malformed.") from None
             _check_policy_credentials(root)
@@ -233,7 +236,7 @@ def write_parameters(template: Path, parameters: dict, directory: Path) -> Path:
     return params_file
 
 
-def _run_az(arguments: list[str]) -> dict:
+def _execute_az(arguments: list[str]) -> subprocess.CompletedProcess[str]:
     utils.format_command(["az", *arguments], title="Bicep / contract command", diagnostic=True)
     started = time.perf_counter()
     executable = shutil.which("az")
@@ -265,6 +268,17 @@ def _run_az(arguments: list[str]) -> dict:
                             guidance="Review the editable parameter/template file; raw CLI output is withheld to protect credentials.")
         raise ContractError(f"Azure CLI operation failed (exit {result.returncode}); "
                             "raw output withheld to protect credentials.")
+    utils.format_result("Azure CLI command executed successfully",
+                        elapsed_seconds=round(time.perf_counter() - started, 3), exit_code=0, diagnostic=True)
+    if result.stderr and result.stderr.strip():
+        utils.format_result("Azure CLI emitted diagnostics", status="WARNING",
+                            compiler_diagnostic_codes=sorted(set(re.findall(r"\bBCP\d+\b", result.stderr))),
+                            details="Review compiler/CLI diagnostics if needed; raw stderr is withheld to protect credentials.")
+    return result
+
+
+def _run_az(arguments: list[str]) -> dict:
+    result = _execute_az(arguments)
     try:
         parsed = json.loads(result.stdout)
     except (TypeError, json.JSONDecodeError):
@@ -273,12 +287,6 @@ def _run_az(arguments: list[str]) -> dict:
     if not isinstance(parsed, dict):
         utils.format_result("Azure CLI returned an unexpected JSON shape", status="ERROR", operation=arguments[:3])
         raise ContractError("Azure CLI returned an unexpected JSON shape.")
-    utils.format_result("Azure CLI command executed successfully",
-                        elapsed_seconds=round(time.perf_counter() - started, 3), exit_code=0, diagnostic=True)
-    if result.stderr and result.stderr.strip():
-        utils.format_result("Azure CLI emitted diagnostics", status="WARNING",
-                            compiler_diagnostic_codes=sorted(set(re.findall(r"\bBCP\d+\b", result.stderr))),
-                            details="Review compiler/CLI diagnostics if needed; raw stderr is withheld to protect credentials.")
     return parsed
 
 
@@ -432,10 +440,12 @@ def deploy_contract(params_file: Path, location: str, name: str, *,
         "az", "deployment", "sub", "create", "--location", location, "--name", name,
         "--parameters", str(Path(params_file).resolve()),
     ], title="Deploy contract", models=models, output="Credential-safe output projection")
-    result = _run_az([
+    _execute_az([
         "deployment", "sub", "create", "--location", location, "--name", name,
-        "--parameters", str(Path(params_file).resolve()), "--query", query,
-        "--output", "json",
+        "--parameters", str(Path(params_file).resolve()), "--output", "none",
+    ])
+    result = _run_az([
+        "deployment", "sub", "show", "--name", name, "--query", query, "--output", "json",
     ])
     if result.get("state") != "Succeeded" or not isinstance(result.get("outputs"), dict):
         utils.format_result("Contract deployment did not succeed", status="ERROR",
@@ -496,7 +506,7 @@ def access_policy(allowed_models: Iterable[str] | str, tokens_per_minute: int,
 def _validate_policy(xml: str) -> None:
     _check_secrets(xml)
     try:
-        root = ET.fromstring(xml)
+        root = parse_policy_xml(xml)
     except ET.ParseError:
         raise ContractError("Policy XML is malformed.") from None
     if root.tag != "policies":

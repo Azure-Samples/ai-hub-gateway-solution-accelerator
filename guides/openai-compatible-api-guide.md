@@ -8,12 +8,19 @@ This path supports the standard OpenAI operations:
 - `POST /v1/chat/completions` — Chat completions
 - `POST /v1/embeddings` — Text embeddings
 - `POST /v1/responses` — Responses API
+- `POST /v1/decisions` — Azure OpenAI typed Decisions; Foundry/OpenAI pools only
 - `POST /v1/images/generations` — Image generation
 - `GET /v1/models` — List available models
 
 > **Responses API security**: The gateway enforces per-subscription and per-product ownership of `response_id` values. A `GET`/`DELETE` on `/v1/responses/{id}` (or a chained `POST` carrying `previous_response_id`) issued by a *different* subscription or product than the one that originally created the response is rejected with **HTTP 403** (`response_id_forbidden`). Productless subscriptions use `NA` as their product identity. Ownership mappings last **30 days**, matching the default OpenAI Responses API retention period; unknown or expired ids return **HTTP 404** (`response_id_not_found`). See [llm-access-guide.md](llm-access-guide.md#step-15-responses-api-id-security-responses-id-security--responses-id-cache-store) for the cache contract and routing details.
 
 ## Getting Started
+
+Decision requests also accept `/unified-ai/openai/v1/decisions`. Microsoft
+Decision-1 uses a separate native route,
+`/unified-ai/providers/microsoft/v1/systemone`, and a different payload schema.
+Neither Decision surface implies built-in token accounting support; use explicit
+request-based governance. See [Decision models](./decision-models-guide.md).
 
 ### Using the OpenAI Python SDK
 

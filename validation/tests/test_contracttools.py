@@ -122,6 +122,20 @@ class RenderingTests(ArtifactTestCase):
             with self.subTest(filename=filename), self.assertRaises(ct.ContractError):
                 ct.PolicyReference(filename)
 
+    def test_raw_policy_artifact_is_validated_without_reencoding_expressions(self):
+        xml = '''<policies><inbound><set-variable name="example" value="@{
+    // Keep this newline.
+    return context.Variables.GetValueOrDefault<string>("input", "");
+}" /></inbound></policies>'''
+        artifact = ct.prepare_artifact(self.template, {"data": {"policyXml": xml}},
+                                       self.directory / "raw", policies={"product.xml": xml})
+        self.assertEqual((artifact.params_file.parent / "product.xml").read_text(encoding="utf-8"), xml)
+        self.assertIn("loadTextContent('product.xml')", artifact.preview())
+        unsafe = xml.replace('name="example"', 'name="api-key"')
+        with self.assertRaisesRegex(ct.ContractError, "Inline policy credentials"):
+            ct.prepare_artifact(self.template, {"data": {"policyXml": unsafe}},
+                                self.directory / "unsafe-raw", policies={"product.xml": unsafe})
+
 
 class CredentialTests(ArtifactTestCase):
     def test_inline_secrets_rejected_before_any_write(self):
@@ -227,6 +241,62 @@ class PolicyTests(unittest.TestCase):
 
 
 class CLITests(ArtifactTestCase):
+    def test_deploy_reads_authoritative_json_instead_of_parsing_create_stdout(self):
+        path = ct.write_parameters(self.template, {"data": {}}, self.directory / "run")
+        response = {"state": "Succeeded", "outputs": {
+            "result": {"type": "String", "value": "ok"},
+        }}
+        for stdout in ("", "Deployment completed.\n", "sensitive-non-json-output"):
+            output = io.StringIO()
+            with self.subTest(stdout=stdout), \
+                    patch.object(ct, "compile_parameters", return_value=compiled()), \
+                    patch.object(ct.shutil, "which", return_value="az"), \
+                    patch.object(ct.subprocess, "run", side_effect=[
+                        subprocess.CompletedProcess([], 0, stdout, ""),
+                        subprocess.CompletedProcess([], 0, json.dumps(response), ""),
+                    ]) as run, contextlib.redirect_stdout(output):
+                result = ct.deploy_contract(path, "eastus", "test", required_outputs=["result"])
+                self.assertEqual(result, response["outputs"])
+                self.assertEqual(run.call_count, 2)
+                create, show = (call.args[0] for call in run.call_args_list)
+                self.assertEqual(create[1:4], ["deployment", "sub", "create"])
+                self.assertEqual(create[create.index("--output") + 1], "none")
+                self.assertEqual(show[1:4], ["deployment", "sub", "show"])
+                self.assertEqual(show[show.index("--name") + 1], "test")
+                self.assertEqual(show[show.index("--output") + 1], "json")
+                self.assertIn("properties.outputs", show[show.index("--query") + 1])
+                self.assertNotIn("sensitive-non-json-output", output.getvalue())
+
+    def test_create_failure_is_not_replaced_by_a_previous_successful_deployment(self):
+        path = ct.write_parameters(self.template, {"data": {}}, self.directory / "run")
+        output = io.StringIO()
+        with patch.object(ct, "compile_parameters", return_value=compiled()), \
+                patch.object(ct.shutil, "which", return_value="az"), \
+                patch.object(ct.subprocess, "run", return_value=subprocess.CompletedProcess(
+                    [], 1, "sensitive-output", "sensitive-diagnostic"
+                )) as run, contextlib.redirect_stdout(output), self.assertRaises(ct.ContractError):
+            ct.deploy_contract(path, "eastus", "test")
+        run.assert_called_once()
+        self.assertNotIn("sensitive-output", output.getvalue())
+        self.assertNotIn("sensitive-diagnostic", output.getvalue())
+
+    def test_successful_create_still_requires_valid_readback_json_and_success_state(self):
+        path = ct.write_parameters(self.template, {"data": {}}, self.directory / "run")
+        for returncode, stdout in ((1, ""), (0, "sensitive-invalid-json"),
+                                   (0, '{"state": "Failed", "outputs": {}}')):
+            output = io.StringIO()
+            with self.subTest(returncode=returncode, stdout=stdout), \
+                    patch.object(ct, "compile_parameters", return_value=compiled()), \
+                    patch.object(ct.shutil, "which", return_value="az"), \
+                    patch.object(ct.subprocess, "run", side_effect=[
+                        subprocess.CompletedProcess([], 0, "", ""),
+                        subprocess.CompletedProcess([], returncode, stdout, "sensitive-diagnostic"),
+                    ]) as run, contextlib.redirect_stdout(output), self.assertRaises(ct.ContractError):
+                ct.deploy_contract(path, "eastus", "test")
+            self.assertEqual(run.call_count, 2)
+            self.assertNotIn("sensitive-invalid-json", output.getvalue())
+            self.assertNotIn("sensitive-diagnostic", output.getvalue())
+
     def test_subscription_metadata_survives_secret_reference_filter_and_resolves_exact_key_name(self):
         path = ct.write_parameters(self.template, {"data": {}}, self.directory / "run")
         product = "LLM-Validation-UnifiedFixture-DEV"
@@ -273,9 +343,11 @@ class CLITests(ArtifactTestCase):
             return {"state": "Succeeded", "outputs": outputs}
 
         output = io.StringIO()
-        with patch.object(ct, "_run_az", side_effect=run), contextlib.redirect_stdout(output):
+        with patch.object(ct, "_execute_az") as create, \
+                patch.object(ct, "_run_az", side_effect=run), contextlib.redirect_stdout(output):
             outputs = ct.deploy_contract(path, "eastus", "fixture")
             self.assertEqual(contract_identifiers(outputs, product), (product, subscription))
+        create.assert_called_once()
         self.assertIn("properties.outputs.subscriptions.value[].{", deploy_query[0])
         self.assertIn("name:name", deploy_query[0])
         self.assertIn("productId:productId", deploy_query[0])
@@ -332,7 +404,7 @@ class CLITests(ArtifactTestCase):
         response = {"state": "Succeeded", "outputs": {
             "products": {"type": "Array", "value": [{"productId": "product"}]},
         }}
-        with patch.object(ct, "_run_az", side_effect=[
+        with patch.object(ct, "_execute_az") as create, patch.object(ct, "_run_az", side_effect=[
             compiled(outputs=template_outputs, variables={"hiddenValue": {"password": "secret"}},
                      definitions={"opaque": {"type": "secureString"}}),
             response,
@@ -341,8 +413,11 @@ class CLITests(ArtifactTestCase):
         self.assertEqual(outputs["products"]["value"][0]["productId"], "product")
         self.assertEqual(run.call_count, 2)
         command = run.call_args.args[0]
-        self.assertEqual(command[:3], ["deployment", "sub", "create"])
-        self.assertIn(str(path.resolve()), command)
+        self.assertEqual(command[:3], ["deployment", "sub", "show"])
+        create.assert_called_once_with([
+            "deployment", "sub", "create", "--location", "eastus", "--name", "test",
+            "--parameters", str(path.resolve()), "--output", "none",
+        ])
         query = command[command.index("--query") + 1]
         self.assertIn("subscriptionName:subscriptionName", query)
         self.assertNotIn("apiKey", query)
@@ -359,17 +434,19 @@ class CLITests(ArtifactTestCase):
                          {"state": "Succeeded", "outputs": {}},
                          {"state": "Succeeded", "outputs": {
                              "result": {"type": "String", "value": ""}}}):
-            with self.subTest(response=response), patch.object(
+            with self.subTest(response=response), patch.object(ct, "_execute_az"), patch.object(
                 ct, "_run_az", side_effect=[compiled(), response]
             ), self.assertRaises(ct.ContractError):
                 ct.deploy_contract(path, "eastus", "test", required_outputs=["result"])
 
     def test_invalid_required_output_fails_before_cloud(self):
         path = ct.write_parameters(self.template, {"data": {}}, self.directory / "run")
-        with patch.object(ct, "_run_az", return_value=compiled()) as run:
+        with patch.object(ct, "_execute_az") as create, \
+                patch.object(ct, "_run_az", return_value=compiled()) as run:
             with self.assertRaises(ct.ContractError):
                 ct.deploy_contract(path, "eastus", "test", required_outputs=["missing"])
             self.assertEqual(run.call_count, 1)
+            create.assert_not_called()
 
     def test_unexpected_nested_credentials_are_removed(self):
         path = ct.write_parameters(self.template, {"data": {}}, self.directory / "run")
@@ -380,7 +457,7 @@ class CLITests(ArtifactTestCase):
                 "name": "safe", "apiKey": "secret", "inner": [{"password": "secret"}],
                 "text": "Bearer confidential",
             }}}}
-        with patch.object(ct, "_run_az", side_effect=[compiled(), result]):
+        with patch.object(ct, "_execute_az"), patch.object(ct, "_run_az", side_effect=[compiled(), result]):
             outputs = ct.deploy_contract(path, "eastus", "test")
         self.assertNotIn("secret", json.dumps(outputs))
         self.assertNotIn("confidential", json.dumps(outputs))
@@ -388,6 +465,34 @@ class CLITests(ArtifactTestCase):
 
 
 class OwnershipTests(ArtifactTestCase):
+    def test_artifact_records_only_verified_readback_outputs(self):
+        response = {"state": "Succeeded", "outputs": {
+            "result": {"type": "String", "value": "ok"},
+        }}
+        for state in ("Succeeded", "Failed"):
+            artifact = ct.prepare_artifact(self.template, {"data": {}}, self.directory / state)
+            response["state"] = state
+            with self.subTest(state=state), \
+                    patch.object(ct, "compile_parameters", return_value=compiled()), \
+                    patch.object(ct.shutil, "which", return_value="az"), \
+                    patch.object(ct.subprocess, "run", side_effect=[
+                        subprocess.CompletedProcess([], 0, "Creation output is not JSON.", ""),
+                        subprocess.CompletedProcess([], 0, json.dumps(response), ""),
+                    ]), contextlib.redirect_stdout(io.StringIO()):
+                if state == "Succeeded":
+                    outputs = artifact.deploy("eastus", "test", required_outputs=["result"])
+                    self.assertEqual(outputs, response["outputs"])
+                    manifest = json.loads(artifact.manifest_file.read_text(encoding="utf-8"))
+                    self.assertEqual(manifest["deployment"], {"name": "test", "location": "eastus"})
+                    self.assertEqual(manifest["outputs"], outputs)
+                    self.assertEqual(artifact.cleanup_candidates(), [])
+                else:
+                    with self.assertRaises(ct.ContractError):
+                        artifact.deploy("eastus", "test", required_outputs=["result"])
+                    manifest = json.loads(artifact.manifest_file.read_text(encoding="utf-8"))
+                    self.assertNotIn("deployment", manifest)
+                    self.assertEqual(manifest["outputs"], {})
+
     def test_cleanup_requires_explicit_creation_not_deployment_success(self):
         artifact = ct.prepare_artifact(self.template, {"data": {}}, self.directory / "run")
         with patch.object(ct, "deploy_contract", return_value={
@@ -425,7 +530,8 @@ class CompilerFixtureTests(ArtifactTestCase):
                 {"productId": "fixture-product", "name": "fixture-subscription"},
             ]},
         })
-        with patch.object(ct, "compile_parameters", return_value=fixture), patch.object(
+        with patch.object(ct, "_execute_az"), \
+                patch.object(ct, "compile_parameters", return_value=fixture), patch.object(
             ct, "_run_az", return_value={"state": "Succeeded", "outputs": {}}
         ) as run:
             ct.deploy_contract(self.directory / "not-used.bicepparam", "eastus", "query-check")
@@ -567,17 +673,24 @@ class CompilerFixtureTests(ArtifactTestCase):
             **arm_response["properties"]["outputs"],
         }
         run_az = ct._run_az
+        execute_az = ct._execute_az
         queries = []
 
+        def execute_without_deployment(arguments):
+            if arguments[:3] == ["deployment", "sub", "create"]:
+                return subprocess.CompletedProcess([], 0, "", "")
+            return execute_az(arguments)
+
         def project_using_actual_local_cli(arguments):
-            self.assertEqual(arguments[:3], ["deployment", "sub", "create"])
+            self.assertEqual(arguments[:3], ["deployment", "sub", "show"])
             query = arguments[arguments.index("--query") + 1]
             queries.append(query)
             # az version is local; the literal supplies data to its JMESPath parser.
             return run_az(["version", "--query", "`" + json.dumps(arm_response) + "` | " + query])
 
         output = io.StringIO()
-        with patch.object(ct, "compile_parameters", return_value=docs), \
+        with patch.object(ct, "_execute_az", side_effect=execute_without_deployment), \
+                patch.object(ct, "compile_parameters", return_value=docs), \
                 patch.object(ct, "_run_az", side_effect=project_using_actual_local_cli), \
                 contextlib.redirect_stdout(output):
             outputs = ct.deploy_contract(path, "eastus", "offline",

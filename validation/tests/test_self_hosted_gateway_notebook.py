@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "shared"))
 import requests
 import contracttools
+from scenariotools import parse_policy_xml
 from validationtools import ModelCatalog, ValidationContext, ValidationError
 
 NOTEBOOK = ROOT / "validation" / "citadel-self-hosted-gateway-tests.ipynb"
@@ -38,7 +39,7 @@ class SelfHostedGatewayNotebookTests(unittest.TestCase):
         self.stack = contextlib.ExitStack()
         self.addCleanup(self.stack.close)
         self.stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
-        self.directory = Path(self.stack.enter_context(tempfile.TemporaryDirectory()))
+        self.directory = Path(self.stack.enter_context(tempfile.TemporaryDirectory(dir=ROOT / "validation")))
         self.stack.enter_context(patch.dict(os.environ, {
             "VALIDATION_SELF_HOSTED_GATEWAY_URL": "",
             "VALIDATION_SELF_HOSTED_GATEWAY_ID": "",
@@ -80,7 +81,7 @@ class SelfHostedGatewayNotebookTests(unittest.TestCase):
     def preview(self):
         self.initialize()
         self.execute(2)
-        return ET.fromstring(self.namespace["contract_policy"])
+        return parse_policy_xml(self.namespace["contract_policy"])
 
     def deploy(self):
         self.preview()
@@ -121,19 +122,18 @@ class SelfHostedGatewayNotebookTests(unittest.TestCase):
                 self.assertIsNotNone(chat)
                 self.assertEqual(chat.find("llm-token-limit") is not None, flags[0])
                 self.assertEqual(chat.find("llm-content-safety") is not None, flags[2])
-                auth = list(policy.iter("authentication-managed-identity"))
-                self.assertEqual(bool(auth), flags[3])
-                for node in auth:
-                    self.assertEqual(node.get("authentication-provider"), "WorkloadIdentity")
-                    self.assertNotIn("client-id", node.attrib)
-                for service_request in policy.iter("send-request"):
-                    self.assertIsNotNone(service_request.find("authentication-managed-identity"))
-                    self.assertFalse(any(node.get("name", "").lower() == "authorization"
-                                         for node in service_request.findall("set-header")))
+                self.assertEqual([node.get("fragment-id") for node in chat.findall("include-fragment")],
+                                 ["pii-anonymization"] if flags[3] else [])
+                self.assertFalse(list(policy.iter("authentication-managed-identity")))
+                self.assertFalse(list(policy.iter("send-request")))
                 variables = {node.get("name"): node.get("value") for node in policy.iter("set-variable")}
                 self.assertEqual(variables["allowedModels"],
                                  ",".join(self.namespace["selected_models"]) if flags[1] else "")
                 if flags[3]:
+                    self.assertEqual(variables["piiAnonymizationEnabled"], "true")
+                    self.assertEqual(variables["piiConfidenceThreshold"], "0.8")
+                    self.assertEqual(variables["piiEntityCategoryExclusions"], "PersonType")
+                    self.assertEqual(variables["piiDetectionLanguage"], "en")
                     self.assertEqual(variables["continueOnNLPError"], "false")
                     self.assertIn('"selfHostedOriginalContent"', variables["selfHostedPiiMasked"])
                     self.assertIn("piiAnonymizedContent", variables["selfHostedPiiMasked"])
@@ -152,6 +152,44 @@ class SelfHostedGatewayNotebookTests(unittest.TestCase):
         self.namespace["model_allowlist"] = ["gpt-alpha"]
         self.initialize()
         self.assertEqual(self.namespace["selected_models"], ["gpt-alpha"])
+
+    def test_raw_policy_configures_shared_pii_fragment_without_inlining_implementation(self):
+        policy = self.preview()
+        source = self.namespace["contract_policy"]
+        self.assertIn('condition="@(context.Request.Method == "POST" && ', source)
+        self.assertIn('value="@(context.Request.Body.As<string>(preserveContent: true))"', source)
+        for entity in ("&quot;", "&lt;", "&gt;", "&amp;", "&#10;", "&#13;"):
+            self.assertNotIn(entity, source)
+        chat = policy.find("./inbound/choose/when")
+        children = list(chat)
+        fragment = chat.find("include-fragment[@fragment-id='pii-anonymization']")
+        self.assertIsNotNone(fragment)
+        for name in ("piiAnonymizationEnabled", "continueOnNLPError", "piiConfidenceThreshold",
+                     "piiEntityCategoryExclusions", "piiDetectionLanguage", "piiRegexPatterns", "piiInputContent"):
+            self.assertLess(children.index(chat.find(f"set-variable[@name='{name}']")), children.index(fragment))
+        self.assertLess(children.index(fragment), children.index(chat.find("set-variable[@name='selfHostedPiiMasked']")))
+        self.assertLess(children.index(fragment), children.index(chat.find("set-body")))
+        self.assertEqual(chat.find("set-body").text,
+                         '@(context.Variables.GetValueOrDefault<string>("piiAnonymizedContent"))')
+        variables = {node.get("name"): node.get("value") for node in policy.iter("set-variable")}
+        for internal in ("piiRegexMappings", "piiChunks", "piiAggregatedEntities", "piiBatchStart", "piiAnalysisFailureReason"):
+            self.assertNotIn(internal, variables)
+        self.assertNotIn("piiBlockingEnabled", variables)
+        self.assertFalse(list(policy.iter("send-request")))
+        self.assertFalse(list(policy.iter("authentication-managed-identity")))
+        self.assertFalse(list(policy.iter("set-url")))
+        self.assertNotIn("WorkloadIdentity", source)
+        self.assertEqual((self.namespace["artifact"].params_file.parent / "self-hosted-policy.xml")
+                         .read_text(encoding="utf-8"), source)
+
+    def test_deployment_comparison_accepts_xml_encoded_management_response(self):
+        self.preview()
+        from scenariotools import policy_xml
+        self.apim.client.product_policy.get.return_value.value = policy_xml(self.namespace["contract_policy"])
+        outputs = {"products": {"value": [{"productId": "owned-product"}]},
+                   "subscriptions": {"value": [{"productId": "owned-product", "name": "owned-subscription"}]}}
+        with patch.object(contracttools, "deploy_contract", return_value=outputs):
+            self.execute(3)
         for names in ([], ["other-chat"], ["gpt-image-example"], ["unknown-gpt"], "gpt-alpha"):
             self.namespace["model_allowlist"] = names
             with self.subTest(names=names), self.assertRaises(ValueError):
@@ -172,6 +210,16 @@ class SelfHostedGatewayNotebookTests(unittest.TestCase):
         self.initialize()
         self.apim.client.backend.get.assert_not_called()
         self.apim.client.named_value.get.assert_not_called()
+        self.apim.client.policy_fragment.get.assert_not_called()
+
+    def test_enabled_pii_requires_the_deployed_fragment_before_creating_artifacts(self):
+        self.initialize()
+        self.apim.client.policy_fragment.get.assert_called_once_with(
+            "fixture-rg", "fixture-apim", "pii-anonymization")
+        self.apim.client.policy_fragment.get.side_effect = RuntimeError("Shared PII fragment missing")
+        with self.assertRaisesRegex(RuntimeError, "Shared PII fragment missing"):
+            self.initialize()
+        self.assertFalse(list(self.directory.rglob("*.xml")))
 
     def test_missing_edge_inputs_fail_by_name_without_managed_fallback(self):
         self.namespace.update(self_hosted_gateway_url=None, self_hosted_gateway_id=None)
@@ -290,6 +338,56 @@ class SelfHostedGatewayNotebookTests(unittest.TestCase):
         session.get.return_value = response(401, {})
         with patch("time.monotonic", side_effect=[0, 1000]), self.assertRaises(RuntimeError):
             self.execute(4)
+
+    def test_discovery_retries_empty_success_until_valid_json_arrives(self):
+        self.deploy()
+        session = self.session()
+        valid = response(200, {"value": [{"name": name} for name in self.namespace["selected_models"]]})
+        empty = response(200, None, {"Content-Type": "application/json"})
+        empty._content = b""
+        blank = response(200, None)
+        blank._content = b" \r\n\t"
+        session.get.side_effect = [empty, blank, valid]
+        with patch("time.sleep") as sleep:
+            self.execute(4)
+        self.assertEqual(sleep.call_count, 2)
+        self.assertEqual(session.get.call_count, 3)
+        self.assertEqual(self.namespace["test_models"], self.namespace["selected_models"])
+
+    def test_discovery_empty_success_times_out_with_response_metadata(self):
+        self.deploy()
+        session = self.session()
+        empty = response(200, None, {"Content-Type": "application/json"})
+        empty._content = b""
+        session.get.return_value = empty
+        with patch("time.monotonic", side_effect=[0, 1000]), patch("time.sleep") as sleep, \
+                self.assertRaisesRegex(RuntimeError, r"HTTP 200.*application/json.*0 bytes"):
+            self.execute(4)
+        sleep.assert_not_called()
+        session.get.assert_called_once()
+
+    def test_discovery_nonempty_invalid_json_fails_without_retry_or_raw_body(self):
+        self.deploy()
+        session = self.session()
+        for content_type, payload in (
+            ("text/html", b"<html>fixture-key-not-persisted</html>"),
+            ("application/json", b'{"value": fixture-key-not-persisted'),
+        ):
+            malformed = response(200, None, {"Content-Type": content_type})
+            malformed._content = payload
+            session.get.return_value = malformed
+            session.get.reset_mock()
+            output = io.StringIO()
+            with self.subTest(content_type=content_type):
+                with patch("time.sleep") as sleep, contextlib.redirect_stdout(output), \
+                        self.assertRaises(RuntimeError) as raised:
+                    self.execute(4)
+                self.assertIn(content_type, str(raised.exception))
+                self.assertIn(f"{len(payload)} bytes", str(raised.exception))
+                self.assertNotIn("fixture-key-not-persisted", output.getvalue())
+                self.assertNotIn("fixture-key-not-persisted", str(raised.exception))
+                sleep.assert_not_called()
+                session.get.assert_called_once()
 
     def test_http_success_without_feature_evidence_cannot_pass(self):
         self.deploy()

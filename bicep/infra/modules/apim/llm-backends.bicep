@@ -15,6 +15,7 @@
  * - gemini-openai: GCP Gemini OpenAI-compatible endpoints (/v1beta/openai/...) with Bearer token
  * - anthropic: Anthropic Claude direct endpoints (native Messages API) with x-api-key + anthropic-version
  * - external: Other LLM providers (OpenAI, etc.)
+ * - azure-decision: Microsoft Decision-1 SystemOne on a Foundry services root
  */
 
 // ------------------

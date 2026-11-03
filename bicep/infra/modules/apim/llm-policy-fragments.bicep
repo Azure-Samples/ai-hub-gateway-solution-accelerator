@@ -25,8 +25,12 @@ param llmBackendConfig array = []
 
 // --- Backend contract reporting inputs (surfaced by the Release Version API GET /version/backend-contract) ---
 
-@description('APIM target coordinates reported in the backend contract (e.g. { subscriptionId, resourceGroupName, name }).')
-param apimTarget object = {}
+@description('APIM target coordinates reported in the backend contract. Defaults to this module deployment scope and service name.')
+param apimTarget object = {
+  subscriptionId: subscription().subscriptionId
+  resourceGroupName: resourceGroup().name
+  name: apimServiceName
+}
 
 @description('Whether the backend circuit breaker is enabled (reported in the backend contract).')
 param configureCircuitBreaker bool = true
@@ -85,7 +89,7 @@ var backendPoolsCode = join(backendPoolsArray, '\n')
 // supportedModels is now an array of objects: { name, sku?, capacity?, modelFormat?, modelVersion?, retirementDate? }
 var modelDeploymentsCodeResult = reduce(llmBackendConfig, { code: '', index: 0 }, (acc, config) => 
   reduce(config.supportedModels, acc, (modelAcc, model) => {
-    code: '${modelAcc.code}\n// Model: ${model.name} from backend: ${config.backendId}\nvar deployment_${modelAcc.index} = new JObject()\n{\n    { "id", "${config.backendId}" },\n    { "type", "${config.backendType}" },\n    { "name", "${model.name}" },\n    { "sku", new JObject() { { "name", "${model.?sku ?? 'Standard'}" }, { "capacity", ${model.?capacity ?? 100} } } },\n    { "properties", new JObject() {\n        { "model", new JObject() { { "format", "${model.?modelFormat ?? 'OpenAI'}" }, { "name", "${model.name}" }, { "version", "${model.?modelVersion ?? '1'}" } } },\n        { "capabilities", new JObject() { { "chatCompletion", "true" } } },\n        { "provisioningState", "Succeeded" }${!empty(model.?retirementDate) ? ',\n        { "retirementDate", "${model.retirementDate}" }' : ''}\n    }}\n};\nmodelDeployments.Add(deployment_${modelAcc.index});'
+    code: '${modelAcc.code}\n// Model: ${model.name} from backend: ${config.backendId}\nvar deployment_${modelAcc.index} = new JObject()\n{\n    { "id", "${config.backendId}" },\n    { "type", "${config.backendType}" },\n    { "name", "${model.name}" },\n    { "sku", new JObject() { { "name", "${model.?sku ?? 'Standard'}" }, { "capacity", ${model.?capacity ?? 100} } } },\n    { "properties", new JObject() {\n        { "model", new JObject() { { "format", "${model.?modelFormat ?? 'OpenAI'}" }, { "name", "${model.name}" }, { "version", "${model.?modelVersion ?? '1'}" } } },\n        { "capabilities", new JObject() { ${config.backendType == 'azure-decision' ? '{ "systemone", "true" }' : '{ "chatCompletion", "true" }'}${contains(model.?operations ?? json('[]'), 'decisions') ? ', { "decisions", "true" }' : ''} } },\n        { "provisioningState", "Succeeded" }${!empty(model.?retirementDate) ? ',\n        { "retirementDate", "${model.retirementDate}" }' : ''}\n    }}\n};\nmodelDeployments.Add(deployment_${modelAcc.index});'
     index: modelAcc.index + 1
   })
 )
