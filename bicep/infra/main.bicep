@@ -154,14 +154,14 @@ param agentSubnetPrefix string = '10.170.0.192/26'
 @description('Enable AI Foundry network injection by attaching the Foundry account to the agent subnet (delegated to Microsoft.App/environments). Defaults to FALSE. IMPORTANT: virtual network injection is only supported as part of the full Foundry Standard Agent setup (bring-your-own Azure Storage + Azure AI Search + Azure Cosmos DB plus an explicit project capabilityHost). This accelerator provisions the Foundry account as a gateway backend using Microsoft-managed agent resources, which is incompatible with injection - enabling it causes the agent capability host (aml_aiagentservice) to fail with "Invalid vnet resource ID provided, or the virtual network could not be found". Only enable this once the full BYO Standard Agent setup has been added. When useExistingVnet is true the agentSubnetName must reference an existing subnet with the required Microsoft.App/environments delegation.')
 param foundryNetworkInjectionEnabled bool = false
 
-// DNS ZONE PARAMETERS - DNS zone configuration for private endpoints (for use with existing VNet)
+// DNS ZONE PARAMETERS - DNS zone configuration for private endpoints
 @description('Resource group containing the DNS zones (only used with existing VNet when existingPrivateDnsZones is not provided - LEGACY).')
 param dnsZoneRG string = ''
 
 @description('Subscription ID containing the DNS zones (only used with existing VNet when existingPrivateDnsZones is not provided - LEGACY).')
 param dnsSubscriptionId string = ''
 
-@description('Existing Private DNS Zone resource IDs for BYO network scenarios. Each property should contain the full resource ID of the DNS zone. When provided, these take precedence over dnsZoneRG/dnsSubscriptionId.')
+@description('Existing Private DNS Zone resource IDs for new or existing VNets. Each property contains the full zone resource ID and takes precedence over dnsZoneRG/dnsSubscriptionId. Supplied zones are not created or VNet-linked by this deployment; manage their links or DNS forwarding separately.')
 param existingPrivateDnsZones object = {
   // Example format:
   // openai: '/subscriptions/{sub-id}/resourceGroups/{rg}/providers/Microsoft.Network/privateDnsZones/privatelink.openai.azure.com'

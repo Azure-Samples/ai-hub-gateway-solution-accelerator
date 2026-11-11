@@ -34,6 +34,27 @@ This package enables dynamic LLM backend routing without modifying APIM policies
 > entries are redacted (Key Vault references and named-value keys are preserved). See the
 > [Release Version Management Guide](../../../guides/release-version-management.md#backend-contract-endpoint).
 
+## Decision Models
+
+Microsoft Decision-1 uses `backendType: 'azure-decision'` with
+`endpoint: 'https://REPLACE.services.ai.azure.com/'`. Supply the resource root,
+not the complete `/providers/microsoft/v1/systemone` path. Use existing
+managed-identity credentials or `api-key-header` with Key Vault/named-value
+references. OpenAI Decisions reuses an existing `ai-foundry` / `azure-openai`
+backend and its registered deployment.
+
+Append to the **complete** existing backend source; preserve models, aliases,
+auth references and session/circuit settings. No new required fields are added.
+For validation/discovery, declare `operations: ['decisions']` on an eligible
+OpenAI model (retaining its other supported operations); Microsoft validation
+infers `systemone` for the new backend type.
+
+Backend onboarding updates dynamic metadata/pools but **not** the shared request
+processor/path builder. Upgrade those first using the
+[staged upgrade](../apim-gateway-upgrade/README.md#decision--systemone-release-upgrade),
+then run the [Decision notebook](../../../validation/citadel-decision-models-tests.ipynb).
+See [native payloads and request-governance limits](../../../guides/decision-models-guide.md).
+
 ## Prerequisites
 
 **Foundry v1 API versions:** When `set-backend-authorization` rewrites a request to
@@ -121,7 +142,7 @@ az deployment sub create --name llm-backend-onboarding --location swedencentral 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | `backendId` | string | Yes | Unique identifier for the backend (usually the name of the backend resource) |
-| `backendType` | string | Yes | `ai-foundry`, `azure-openai`, `aws-bedrock`, `aws-bedrock-mantle`, `gemini`, `gemini-openai`, `anthropic`, `azure-flux`, `azure-mai`, or `external` |
+| `backendType` | string | Yes | `ai-foundry`, `azure-openai`, `aws-bedrock`, `aws-bedrock-mantle`, `gemini`, `gemini-openai`, `anthropic`, `azure-flux`, `azure-mai`, `azure-decision`, or `external` |
 | `endpoint` | string | Yes | Base URL of the LLM service |
 | `authType` | string | No | `managed-identity`, `aws-sigv4`, `api-key-bearer`, `api-key-header`, `api-key-gemini`, `api-key-anthropic`, or `none`. When omitted, derived from `backendType` (ai-foundry/azure-openai → `managed-identity`) |
 | `authConfig` | object | No | `{ namedValueKey, keyVaultSecretUri?, secretValue? }` — required for `api-key-*` auth types |

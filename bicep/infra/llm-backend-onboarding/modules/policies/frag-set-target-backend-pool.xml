@@ -33,6 +33,31 @@
                         `resolve-model-alias` fragment. The picked model is at index 0; fallback members follow.
     -->
 
+    <!-- SystemOne pools are opt-in, including on legacy surfaces without a pool-type filter. -->
+    <set-variable name="systemone-pool-names" value="@{
+        var pools = context.Variables.GetValueOrDefault<JArray>("backendPools");
+        return new JArray(pools.OfType<JObject>().Where(p => (string)p["poolType"] == "azure-decision").Select(p => (string)p["poolName"]));
+    }" />
+    <set-variable name="backendPools" value="@{
+        var source = context.Variables.GetValueOrDefault<JArray>("backendPools");
+        if (context.Variables.GetValueOrDefault<string>("api-type", "") == "systemone"
+            || context.Variables.GetValueOrDefault<JArray>("systemone-pool-names").Count == 0) { return source; }
+        var pools = (JArray)source.DeepClone();
+        foreach (JObject pool in pools.OfType<JObject>().ToList()) {
+            if ((string)pool["poolType"] == "azure-decision") { pool.Remove(); continue; }
+            var members = pool["members"] as JArray;
+            if (members == null) { continue; }
+            foreach (JObject member in members.OfType<JObject>()) {
+                var memberPools = member["pools"] as JArray;
+                if (memberPools == null) { continue; }
+                foreach (JObject candidate in memberPools.OfType<JObject>().ToList()) {
+                    if ((string)candidate["poolType"] == "azure-decision") { candidate.Remove(); }
+                }
+            }
+        }
+        return pools;
+    }" />
+
     <!-- Initialize alias tracking variables to safe defaults so downstream fragments
          (resolve-model-alias body rewrite, set-response-headers, set-llm-usage, retry blocks)
          can read them unconditionally. -->
@@ -346,6 +371,24 @@
             return "ERROR_NO_MODEL";
         }
         return "ERROR_MODEL_NOT_SUPPORTED";
+    }" />
+
+    <set-variable name="targetBackendPool" value="@{
+        var target = context.Variables.GetValueOrDefault<string>("targetBackendPool", "");
+        var apiType = context.Variables.GetValueOrDefault<string>("api-type", "");
+        var nativePools = context.Variables.GetValueOrDefault<JArray>("systemone-pool-names");
+        if (apiType != "systemone" && nativePools.Any(p => (string)p == target)) {
+            return "ERROR_MODEL_NOT_SUPPORTED";
+        }
+        if (context.Variables.GetValueOrDefault<bool>("is-decision-request", false) && !target.StartsWith("ERROR_")) {
+            var types = context.Variables.GetValueOrDefault<string>("compatiblePoolTypes", "").Split(',');
+            var pools = context.Variables.GetValueOrDefault<JArray>("backendPools");
+            if (!pools.OfType<JObject>().Any(p => (string)p["poolName"] == target
+                && types.Contains((string)p["poolType"], StringComparer.OrdinalIgnoreCase))) {
+                return "ERROR_MODEL_NOT_SUPPORTED";
+            }
+        }
+        return target;
     }" />
 
     <!-- Validate target backend pool and return appropriate error response if needed -->

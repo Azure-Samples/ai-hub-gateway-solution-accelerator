@@ -15,6 +15,17 @@ This guide walks through every step required to add a new API type, using **Amaz
 
 ## Architecture Context
 
+**Decision worked example:** `decisions` (`/v1/decisions`) and
+`decisions-openai-v1` (`/openai/v1/decisions`) restrict pools to
+`ai-foundry,azure-openai`. `systemone` (`/providers/microsoft/v1/systemone`)
+restricts pools to the new `azure-decision` type. Both mirrored metadata
+fragments define the backend templates; shared request/path fragments validate
+the complete POST path and strip only `api-version`. The shared pool selector
+also excludes `azure-decision` from legacy surfaces and alias/default selection.
+Adding a native backend therefore cannot accidentally make it chat-compatible.
+The metadata cache version advances with the routing feature. See the
+[Decision models guide](./decision-models-guide.md).
+
 The Unified AI API handles all request patterns through a single wildcard endpoint (`/unified-ai/*`). The routing flow is:
 
 ```

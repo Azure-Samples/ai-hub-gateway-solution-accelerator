@@ -189,7 +189,8 @@ resource apimRouteTable 'Microsoft.Network/routeTables@2023-11-01' = {
   }
 }
 
-resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
+// Omitting the parent subnets property preserves subnets managed outside this template.
+resource virtualNetwork 'Microsoft.Network/virtualNetworks@2026-01-01' = {
   name: name
   location: location
   tags: union(tags, { 'azd-service-name': name })
@@ -199,130 +200,124 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
         vnetAddressPrefix
       ]
     }
-    subnets: concat([
-      {
-        name: apimSubnetName
-        properties: {
-          addressPrefix: apimSubnetAddressPrefix
-          networkSecurityGroup: apimNsg.id == '' ? null : {
-            id: apimNsg.id 
-          }
-          routeTable: {
-            id: apimRouteTable.id
-          }
-          serviceEndpoints: enableServiceEndpointsForAPIM ? [
-            {
-              service: 'Microsoft.AzureActiveDirectory'
-            }
-            {
-              service: 'Microsoft.EventHub'
-            }
-            {
-              service: 'Microsoft.KeyVault'
-            }
-            {
-              service: 'Microsoft.ServiceBus'
-            }
-            {
-              service: 'Microsoft.Sql'
-            }
-            {
-              service: 'Microsoft.Storage'
-            }
-            {
-              service: 'Microsoft.CognitiveServices'
-            }
-          ] : []
-          privateEndpointNetworkPolicies: 'Enabled'
-          privateLinkServiceNetworkPolicies: 'Enabled'
-          delegations: isAPIMV2SKU ? [
-          {
-            name: 'Microsoft.Web/serverFarms'
-            properties: {
-            serviceName: 'Microsoft.Web/serverFarms'
-            }
-          }
-          ] : []
-        }
-      }
-      {
-        name: privateEndpointSubnetName
-        properties: {
-          addressPrefix: privateEndpointSubnetAddressPrefix
-          networkSecurityGroup: privateEndpointNsg.id == '' ? null : {
-            id: privateEndpointNsg.id
-          }
-          privateEndpointNetworkPolicies: 'Disabled'
-          privateLinkServiceNetworkPolicies: 'Enabled'
-          serviceEndpoints: [
-            {
-              service: 'Microsoft.CognitiveServices'
-            }
-          ]
-        }
-      }
-      {
-        name: functionAppSubnetName
-        properties: {
-          addressPrefix: functionAppSubnetAddressPrefix
-          networkSecurityGroup: functionAppNsg.id == '' ? null : {
-            id: functionAppNsg.id
-          }
-          privateEndpointNetworkPolicies: 'Enabled'
-          privateLinkServiceNetworkPolicies: 'Enabled'
-          serviceEndpoints: [
-            {
-              service: 'Microsoft.CognitiveServices'
-            }
-          ]
-          delegations: [
-            {
-              name: 'Microsoft.Web/serverFarms'
-              properties: {
-                serviceName: 'Microsoft.Web/serverFarms'
-              }
-            }
-          ]
-        }
-      }
-    ], enableAgentSubnet ? [
-      {
-        name: agentSubnetName
-        properties: {
-          addressPrefix: agentSubnetAddressPrefix
-          networkSecurityGroup: {
-            id: agentNsg.id
-          }
-          privateEndpointNetworkPolicies: 'Enabled'
-          privateLinkServiceNetworkPolicies: 'Enabled'
-          delegations: [
-            {
-              name: 'Microsoft.app/environments'
-              properties: {
-                serviceName: 'Microsoft.App/environments'
-              }
-            }
-          ]
-        }
-      }
-    ] : [])
   }
-  
 
-  resource apimSubnet 'subnets' existing = {
+  resource apimSubnet 'subnets' = {
     name: apimSubnetName
+    properties: {
+      addressPrefix: apimSubnetAddressPrefix
+      networkSecurityGroup: apimNsg.id == '' ? null : {
+        id: apimNsg.id
+      }
+      routeTable: {
+        id: apimRouteTable.id
+      }
+      serviceEndpoints: enableServiceEndpointsForAPIM ? [
+        {
+          service: 'Microsoft.AzureActiveDirectory'
+        }
+        {
+          service: 'Microsoft.EventHub'
+        }
+        {
+          service: 'Microsoft.KeyVault'
+        }
+        {
+          service: 'Microsoft.ServiceBus'
+        }
+        {
+          service: 'Microsoft.Sql'
+        }
+        {
+          service: 'Microsoft.Storage'
+        }
+        {
+          service: 'Microsoft.CognitiveServices'
+        }
+      ] : []
+      privateEndpointNetworkPolicies: 'Enabled'
+      privateLinkServiceNetworkPolicies: 'Enabled'
+      delegations: isAPIMV2SKU ? [
+        {
+          name: 'Microsoft.Web/serverFarms'
+          properties: {
+            serviceName: 'Microsoft.Web/serverFarms'
+          }
+        }
+      ] : []
+    }
   }
 
-  resource privateEndpointSubnet 'subnets' existing = {
+  resource privateEndpointSubnet 'subnets' = {
     name: privateEndpointSubnetName
+    properties: {
+      addressPrefix: privateEndpointSubnetAddressPrefix
+      networkSecurityGroup: privateEndpointNsg.id == '' ? null : {
+        id: privateEndpointNsg.id
+      }
+      privateEndpointNetworkPolicies: 'Disabled'
+      privateLinkServiceNetworkPolicies: 'Enabled'
+      serviceEndpoints: [
+        {
+          service: 'Microsoft.CognitiveServices'
+        }
+      ]
+    }
+    // Serialize subnet writes to avoid concurrent updates to the same VNet.
+    dependsOn: [
+      virtualNetwork::apimSubnet
+    ]
   }
 
-  resource functionAppSubnet 'subnets' existing = {
+  resource functionAppSubnet 'subnets' = {
     name: functionAppSubnetName
+    properties: {
+      addressPrefix: functionAppSubnetAddressPrefix
+      networkSecurityGroup: functionAppNsg.id == '' ? null : {
+        id: functionAppNsg.id
+      }
+      privateEndpointNetworkPolicies: 'Enabled'
+      privateLinkServiceNetworkPolicies: 'Enabled'
+      serviceEndpoints: [
+        {
+          service: 'Microsoft.CognitiveServices'
+        }
+      ]
+      delegations: [
+        {
+          name: 'Microsoft.Web/serverFarms'
+          properties: {
+            serviceName: 'Microsoft.Web/serverFarms'
+          }
+        }
+      ]
+    }
+    dependsOn: [
+      virtualNetwork::privateEndpointSubnet
+    ]
   }
 
-  resource agentSubnet 'subnets' existing = if (enableAgentSubnet) {
+  resource agentSubnet 'subnets' = if (enableAgentSubnet) {
     name: agentSubnetName
+    properties: {
+      addressPrefix: agentSubnetAddressPrefix
+      networkSecurityGroup: {
+        id: agentNsg.id
+      }
+      privateEndpointNetworkPolicies: 'Enabled'
+      privateLinkServiceNetworkPolicies: 'Enabled'
+      delegations: [
+        {
+          name: 'Microsoft.app/environments'
+          properties: {
+            serviceName: 'Microsoft.App/environments'
+          }
+        }
+      ]
+    }
+    dependsOn: [
+      virtualNetwork::functionAppSubnet
+    ]
   }
 }
 

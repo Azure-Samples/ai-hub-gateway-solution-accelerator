@@ -18,7 +18,7 @@ from shared import utils as notebook_utils
 from shared.contracttools import access_policy, scoped_deployment_name
 from shared.scenariotools import (
     access_parameters, cleanup_products, completion_text, contract_identity,
-    policy_xml, save_manifest,
+    parse_policy_xml, policy_xml, raw_policy_xml, save_manifest,
 )
 from shared.validationtools import (
     ModelCatalog, ValidationBlocked, ValidationError, ValidationRun,
@@ -156,6 +156,22 @@ class ScenarioHelperTests(unittest.TestCase):
         self.assertEqual(root.find("./trace/metadata[@name='details']").text,
                          '@(context.Variables.GetValueOrDefault<string>("details"))')
         self.assertIsNotNone(root.find("./return-response/set-body"))
+
+    def test_raw_policy_round_trip_preserves_csharp_and_static_xml_values(self):
+        root = ET.Element("policies")
+        inbound = ET.SubElement(root, "inbound")
+        expression = '@{\n    // Keep the following return executable.\n    return "a<b" + @"\\d+";\n}'
+        ET.SubElement(inbound, "set-variable", {"name": "example", "value": expression})
+        ET.SubElement(inbound, "set-variable", {"name": "json", "value": '[{"name": "example"}]'})
+        ET.SubElement(inbound, "set-variable", {"name": "literal", "value": "a&b<c"})
+        ET.SubElement(inbound, "set-header", {"name": "example", "exists-action": "override"})
+        ET.SubElement(inbound[-1], "value").text = '@(context.Variables.GetValueOrDefault<string>("example"))'
+        source = raw_policy_xml(root)
+        self.assertIn(f'value="{expression}"', source)
+        self.assertIn('GetValueOrDefault<string>("example")', source)
+        self.assertEqual(ET.tostring(parse_policy_xml(source)), ET.tostring(root))
+        normalized = policy_xml(source)
+        self.assertEqual(policy_xml(normalized), normalized)
 
     def test_preserved_pii_policies_keep_feature_semantics(self):
         for name, inbound_fragment in [("pii_masking_policy", "pii-anonymization"),

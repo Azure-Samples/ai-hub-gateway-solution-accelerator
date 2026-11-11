@@ -33,6 +33,16 @@
         <otherwise>
             <!-- Reconstruct request paths based on API type -->
             <choose>
+                <when condition="@(context.Variables.GetValueOrDefault<bool>("is-decision-request", false))">
+                    <set-variable name="finalPath" value="@{
+                        var apiType = context.Variables.GetValueOrDefault<string>("api-type", "");
+                        var operation = apiType == "systemone" ? "systemone" : "decisions";
+                        var poolType = context.Variables.GetValueOrDefault<string>("targetPoolType", "");
+                        var templates = context.Variables.GetValueOrDefault<JObject>("config-backend-path-templates");
+                        return templates?[poolType]?[operation]?.ToString() ?? String.Empty;
+                    }" />
+                    <set-query-parameter name="api-version" exists-action="delete" />
+                </when>
                 <!-- Gemini OpenAI API and OpenAI v1: {api-base-path}/chat/completions -->
                 <when condition="@{
                     var apiType = context.Variables.GetValueOrDefault<string>("api-type");

@@ -21,6 +21,10 @@ mono_crash.*
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
+# Keep versioned release documentation, but not binary release output.
+!/releases/
+/releases/*
+!/releases/*.md
 x64/
 x86/
 [Ww][Ii][Nn]32/
@@ -433,3 +437,4 @@ bicep/infra/citadel-access-contracts/contracts/hr-chatagent/dev/ai-product-polic
 bicep/infra/llm-backend-onboarding/llm-backends-aliases-validation.bicepparam
 bicep/infra/llm-backend-onboarding/main.bicepparam
 scripts/generate-lean-openapi.py
+bicep/infra/central-dns/tests/test-central-dns.ps1

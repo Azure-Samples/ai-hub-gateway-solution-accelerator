@@ -6,26 +6,56 @@ parameter previews, deployments and feature requests remain visible in the noteb
 
 import json
 import re
+from html import unescape
 from pathlib import Path
 import xml.etree.ElementTree as ET
-from xml.sax.saxutils import escape
+from xml.sax.saxutils import escape, quoteattr
 
 
 def policy_xml(source):
-    """Escape APIM C# attributes and body/trace text without changing structure."""
+    """Make an XML-parser copy of APIM source, preserving C# line breaks."""
     source = re.sub(
-        r'([\w:-]+)="(.*?)"(?=\s*(?:/?>|[\w:-]+="))',
+        r"""([\w:-]+)="(.*?)"(?=\s*(?:/?>|[\w:-]+=["']))""",
         lambda match: match[1] + '="' + escape(
-            match[2], {'"': "&quot;"}
+            unescape(match[2]),
+            {'"': "&quot;", "\n": "&#10;", "\r": "&#13;", "\t": "&#9;"}
         ) + '"',
         source, flags=re.DOTALL,
     )
     source = re.sub(
-        r"(<(set-body|message|metadata)(?:\s[^>]*?)?(?<!/)>)(.*?)(</\2>)",
-        lambda match: match[1] + escape(match[3]) + match[4],
+        r"(<(set-body|set-url|value|message|metadata)(?:\s[^>]*?)?(?<!/)>)(.*?)(</\2>)",
+        lambda match: match[1] + escape(unescape(match[3])) + match[4],
         source, flags=re.DOTALL,
     )
     ET.fromstring(source)
+    return source
+
+
+def parse_policy_xml(source: str) -> ET.Element:
+    """Parse ordinary XML or APIM rawxml without changing the deployed source."""
+    return ET.fromstring(policy_xml(source))
+
+
+def raw_policy_xml(root: ET.Element) -> str:
+    """Serialize a policy tree as APIM rawxml, not XML-escaped C# code."""
+    def text(value: str | None) -> str:
+        value = value or ""
+        return value if value.lstrip().startswith(("@(", "@{")) else escape(value)
+
+    def element(node: ET.Element) -> str:
+        attributes = "".join(
+            f' {name}="{value}"' if value.lstrip().startswith(("@(", "@{"))
+            else f" {name}={quoteattr(value)}"
+            for name, value in node.items()
+        )
+        if not len(node) and node.text is None:
+            return f"<{node.tag}{attributes} />" + text(node.tail)
+        return (f"<{node.tag}{attributes}>" + text(node.text)
+                + "".join(element(child) for child in node)
+                + f"</{node.tag}>" + text(node.tail))
+
+    source = element(root)
+    parse_policy_xml(source)
     return source
 
 

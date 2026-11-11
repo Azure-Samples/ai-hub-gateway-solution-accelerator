@@ -25,11 +25,11 @@ ingestion).
 
 ```jsonc
 {
-    "master-version": "1.0.2",
-    "routing-version": "1.0.0",
-    "backend-contract-version": "1.1.0",
+    "master-version": "1.1.0",
+    "routing-version": "1.1.0",
+    "backend-contract-version": "1.2.0",
     "access-contract-version": "1.2.0",
-    "publish-contract-version": "1.0.0-preview",
+    "publish-contract-version": "1.1.0-preview",
     "gateway-upgrade-version": "1.0.0-preview",
     "usage-ingestion-version": "1.1.0"
 }
@@ -171,6 +171,30 @@ upgrade / onboarding), and the endpoints reflect the new values.
 ---
 
 ## Bumping a Version
+
+### Versioned release history
+
+For each coordinated release, create `releases/<master-version>.md` using the
+exact value from [release.json](../release.json), for example
+[releases/1.1.0.md](../releases/1.1.0.md). Link it from the root README.
+Keep published notes append-only and do not invent entries for past versions.
+
+Each note should include:
+
+- Release status and actual publication date when known (do not invent one).
+- User-visible highlights and Added/Changed/Fixed items.
+- Previous/new component-version table and reasons; leave unrelated tracks alone.
+- Supported routes/providers and prerequisites.
+- Backward-compatibility guarantees, required configuration and upgrade steps.
+- Executed validation versus tests still requiring Azure.
+- Known limitations, rollback and related guide/provider links.
+
+**Decision / SystemOne 1.1.0:** master `1.1.0`, routing `1.1.0` and backend
+contract `1.2.0`; access/publish/upgrade/ingestion tracks are unchanged.
+Use the [staged Decision upgrade](../bicep/infra/apim-gateway-upgrade/README.md#decision--systemone-release-upgrade)
+to retain aliases and custom session/circuit settings. Backend onboarding alone
+does not update common request/path fragments. Request-based Decision limits do
+not imply built-in token accounting support.
 
 1. **Identify the affected track(s).** Only bump tracks whose component actually changed.
 2. **Choose the SemVer increment** (MAJOR / MINOR / PATCH) based on the impact rules above.

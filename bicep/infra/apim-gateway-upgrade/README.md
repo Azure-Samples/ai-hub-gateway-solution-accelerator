@@ -1,5 +1,51 @@
 # APIM Gateway Upgrade (PREVIEW)
 
+## Decision / SystemOne release upgrade
+
+For release [1.1.0](../../../releases/1.1.0.md), use a **two-stage** upgrade of an
+existing gateway. Do not rerun the initial landing-zone deployment.
+
+1. Save the complete approved backend-onboarding source, current `/version` and
+   `/version/backend-contract`, including aliases, auth references and custom
+   circuit-breaker/session settings.
+2. Upgrade common fragments, Unified AI API and version manifest. Set:
+
+   ```bicep
+   updatePolicyFragments: true
+   updateUnifiedAiApi: true
+   updateReleaseVersionApi: true
+   updateLLMBackends: false
+   updateLLMBackendPools: false
+   updateLLMPolicyFragments: false
+   ```
+
+   Preserve existing feature/auth configuration. Disable unrelated upgrade
+   sections for this scoped rollout, including API replacements, diagnostics,
+   named values/JWT named values, Redis and embeddings unless separately needed.
+   The snippets above are parameter values, not a standalone parameter file.
+3. Use [LLM Backend Onboarding](../llm-backend-onboarding/README.md) with the
+   complete source to update dynamic metadata, pool-selector fragments and any
+   new `azure-decision` backends. The
+   [Decision notebook](../../../validation/citadel-decision-models-tests.ipynb)
+   performs this stage automatically when needed, then creates its access
+   contract and tests the native APIs.
+4. Verify `/version` and `/version/backend-contract`, new routes, aliases,
+   circuit/session settings, fresh and cached metadata, and existing routes.
+   The upgrade is incomplete until both stages have passed.
+
+**Why separate the stages:** the current upgrade module's dynamic parameter
+surface does not forward aliases/session defaults and enables backend circuit
+breakers. Enabling its three dynamic `updateLLM*` flags against a customized
+configuration can reset settings. Use the complete-source onboarding module
+instead; no upgrade-interface change is required for this release.
+
+For rollback, restore the previous release's common/API/version artifacts using
+the same scoped flags, then its onboarding module with the saved complete source.
+Do not delete shared backends or predecessor access contracts. Allow the metadata
+cache's 300-second TTL to expire, or perform an approved cache reset, before
+signing off restored routing. See [Decision payloads and governance
+limitations](../../../guides/decision-models-guide.md). (PREVIEW)
+
 As the AI Governance Hub solution accelerator evolves, you may need to update the API Management gateway configuration to add new APIs, modify policies, or adjust logging settings. 
 
 This deployment allows you to seamlessly apply updates to an existing APIM instance without needing to re-provision the entire service or associated infrastructure.

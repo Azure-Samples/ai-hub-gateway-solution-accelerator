@@ -1,6 +1,18 @@
 
 # Network Architecture
 
+## Subnet Ownership and Redeployment
+
+When `useExistingVnet = false`, the accelerator deploys its subnets as individual child resources in [the VNet module](../bicep/infra/modules/networking/vnet.bicep). The parent VNet deliberately omits the inline `subnets` property, so incremental redeployments through `azd up` preserve additional subnets created through the Azure portal or other deployments.
+
+Existing deployment parameter files require no changes. Subnet names, resource IDs, address prefixes, NSGs, routes, service endpoints, and delegations remain governed by the same parameters. Subnet updates run sequentially to avoid concurrent writes to the same VNet.
+
+The accelerator still manages the VNet address space and the configuration of its own subnets; portal changes to those settings can be overwritten on redeployment. When `useExistingVnet = true`, the existing reference-only networking behavior is unchanged.
+
+With incremental deployments, disabling `foundryNetworkInjectionEnabled` also leaves any previously created agent subnet in place. Delete an unused subnet separately only after disconnecting its workloads.
+
+Run the local subnet regression checks from the repository root with `pwsh -File .\bicep\infra\modules\networking\tests\test-vnet.ps1` (requires Azure CLI and Bicep; no Azure deployment is performed).
+
 ## Network Deployment Approaches
 
 AI Citadel Governance Hub supports **two architectural patterns** for network integration.

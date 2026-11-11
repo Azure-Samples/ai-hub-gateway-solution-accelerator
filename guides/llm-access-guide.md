@@ -8,6 +8,20 @@ It opens with an executive summary for architects and platform owners, then dive
 
 ## Executive Summary
 
+### Decision and SystemOne inference
+
+| Unified AI POST route | Backend type |
+|---|---|
+| `/unified-ai/v1/decisions` or `/unified-ai/openai/v1/decisions` | Existing `ai-foundry` / `azure-openai` |
+| `/unified-ai/providers/microsoft/v1/systemone` | Dedicated `azure-decision` |
+
+These native typed-decision payloads are not chat requests and are not translated.
+Model grants and backend authentication are reused, but the token-policy and
+content/PII adapters described for chat are **not certified for Decision schemas**.
+Use explicit request-rate/quota governance and native returned usage. See the
+[Decision models guide](./decision-models-guide.md) for payloads, eligibility,
+authentication, upgrade steps and the validation notebook.
+
 The Citadel Governance Hub exposes every LLM — Azure OpenAI (legacy), Microsoft Foundry Models, AWS Bedrock, Google Gemini, Anthropic Claude, and other providers — through **Azure API Management (APIM)** acting as a single, governed front door. 
 
 Instead of distributing master keys and letting each team call provider endpoints directly, all traffic flows through one control plane that enforces security, RBAC, cost attribution, load balancing, failover, and observability on every call.

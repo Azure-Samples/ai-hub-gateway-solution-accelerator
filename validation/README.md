@@ -112,6 +112,13 @@ Run All. Interactive authentication examples are disabled by default and must
 be run deliberately. Environment Setup remains a prerequisite: package
 installation can require a kernel restart before running scenarios.
 
+Contract deployments suppress `az deployment sub create` output and check its
+exit code, then retrieve the persisted deployment state and credential-safe
+outputs with `az deployment sub show --output json`. Success requires both
+`Succeeded` and all required nonempty output envelopes; the deployment command's
+stdout is not parsed as JSON. CLI failures and malformed read-back responses
+remain errors, with raw output withheld to protect credentials.
+
 ### Supplying genuinely external inputs once
 
 These optional values can be resolved from the selected azd environment when
@@ -156,6 +163,7 @@ The 15 scenarios are:
 | 13 | [Image Models](citadel-image-models-tests.ipynb) | Real generation/edit images, body/path/header model selection, multipart requests, and negative policy cases. Uses inferred/overridden image operations and configured native provider paths. |
 | 14 | [Foundry HR Web Search Chat](citadel-foundry-hr-web-search-tests.ipynb) | A real Foundry Prompt Agent reusing the HR contract, 10 visualized turns, web-search/citation evidence, and bounded visible token-limit recovery. Run Access Contracts first. |
 | 15 | [Self-hosted Gateway](citadel-self-hosted-gateway-tests.ipynb) | Existing gateway in another cloud/on premises; provisions an access contract with default-on token limits, model RBAC, Content Safety and request PII anonymization. Authenticated `/models/deployments` discovery and a filtered GPT text-only chat loop run exclusively against the self-hosted origin. |
+| 16 | [Decision Models](citadel-decision-models-tests.ipynb) | OpenAI Decisions and Microsoft SystemOne native typed answers, image/JSON input, routing evidence, lossless automatic backend onboarding, access contracts, authentication/RBAC and isolated request-rate/quota probes. Existing supported model deployments required; missing providers are explicit skips. |
 
 The environment-setup notebook is a separate prerequisite, not an additional
 scenario. Archived notebooks and `validation-local` are outside this workflow.
@@ -175,14 +183,35 @@ configured GPT text/chat plan; empty or invalid selections fail before deploymen
 With model RBAC on, deployment discovery must match the grant exactly. With RBAC
 off, other deployments may be visible but are never added to the text test loop.
 
+Discovery requires a nonempty JSON response, not just HTTP 200. Empty HTTP 200
+responses, like HTTP 401/403/404, are retried only within the configured
+`sync_timeout_seconds` window. Each retry reports status, content type and body
+byte count. Nonempty malformed responses fail immediately with metadata and
+endpoint/policy guidance; raw bodies are withheld. A permanently empty response
+is a failure, never an empty inventory or a reason to use the managed endpoint.
+
 Use a gateway image supporting the selected AI policies. Configure off-cloud
 authentication and connectivity for shared inference routing, the Content Safety
-backend, and Azure AI Language. The contract reuses the PII implementation locally
-with Microsoft Entra Workload ID, not the managed identity of the Azure APIM
-resource; grant the workload identity the required Language-service permissions.
-No shared fragment is overwritten. PII is request-only anonymization with synthetic
-data and fail-closed service errors. Set `REQUESTS_CA_BUNDLE` for private CAs;
-certificate verification stays enabled.
+backend, and Azure AI Language. The product policy enables/configures the deployed
+`pii-anonymization` fragment and includes it by reference, following the
+[masking example](../bicep/infra/citadel-access-contracts/contracts/hr-piimasking/dev/ai-product-policy.xml).
+The [blocking example](../bicep/infra/citadel-access-contracts/contracts/compliance-piiblocking/dev/ai-product-policy.xml)
+uses the same fragment plus a rejection check; this notebook retains request-only
+masking with synthetic data and fail-closed service errors. It does not inline
+detection/service calls, rewrite authentication, or update shared fragments.
+Initialization verifies that the PII fragment and `piiServiceUrl` named value exist
+when PII is enabled. Configure the deployed fragment's credentials and
+Language-service permissions for the self-hosted environment; the APIM instance's
+managed identity is not automatically available off-cloud.
+Set `REQUESTS_CA_BUNDLE` for private CAs; certificate verification stays enabled.
+
+Generated product policies use APIM `rawxml`, preserving C# quotes, generic type
+brackets, operators and expression line breaks. Do not XML-escape the expression
+source or flatten multiline attributes: `//` comments must end before subsequent
+statements. Local validation and deployed-policy comparison use a separate
+XML-parser representation; the artifact itself remains raw APIM source.
+After updating these helpers, restart the kernel and rerun from configuration
+to regenerate the policy before deploying.
 
 Highlighted feature tables appear at initialization, deployment and summary.
 Per-model checks require the actual edge gateway ID/current contract marker,
@@ -244,6 +273,30 @@ notebook. azd outputs describe configuration, not current provider availability.
 
 ### Automatic operations, overrides, and excluded models
 
+Decision validation adds operation labels `decisions` (OpenAI) and `systemone`
+(Microsoft). The Decision scenario recognizes live `gpt-6-luna` and
+`Decision-1` registrations automatically. Other OpenAI deployments can declare
+support through model `operations` metadata or an explicit override; it is not
+inferred for every GPT deployment.
+The new `azure-decision` backend type infers `systemone` rather than chat.
+Existing inference rules below remain unchanged for all older backend types.
+Include a model's other supported operations when writing an explicit list.
+
+The [Decision notebook](citadel-decision-models-tests.ipynb) uses live gateway
+backend/model discovery. Registered targets skip backend reconfiguration and
+proceed to access-contract creation without a source file, local additions file
+or capability map. Explicit complete-source/additions are used only for a
+missing provider. Common Decision fragments must already be deployed. Products and deployment identities
+are stable; artifacts and limit-test counters are run-scoped.
+Shared backend additions are retained. Cleanup defaults off and removes only
+products proven to be newly created. Provider failures are not availability
+skips, and no successful provider means no passing verdict.
+
+Its Decision contract deliberately uses request limits, **not** unsupported
+built-in token accounting. Native returned usage is displayed; Decision token
+telemetry/custom token enforcement are deferred. See the
+[Decision guide](../guides/decision-models-guide.md).
+
 Without operation overrides, models use explicitly supplied operation metadata
 when present, otherwise these case-insensitive substring rules, in order:
 
@@ -292,7 +345,7 @@ eligible model is excluded, initialization explains why no tests can run.
 For strict manually mapped operation support, set
 `overrides["infer_operations"] = False` and provide the required mappings.
 Operation labels are case-sensitive: `chat`, `responses`, `embeddings`,
-`image-generation`, `image-edit`, and explicit `streaming` for overridden chat
+`image-generation`, `image-edit`, `decisions`, `systemone`, and explicit `streaming` for overridden chat
 models. Native provider scenarios retain their protocol-specific requests.
 
 **Responses GET and input-items GET returning HTTP 404 are warnings for every
