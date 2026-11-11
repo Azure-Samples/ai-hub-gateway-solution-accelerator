@@ -41,6 +41,9 @@ param enablePIIAnonymization bool = true
 param contentSafetyServiceUrl string
 param aiLanguageServiceUrl string
 
+@description('Base endpoint of the AI Services (Foundry) account serving Document Intelligence (required when enableDocumentIntelligence is true)')
+param documentIntelligenceServiceUrl string = ''
+
 
 // Networking
 param apimNetworkType string = 'External'
@@ -307,6 +310,7 @@ module apimDocumentIntelligenceLegacy './api.bicep' = if (enableDocumentIntellig
   }
   dependsOn: [
     policyFragments
+    documentIntelligenceServiceUrlNamedValue
   ]
 }
 
@@ -328,6 +332,7 @@ module apimDocumentIntelligence './api.bicep' = if (enableDocumentIntelligence) 
   }
   dependsOn: [
     policyFragments
+    documentIntelligenceServiceUrlNamedValue
   ]
 }
 
@@ -764,6 +769,16 @@ resource contentSafetyServiceUrlNamedValue 'Microsoft.ApiManagement/service/name
     displayName: 'contentSafetyServiceUrl'
     secret: false
     value: contentSafetyServiceUrl
+  }
+}
+
+resource documentIntelligenceServiceUrlNamedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' = if (enableDocumentIntelligence) {
+  name: 'documentIntelligenceServiceUrl'
+  parent: apimService
+  properties: {
+    displayName: 'documentIntelligenceServiceUrl'
+    secret: false
+    value: documentIntelligenceServiceUrl
   }
 }
 
