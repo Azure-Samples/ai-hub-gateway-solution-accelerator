@@ -119,6 +119,7 @@ resource api 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' = {
     protocols: [
       'https'
     ]
+    serviceUrl: 'https://to-be-replaced-by-policy'
     subscriptionKeyParameterNames: {
       header: 'api-key'
       query: 'api-key'

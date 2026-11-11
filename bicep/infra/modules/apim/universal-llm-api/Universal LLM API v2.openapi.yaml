@@ -6,7 +6,7 @@ info:
     url: https://github.com/openai/openai-openapi/blob/master/LICENSE
   version: '1.0'
 servers:
-  - url: https://apim-djiidqck2nhpg.azure-api.net/models
+  - url: https://to-be-replaced-by-policy
 paths:
   /deployments:
     get:
