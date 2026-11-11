@@ -3,7 +3,7 @@ info:
   title: Inference-api
   version: '1.0'
 servers:
-  - url: https://apim-7c3dvrbie5sui.azure-api.net/inf-2/models
+  - url: https://to-be-replaced-by-policy
 paths:
   /chat/completions:
     post:

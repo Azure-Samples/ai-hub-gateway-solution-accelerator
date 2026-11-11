@@ -10,7 +10,7 @@
     },
     "servers": [
         {
-            "url": "https://apim-djiidqck2nhpg.azure-api.net/models"
+            "url": "https://to-be-replaced-by-policy"
         }
     ],
     "paths": {

@@ -11,7 +11,7 @@ info:
     url: https://github.com/openai/openai-openapi/blob/master/LICENSE
   version: '1.0'
 servers:
-  - url: https://apim-7c3dvrbie5sui.azure-api.net
+  - url: https://to-be-replaced-by-policy
 paths:
   /assistants:
     get:

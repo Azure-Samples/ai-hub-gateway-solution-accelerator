@@ -4,7 +4,7 @@ info:
   description: Azure OpenAI APIs for completions and search
   version: '1.0'
 servers:
-  - url: https://apim-7c3dvrbie5sui.azure-api.net/openai-import/openai
+  - url: https://to-be-replaced-by-policy
 paths:
   '/deployments/{deployment-id}/completions':
     post:
