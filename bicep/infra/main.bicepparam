@@ -163,6 +163,8 @@ param appInsightsLogSettings = {
   body: { bytes: 8192 }
 }
 
+param enableOtherAPIDiagnostics = bool(readEnvironmentVariable('ENABLE_OTHER_API_DIAGNOSTICS', 'false'))
+
 // ============================================================================
 // COMPUTE SKU & SIZE - SKUs and capacity settings for services
 // ============================================================================
