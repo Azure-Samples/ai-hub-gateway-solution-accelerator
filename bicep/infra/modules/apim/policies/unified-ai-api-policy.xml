@@ -2,32 +2,7 @@
     <inbound>
         <base />
 
-        <!--
-            Unified AI API Policy
-            Purpose: Main orchestration policy for the Unified AI Gateway that coordinates all policy
-                     fragments to provide comprehensive AI model routing, authentication, rate limiting,
-                     and monitoring across multiple API types and model providers.
-                     
-                     Uses shared fragments (set-backend-pools, set-target-backend-pool,
-                     set-backend-authorization, validate-model-access, set-llm-usage) unified across
-                     all 3 API flavors (Azure OpenAI, Universal LLM, Unified AI).
-                     Uses Unified-AI-specific fragments (metadata-config, central-cache-manager,
-                     request-processor, security-handler, path-builder, set-response-headers) for
-                     wildcard routing, multi-API-type support, and JWT authentication.
-
-            Fragment Execution Order:
-            1. metadata-config: Load centralized configuration (models, api-types, timeouts) [Unified AI specific]
-            2. central-cache-manager: Cache management for configuration [Unified AI specific]
-            3. request-processor: Request analysis (URL routing + body parsing + model extraction) [Unified AI specific]
-            4. security-handler: Frontend authentication (API Key + optional JWT) [Unified AI specific]
-            5. validate-model-access: Model access control per product [SHARED]
-            6. set-backend-pools: Load backend pool configurations [SHARED]
-            7. set-target-backend-pool: Select target backend (with api-type override support) [SHARED]
-            8. set-backend-authorization: Backend auth + set-backend-service [SHARED]
-            9. path-builder: Backend path construction and URI rewriting [Unified AI specific]
-            10. set-llm-usage: Token usage metrics [SHARED]
-            11. set-response-headers: Response header injection (outbound) [Unified AI specific]
-        -->
+        <!-- Unified AI orchestration; shared fragments handle model access, routing, auth and usage. -->
 
         <!-- Validate product context -->
         <choose>
@@ -60,12 +35,7 @@
         <!-- Step 4: Frontend authentication (API Key + optional JWT) [Unified AI specific] -->
         <include-fragment fragment-id="security-handler" />
 
-        <!-- Step 4.1: Responses API ownership enforcement [SHARED with Azure OpenAI / Universal LLM]
-             For /responses* operations: validates that response_id (URL or previous_response_id)
-             belongs to the calling subscription, returns 403 on mismatch / 404 on cache miss,
-             and hydrates `requestedModel` from cache for GET/DELETE so model-based routing still works
-             alongside any apiTypeOverrideBackend setting. Reuses `response-id` and `parsed-request-body`
-             that frag-request-processor already extracts. -->
+        <!-- Enforce Responses API ownership; hydrate the model from cache for GET/DELETE routing. -->
         <include-fragment fragment-id="responses-id-security" />
 
         <!-- Step 5: Model access control per product [SHARED with Azure OpenAI / Universal LLM] -->
@@ -81,13 +51,7 @@
         <!-- Step 6.1: Strip browser / App Service / X-Forwarded-* headers before forwarding to backend -->
         <include-fragment fragment-id="strip-backend-headers" />
         
-        <!-- Step 7: Select target backend pool [SHARED]
-             Performs MODEL ALIAS resolution as a first-class step: when `requestedModel` matches
-             an alias virtual pool, it picks a member (priority/weighted) compatible with the
-             current api-type's `compatiblePoolTypes`, sets `is-alias=true`,
-             `original-model-alias=<alias>`, `requestedModel=<picked member's model>`,
-             `targetBackendPool=<picked member's pool>`, and exposes `alias-fallback-members`
-             for the retry block below. -->
+        <!-- Resolve aliases to compatible members and retain remaining members for retry fallback. -->
         <include-fragment fragment-id="set-target-backend-pool" />
 
         <!-- Step 7.1: Body rewrite for alias requests so backends see the resolved model name.
@@ -103,13 +67,6 @@
 
         <!-- Step 9: Build backend path and rewrite URI [Unified AI specific] -->
         <include-fragment fragment-id="path-builder" />
-
-        <!-- Step 10: Format translation extension point [FUTURE] -->
-        <!-- When format translation is added, insert a format-translator fragment here.
-             It would check if the client api-type format differs from the backend's expected format
-             and transform request body accordingly (e.g., OpenAI → Anthropic Messages, Bedrock Converse).
-             Response body transformation would be added in the outbound section.
-             <include-fragment fragment-id="format-translator" /> -->
 
         <!-- Step 11: Token usage metrics [SHARED with Azure OpenAI / Universal LLM] -->
         <choose>
@@ -146,32 +103,14 @@
         }" />
     </inbound>
     <backend>
-        <!--
-            Backend Retry Logic — alias-aware cross-model fallback
-            Retries on 429 (throttling) or 5xx server errors. Skips retry when the backend pool
-            itself is unavailable.
-
-            When the inbound request resolved through an alias (`is-alias=true`), the
-            `alias-fallback-members` JArray (built by `set-target-backend-pool`) carries the
-            remaining alias members in resolution order. Each entry is pre-resolved to its
-            underlying poolName / poolType / authType / authConfigNamedValue at deploy time, so
-            the retry block can swap targets across providers without re-walking the model→pool
-            map. Cross-model / cross-provider fallback is therefore transparent to the client —
-            the gateway tries the picked member first, then walks `alias-fallback-members`.
-
-            Note: cross-model fallback only works for pre-stream errors. Once streaming has
-            started, the response is committed and fallback is not possible.
-        -->
+        <!-- Retry 429/5xx using pre-resolved alias members; fallback is only possible before streaming. -->
         <retry count="@{
             var isAlias = context.Variables.GetValueOrDefault<bool>("is-alias", false);
             var fallback = context.Variables.GetValueOrDefault<JArray>("alias-fallback-members");
             // Standard retries (2) + one retry per remaining alias member.
             return isAlias && fallback != null ? 2 + fallback.Count : 2;
         }" interval="0" first-fast-retry="true" condition="@(context.Response.StatusCode == 429 || (context.Response.StatusCode >= 500 && !context.Response.StatusReason.Contains("Backend pool") && !context.Response.StatusReason.Contains("is temporarily unavailable")))">
-            <!-- Cross-model alias fallback: walk `alias-fallback-members` in order. Each retry
-                 hop pops the next entry, sets the targeting variables directly (no second pool
-                 match needed — the entry already carries the resolved pool info), then re-runs
-                 body rewrite + backend authorization + path builder. -->
+            <!-- Advance through resolved alias members, then reapply body, auth and path handling. -->
             <choose>
                 <when condition="@{
                     if (!context.Variables.GetValueOrDefault<bool>("is-alias", false)) { return false; }

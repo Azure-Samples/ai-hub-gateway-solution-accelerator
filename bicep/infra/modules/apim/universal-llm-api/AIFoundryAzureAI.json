@@ -76,8 +76,7 @@
                 "in": "path",
                 "required": true,
                 "schema": {
-                    "enum": [""],
-                    "type": ""
+                    "type": "string"
                 }
             }],
             "responses": {

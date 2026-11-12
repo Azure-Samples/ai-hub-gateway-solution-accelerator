@@ -936,7 +936,7 @@ resource ehUsageLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' = {
     description: 'Event Hub logger for OpenAI usage metrics'
     credentials: {
       name: eventHubName
-      endpointAddress: replace(eventHubEndpoint, 'https://', '')
+      endpointAddress: toLower(parseUri(eventHubEndpoint).host)
       identityClientId: managedIdentity.properties.clientId
     }
   }
@@ -950,7 +950,7 @@ resource ehPIIUsageLogger 'Microsoft.ApiManagement/service/loggers@2022-08-01' =
     description: 'Event Hub logger for PII usage metrics and logs'
     credentials: {
       name: eventHubPIIName
-      endpointAddress: replace(eventHubPIIEndpoint, 'https://', '')
+      endpointAddress: toLower(parseUri(eventHubPIIEndpoint).host)
       identityClientId: managedIdentity.properties.clientId
     }
   }
