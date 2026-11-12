@@ -2,23 +2,7 @@
     <inbound>
         <base />
         
-        <!--
-            Azure OpenAI API Policy
-            Purpose: Routes requests to appropriate backend pools based on model selection and RBAC permissions
-            
-            Flow:
-            1. Authenticate request (API Key always required, JWT optional per-product)
-            2. Extract and validate model parameter from request payload
-            3. Configure backend pools and routing rules
-            4. Determine target backend pool based on model and permissions
-            5. Set up authentication and route to selected backend
-            6. Configure collecting usage metrics
-            
-            Configuration:
-            - Modify allowedBackendPools for RBAC (comma-separated pool IDs, empty = all allowed)
-            - Set defaultBackendPool for unmapped models (empty = return error)
-            - Backend pool definitions are in frag-set-backend-pools fragment
-        -->
+        <!-- Azure OpenAI orchestration: authentication, model RBAC, backend routing and usage. -->
         
         <!-- Step 1: Unified authentication (API Key + optional JWT per-product) -->
         <include-fragment fragment-id="security-handler" />
@@ -26,10 +10,7 @@
         <!-- Step 2: Extract and validate model parameter from request -->
         <include-fragment fragment-id="set-llm-requested-model" />
 
-        <!-- Step 2.1: Responses API ownership enforcement (cross-API shared fragment).
-             For /responses* operations: validates that response_id (URL or previous_response_id)
-             belongs to the calling subscription, returns 403 on mismatch / 404 on cache miss,
-             and hydrates `requestedModel` from cache so backend routing works for GET/DELETE. -->
+        <!-- Enforce Responses API ownership; hydrate the model from cache for GET/DELETE routing. -->
         <include-fragment fragment-id="responses-id-security" />
 
         <!-- Step 3: Inject model parameter into request body if not present -->
@@ -50,18 +31,6 @@
             </when>
         </choose>
 
-        <!-- Step 3.1: capture original API path
-             NOTE: This MUST run after `resolve-model-alias` (step 4.2) so the captured path
-             reflects the resolved model name when the request used an alias. The variable is
-             evaluated lazily at the final <rewrite-uri> below, but the template only embeds
-             `context.Request.Url.Path` — so any alias→real-model URL rewrite performed by
-             `resolve-model-alias` is preserved. -->
-        
-        <!-- Override api-version query parameter if clients are getting 404 due to mismatched api-version -->
-        <!-- <set-query-parameter name="api-version" exists-action="override">
-            <value>2024-05-01-preview</value>
-        </set-query-parameter> -->
-        
         <!-- Step 4: Configure RBAC and default routing behavior -->
         <!-- RBAC: Set allowed backend pools (comma-separated pool IDs, empty = all pools allowed) -->
         <set-variable name="allowedBackendPools" value="" />
@@ -80,33 +49,14 @@
         <!-- Step 4.1: Load backend pool configurations (real pools + alias virtual pools) -->
         <include-fragment fragment-id="set-backend-pools" />
 
-        <!-- Step 4.2: Determine target backend pool based on model and permissions.
-             Performs MODEL ALIAS resolution as a first-class step: when `requestedModel`
-             matches an alias virtual pool, it picks an Azure OpenAI / AI Foundry member,
-             sets `is-alias=true`, `original-model-alias=<alias>`,
-             `requestedModel=<picked member's model>`, and exposes `alias-fallback-members`
-             for the retry block below. -->
+        <!-- Resolve aliases to Azure-compatible members and retain remaining members for retry fallback. -->
         <include-fragment fragment-id="set-target-backend-pool" />
 
-        <!-- Step 4.3: Body rewrite for alias requests so backends see the resolved model name.
-             Sets `original-model-alias` and `is-alias` are already populated by
-             set-target-backend-pool above. This step only rewrites the request body's
-             `model` field (no-op when `is-alias=false`). The URL rewrite for
-             `/openai/deployments/{alias}/...` is built below in `openAIRewriteTemplate`
-             which substitutes `original-model-alias` → `requestedModel`. -->
+        <!-- Rewrite the body model for aliases; the deployment URL is rewritten below. -->
         <include-fragment fragment-id="resolve-model-alias" />
 
-        <!-- Step 4.4: Build the URL-rewrite template AFTER alias resolution.
-             This template is derived from `context.Request.OriginalUrl.Path` (the immutable
-             original request path) rather than `context.Request.Url.Path`, because APIM's
-             `Url.Path` DOES reflect prior `<rewrite-uri>` calls (e.g. set-backend-authorization's
-             ai-foundry `models/...` rewrite, or a previous alias-fallback retry hop). Reading the
-             mutated path here and re-prepending `openai/` produced corrupted paths such as
-             `openai/models/deployments/{model}/chat/completions` (causing 404s). Using OriginalUrl
-             and stripping the API path prefix keeps this rewrite idempotent and authoritative.
-             When a client calls `/openai/deployments/{alias}/chat/completions`, the alias segment
-             is substituted for the resolved real model so the URL forwarded to the AOAI backend
-             uses `/deployments/{realModel}/...`. -->
+        <!-- Build after alias resolution. Use OriginalUrl and strip the API prefix to avoid
+             stacking models/openai prefixes across rewrites or retry hops. -->
          <set-variable name="openAIRewriteTemplate" value="@{
                 string requestedModel = (string)context.Variables["requestedModel"];
                 string originalAlias  = context.Variables.GetValueOrDefault<string>("original-model-alias", "");
@@ -145,17 +95,7 @@
 		<rewrite-uri template="@((string)context.Variables["openAIRewriteTemplate"])" copy-unmatched-params="true" />
     </inbound>
     <backend>
-        <!--
-            Backend Retry Logic — alias-aware cross-model fallback
-            Retries on 429 (throttling) or 5xx server errors. When the request resolved through
-            a model alias (`is-alias=true`), `alias-fallback-members` carries the remaining
-            Azure OpenAI / AI Foundry alias members in resolution order. Each retry hop pops the
-            next entry, sets the targeting variables directly, and re-applies the URL rewrite so
-            the final `/deployments/{model}/...` path matches the new member. Cross-provider
-            fallback is not possible here (the surface is restricted to azure-openai / ai-foundry
-            pools by `compatiblePoolTypes`), but cross-deployment fallback inside the Azure family
-            is fully supported.
-        -->
+        <!-- Retry 429/5xx across Azure-compatible alias deployments, rewriting the URL for each hop. -->
         <retry count="@{
             var isAlias = context.Variables.GetValueOrDefault<bool>("is-alias", false);
             var fallback = context.Variables.GetValueOrDefault<JArray>("alias-fallback-members");
@@ -198,10 +138,7 @@
                             </trace>
                             <include-fragment fragment-id="resolve-model-alias" />
                             <include-fragment fragment-id="set-backend-authorization" />
-                            <!-- Rebuild and re-apply the URL rewrite so /deployments/{alias}/ becomes
-                                 /deployments/{newRealModel}/ for the next hop. Derived from
-                                 OriginalUrl.Path (immutable) + API-prefix strip so it stays idempotent
-                                 across hops and never stacks a `models/`/`openai/` prefix. -->
+                            <!-- Rebuild from OriginalUrl for the next model; never reuse a rewritten path. -->
                             <set-variable name="openAIRewriteTemplate" value="@{
                                 string requestedModel = (string)context.Variables["requestedModel"];
                                 string originalAlias  = context.Variables.GetValueOrDefault<string>("original-model-alias", "");
@@ -253,10 +190,6 @@
         <!--
             Error Handling
             Purpose: Pushes custom metrics for critical events to enable Azure Monitor alerts
-            
-            Integration: Uses raise-alert-events fragment to send metrics for throttling (429),
-            backend failures (5xx), authorization failures, content-safety blocks, and PII failures.
-            Alerting is opt-in per category and can be tailored per access contract.
         -->
         
         <include-fragment fragment-id="raise-alert-events" />

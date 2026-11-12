@@ -166,7 +166,7 @@ param appInsightsLogSettings = {
 // ============================================================================
 // COMPUTE SKU & SIZE - SKUs and capacity settings for services
 // ============================================================================
-param apimSku = readEnvironmentVariable('APIM_SKU', 'Developer')
+param apimSku = readEnvironmentVariable('APIM_SKU', 'StandardV2')
 param apimSkuUnits = int(readEnvironmentVariable('APIM_SKU_UNITS', '1'))
 param eventHubCapacityUnits = int(readEnvironmentVariable('EVENTHUB_CAPACITY', '1'))
 param cosmosDbRUs = int(readEnvironmentVariable('COSMOS_DB_RUS', '400'))
@@ -216,7 +216,7 @@ param aiFoundryModelsConfig = [
     publisher: 'OpenAI'
     version: '2026-09-29'
     sku: 'GlobalStandard'
-    capacity: 100
+    capacity: 50
     retirementDate: '2027-10-14'
     apiVersion: '2025-04-01-preview'
     timeout: 180
@@ -227,7 +227,7 @@ param aiFoundryModelsConfig = [
     publisher: 'OpenAI'
     version: '2026-09-22'
     sku: 'GlobalStandard'
-    capacity: 100
+    capacity: 50
     retirementDate: '2027-02-05'
     aiserviceIndex: 0
   }
@@ -236,7 +236,7 @@ param aiFoundryModelsConfig = [
     publisher: 'OpenAI'
     version: '2026-04-21'
     sku: 'GlobalStandard'
-    capacity: 2
+    capacity: 1
     retirementDate: '2027-12-16'
     inferenceApiVersion: '2025-04-01-preview'
     apiVersion: '2025-04-01-preview'
@@ -276,7 +276,7 @@ param aiFoundryModelsConfig = [
     publisher: 'Mistral AI'
     version: '1'
     sku: 'GlobalStandard'
-    capacity: 100
+    capacity: 50
     retirementDate: '2099-12-30'
     aiserviceIndex: 0
   }
@@ -294,7 +294,7 @@ param aiFoundryModelsConfig = [
     publisher: 'OpenAI'
     version: '2026-03-17'
     sku: 'GlobalStandard'
-    capacity: 100
+    capacity: 50
     retirementDate: '2026-09-30'
     aiserviceIndex: 1
   }
@@ -303,7 +303,7 @@ param aiFoundryModelsConfig = [
     publisher: 'OpenAI'
     version: '2026-09-22'
     sku: 'GlobalStandard'
-    capacity: 100
+    capacity: 50
     retirementDate: '2027-02-05'
     aiserviceIndex: 1
   }
