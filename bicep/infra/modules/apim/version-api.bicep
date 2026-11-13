@@ -33,7 +33,11 @@ param versionApiPath string = 'version'
 @description('Set to true if a subscription key is required to call the version API. Defaults to false so the endpoint can be queried anonymously (health/version style).')
 param subscriptionRequired bool = false
 
-@description('The name of the subscription key header (only relevant when subscriptionRequired is true).')
+@description('The name of the subscription key header (only relevant when subscriptionRequired is true). Accepts the LLM-style "api-key" (default) or the APIM-native "Ocp-Apim-Subscription-Key".')
+@allowed([
+  'api-key'
+  'Ocp-Apim-Subscription-Key'
+])
 param subscriptionKeyName string = 'api-key'
 
 @description('The raw JSON content of the release manifest to serve. Defaults to the repository release.json.')
@@ -100,6 +104,10 @@ var backendContractOperationPolicyXml = replace('''
     </on-error>
 </policies>''', 'FRAGMENTID', backendContractFragmentId)
 
+// Query-string key name mirrors the header: APIM-native header uses the 'subscription-key' query param,
+// the LLM-style 'api-key' header uses an 'api-key' query param.
+var subscriptionKeyQueryName = subscriptionKeyName == 'Ocp-Apim-Subscription-Key' ? 'subscription-key' : 'api-key'
+
 // ------------------
 //    RESOURCES
 // ------------------
@@ -122,6 +130,7 @@ resource versionApi 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' = 
     subscriptionRequired: subscriptionRequired
     subscriptionKeyParameterNames: {
       header: subscriptionKeyName
+      query: subscriptionKeyQueryName
     }
     serviceUrl: 'https://to-be-replaced-by-policy'
   }
