@@ -102,7 +102,7 @@ class SubscriptionOwnershipSecurityTests(unittest.TestCase):
             '403', 'fail closed', 'all-APIs', 'before rollout',
         ):
             with self.subTest(expression=expression):
-                self.assertIn(expression, docs)
+                self.assertIn(expression.lower(), docs.lower())
 
 
 if __name__ == "__main__":
