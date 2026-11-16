@@ -1,6 +1,12 @@
 <policies>
     <inbound>
         <base />
+        <!-- Product-scope JWT ownership must be checked before backend Managed Identity. -->
+        <choose>
+            <when condition="@(context.Variables.GetValueOrDefault&lt;string&gt;(&quot;jwtRequired&quot;, &quot;false&quot;).Equals(&quot;true&quot;, StringComparison.OrdinalIgnoreCase))">
+                <include-fragment fragment-id="security-handler" />
+            </when>
+        </choose>
         <set-header name="ocp-apim-subscription-key" exists-action="delete" />
         <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="msi-access-token" client-id="{{uami-client-id}}" ignore-error="false" />
         <set-header name="Authorization" exists-action="override">
