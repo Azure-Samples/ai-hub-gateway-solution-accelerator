@@ -225,6 +225,8 @@ module onboard 'modules/apimOnboardService.bicep' = [for s in services: {
     apiNames: apiNameMapping[s.code]
     // Use provided policy XML, else the asset-type-aware default for TOOL/AGENT/MULTI, else the LLM default
     productPolicyXml: contains(s, 'policyXml') && !empty(s.policyXml) ? s.policyXml : (contains(['TOOL', 'AGENT', 'MULTI'], toUpper(s.code)) ? defaultMultiProductPolicyXml : defaultProductPolicyXml)
+    jwtAuthorizedCallers: s.?jwtAuthorizedCallers ?? []
+    jwtAdditionalSubscriptionBindings: s.?jwtAdditionalSubscriptionBindings ?? []
     subscriptionName: '${s.code}-${productPostfix}-SUB-01'
     subscriptionDisplayName: '${s.code}-${productPostfix}-SUB-01'
     // Key rotation controls (primary gateway owns/regenerates the keys)
@@ -326,6 +328,8 @@ module additionalOnboard 'modules/apimOnboardService.bicep' = [for item in addit
     productTerms: productTerms
     apiNames: apiNameMapping[item.s.code]
     productPolicyXml: (contains(item.s, 'policyXml') && !empty(item.s.policyXml)) ? item.s.policyXml : defaultProductPolicyXml
+    jwtAuthorizedCallers: item.s.?jwtAuthorizedCallers ?? []
+    jwtAdditionalSubscriptionBindings: item.s.?jwtAdditionalSubscriptionBindings ?? []
     subscriptionName: '${item.s.code}-${productPostfix}-SUB-01'
     subscriptionDisplayName: '${item.s.code}-${productPostfix}-SUB-01'
     // Reuse the SAME keys generated/rotated by the primary gateway so BOTH keys stay in sync

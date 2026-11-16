@@ -16,6 +16,12 @@ param apiNames array
 @description('Optional product policy XML; if empty, a default minimal policy is applied')
 param productPolicyXml string = ''
 
+@description('Entra tenantId/objectId pairs explicitly authorized to use THIS subscription. Entries automatically require JWT for this Product. Existing JWT-required Products without bindings fail closed.')
+param jwtAuthorizedCallers array = []
+
+@description('Additional existing Product-scoped APIM subscriptions and their approved callers: [{ subscriptionId, callers: [{ tenantId, objectId }] }]. Allows independent subscribers to the same Product without sharing quota ownership.')
+param jwtAdditionalSubscriptionBindings array = []
+
 @description('Subscription name (resource name) e.g., <productId>-SUB-01')
 param subscriptionName string
 @description('Subscription display name')
@@ -40,6 +46,32 @@ param keyRotationEnabled bool = false
 param rotationKey string = ''
 
 var defaultPolicy = '<policies>\n  <inbound>\n    <base />\n    <rate-limit calls="60" renewal-period="60" />\n    <check-header name="Ocp-Apim-Subscription-Key" failed-check-httpcode="401" failed-check-error-message="Subscription key required" />\n  </inbound>\n  <backend>\n    <base />\n  </backend>\n  <outbound>\n    <base />\n  </outbound>\n  <on-error>\n    <base />\n  </on-error>\n</policies>'
+
+// Every subscriber to this Product must be bound to the exact subscription ID
+// resolved by APIM. This includes optional existing Product-scoped subscriptions.
+// Reject ambiguous duplicate IDs, rather than selecting the first matching grant.
+var ownJwtSubscriptionBinding = empty(jwtAuthorizedCallers) ? [] : [
+  {
+    subscriptionId: subscriptionName
+    callers: jwtAuthorizedCallers
+  }
+]
+var allJwtSubscriptionBindings = concat(ownJwtSubscriptionBinding, jwtAdditionalSubscriptionBindings)
+var jwtBindingIds = map(allJwtSubscriptionBindings, binding => toLower(binding.subscriptionId))
+var validatedJwtSubscriptionBindings = length(union(jwtBindingIds, [])) == length(jwtBindingIds)
+  ? allJwtSubscriptionBindings
+  : fail('Duplicate subscription ID in JWT caller bindings')
+
+// The Product policy runs before the API-level security-handler. Append bindings
+// and mandatory JWT flag after custom policy statements to prevent override.
+// Base64 embeds JSON safely in the APIM XML expression (no caller-supplied XML).
+var bindingVariablesXml = '<set-variable name="jwtSubscriptionBindingsJson" value="@(Encoding.UTF8.GetString(Convert.FromBase64String(&quot;${base64(string(validatedJwtSubscriptionBindings))}&quot;)))" /><set-variable name="jwtRequired" value="true" />'
+var sourcePolicyXml = empty(productPolicyXml) ? defaultPolicy : productPolicyXml
+var securedProductPolicyXml = empty(validatedJwtSubscriptionBindings)
+  ? sourcePolicyXml
+  : (contains(sourcePolicyXml, '</inbound>')
+      ? replace(sourcePolicyXml, '</inbound>', '${bindingVariablesXml}</inbound>')
+      : fail('Subscription-bound JWT Product policies require a standard </inbound> element'))
 
 resource apim 'Microsoft.ApiManagement/service@2024-05-01' existing = {
   name: apimName
@@ -69,7 +101,7 @@ resource policy 'Microsoft.ApiManagement/service/products/policies@2024-05-01' =
   parent: product
   properties: {
     format: 'rawxml'
-    value: empty(productPolicyXml) ? defaultPolicy : productPolicyXml
+    value: securedProductPolicyXml
   }
 }
 
