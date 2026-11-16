@@ -17,6 +17,7 @@
         - jwtAudience (optional): Custom audience override. Falls back to {{JWT-AppRegistrationId}} named value
         - jwtIssuer (optional): Custom issuer override. Falls back to {{JWT-Issuer}} named value
         - jwtOpenIdConfigUrl (optional): Custom OpenID config URL override. Falls back to {{JWT-OpenIdConfigUrl}} named value
+        - jwtSubscriptionBindingsJson: Product policy mapping of each exact APIM subscription ID to its authorized Entra tenant/object IDs (mandatory if jwtRequired=true).
         - requiredRoles (optional): Set by product policy. Comma-separated list of required app roles (e.g., "Model.Invoke,Agent.Invoke").
                                     If set, at least one role must be present in the JWT 'roles' claim. If empty/unset, no role check is performed.
 
@@ -244,6 +245,41 @@
                                         ))
                                     ).ToString();
                                 }</set-body>
+                            </return-response>
+                        </when>
+                    </choose>
+                    <!-- Product membership is not permission to spend another subscriber's
+                         quota. Resolve the exact subscription ID and match the caller's
+                         validated Entra tid/oid against that subscription's binding.
+                         Empty, duplicated, or malformed bindings fail closed. -->
+                    <choose>
+                        <when condition="@{
+                            var jwt = (Jwt)context.Variables[&quot;validated-jwt&quot;];
+                            var tenant = jwt.Claims.GetValueOrDefault(&quot;tid&quot;, &quot;&quot;);
+                            var objectId = jwt.Claims.GetValueOrDefault(&quot;oid&quot;, &quot;&quot;);
+                            var subscriptionId = context.Subscription?.Id ?? &quot;&quot;;
+                            var bindingsJson = context.Variables.GetValueOrDefault&lt;string&gt;(&quot;jwtSubscriptionBindingsJson&quot;, &quot;[]&quot;);
+                            if (string.IsNullOrWhiteSpace(tenant) || string.IsNullOrWhiteSpace(objectId) ||
+                                string.IsNullOrWhiteSpace(subscriptionId) || string.IsNullOrWhiteSpace(bindingsJson)) return true;
+                            try {
+                                var bindings = JArray.Parse(bindingsJson);
+                                var matching = bindings.Where(binding =>
+                                    string.Equals((string)binding[&quot;subscriptionId&quot;], subscriptionId, StringComparison.OrdinalIgnoreCase)).ToArray();
+                                if (matching.Length != 1) return true;
+                                var permitted = matching[0][&quot;callers&quot;] as JArray;
+                                return permitted == null || !permitted.Any(identity =>
+                                    string.Equals((string)identity[&quot;tenantId&quot;], tenant, StringComparison.OrdinalIgnoreCase) &amp;&amp;
+                                    string.Equals((string)identity[&quot;objectId&quot;], objectId, StringComparison.OrdinalIgnoreCase));
+                            } catch {
+                                return true;
+                            }
+                        }">
+                            <return-response>
+                                <set-status code="403" reason="Subscription identity mismatch" />
+                                <set-header name="Content-Type" exists-action="override">
+                                    <value>application/json</value>
+                                </set-header>
+                                <set-body>{"error":{"code":"subscription_identity_mismatch","message":"This JWT caller is not authorized for the resolved subscription."}}</set-body>
                             </return-response>
                         </when>
                     </choose>

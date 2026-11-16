@@ -1,5 +1,87 @@
 # 📜 Citadel Access Contracts - Use-case onboarding
 
+## JWT identity-to-subscription ownership (Issue #184)
+
+For JWT-protected Access Contracts, merely being authorized for an APIM **Product**
+does not entitle a caller to spend another consumer's **subscription** quota or
+chargeback allocation. The shared `security-handler` now verifies the caller's
+validated Entra `tid` and `oid` against the **exact** `context.Subscription.Id`.
+JWT B + Key A returns **403** even when consumers A and B have access to the same Product.
+
+Configure the primary subscription's approved service-principal **object ID(s)**
+per service, not application/client IDs, in `main.bicepparam`:
+
+```bicep
+param services = [
+  {
+    code: 'LLM'
+    apiKeySecretName: 'HR-LLM-KEY'
+    policyXml: loadTextContent('ai-product-policy.xml')
+    jwtAuthorizedCallers: [
+      {
+        tenantId: '11111111-1111-1111-1111-111111111111'
+        objectId: '22222222-2222-2222-2222-222222222222'
+      }
+    ]
+    // Optional: a second independently owned subscription to this same Product
+    // (already created and associated with the Product in APIM):
+    jwtAdditionalSubscriptionBindings: [
+      {
+        subscriptionId: 'LLM-HR-Assistant-DEV-SUB-02'
+        callers: [
+          {
+            tenantId: '11111111-1111-1111-1111-111111111111'
+            objectId: '33333333-3333-3333-3333-333333333333'
+          }
+        ]
+      }
+    ]
+  }
+]
+```
+
+- The contract creates `*-SUB-01`; `jwtAuthorizedCallers` binds identities to
+  that specific subscription, and `jwtAdditionalSubscriptionBindings` explicitly
+  binds independently created subscriptions to identities. Duplicate subscription
+  IDs in the same Product's declaration fail deployment.
+- A nonempty binding list automatically enforces `jwtRequired=true` for that
+  Product, after other inbound Product policy statements. Both subscription-key
+  validation and mandatory JWT continue to run through the existing API policy.
+- A JWT-required Product with **no binding** denies all JWT consumers with
+  **403 (fail closed)**. Before rollout, populate bindings for every existing
+  JWT-required Product, including any additional valid subscriptions.
+- Unlisted subscriptions, absent `tid` or `oid`, malformed or duplicated
+  bindings, and identity/subscription mismatches are rejected with **403**.
+- To intentionally share a single subscription (and its quota and chargeback),
+  list **each** approved caller in that subscription's `callers` array.
+- Key-only Products with `jwtRequired=false` keep their previous behavior.
+  Mirrored gateways receive the same subscription identity mapping.
+- The injection requires a standard `</inbound>` in custom Product XML.
+  Malformed custom Product policies fail rather than silently skipping the mapping.
+
+### Security scope and deployment checks
+
+Product-scope policies may not execute for **API-scoped, all-APIs, or
+built-in all-access** APIM subscriptions. These alternative subscription types
+must be restricted on JWT-protected APIs, or an equivalent binding enforcement
+must be applied at API scope. The shared handler also runs conditionally for
+JWT-required Products on secondary API paths (Search, Document Intelligence,
+Realtime, Translator, generic inference and the standard A2A policy). Custom
+API policies must explicitly include the shared handler where JWT is required.
+
+**Live acceptance matrix:** JWT A + Key A = allowed; JWT B + Key B = allowed;
+JWT B + Key A = 403; JWT A + Key B = 403, **even if both consumers are permitted
+for the same Product**. Verify no backend request and no quota increment when
+denied; inspect `subscriptionId`, `productName`, and `appId` telemetry. Also
+exercise a valid explicitly shared subscription, missing/wrong JWT, an
+unconfigured JWT-required Product (fail closed), API-/all-APIs subscriptions,
+and key-only legacy contracts. Recheck after key rotation and mirroring.
+
+**Validation status:** Source-level regression tests are supplied; actual APIM
+policy compilation, runtime enforcement, quota isolation and compatibility
+are **not yet tested**. Deploy to an isolated APIM before production adoption.
+
+
 ## Overview
 
 Automate the onboarding of AI use cases to your APIM-based AI Gateway with a streamlined, infrastructure-as-code approach using **Bicep parameter files** (`.bicepparam`).
