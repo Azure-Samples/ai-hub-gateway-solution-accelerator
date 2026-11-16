@@ -6,6 +6,10 @@
         <set-header name="Authorization" exists-action="override">
             <value>@("Bearer " + (string)context.Variables["msi-access-token"])</value>
         </set-header>
+        <!-- Header name collides with Cognitive Services key auth; the backend must only see the MSI token -->
+        <set-header name="Ocp-Apim-Subscription-Key" exists-action="delete" />
+        <!-- API path (documentintelligence | formrecognizer) matches the AI Services account path -->
+        <set-backend-service base-url="@(&quot;{{documentIntelligenceServiceUrl}}&quot;.TrimEnd('/') + &quot;/&quot; + context.Api.Path.Trim('/'))" />
     </inbound>
     <backend>
         <base />
