@@ -26,3 +26,10 @@ jobs:
           python-version: '3.12'
       - name: Verify subscription-bound JWT policy wiring
         run: python -m unittest discover -s validation/tests -p 'test_subscription_jwt_binding.py' -v
+      - name: Compile Access Contract Bicep modules
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -e
+            az bicep build --file bicep/infra/citadel-access-contracts/main.bicep --stdout >/dev/null
+            az bicep build --file bicep/infra/citadel-access-contracts/modules/apimOnboardService.bicep --stdout >/dev/null
