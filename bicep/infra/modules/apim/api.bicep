@@ -42,7 +42,9 @@ param enableAPIDeployment bool = true
 
 param apimLoggerId string = 'azuremonitor'
 
-param enableAPIDiagnostics bool
+// NOTE: This enables diagnostics for non-inference APIs created by this module only - main inference APIs have their own diagnostics configuration.
+@description('Enable default API diagnostics for monitoring and logging to Application Insights')
+param enableAPIDiagnostics bool = false
 
 // Assume the content format is JSON format if the ending is .json - otherwise, it's YAML
 var contentFormat = startsWith(openApiSpecification, '{') ? 'openapi+json' : 'openapi'

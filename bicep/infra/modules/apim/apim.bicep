@@ -130,6 +130,9 @@ param appInsightsLogSettings object = {
   body: { bytes: 0 }
 }
 
+@description('Enable default diagnostics for non-inference APIs')
+param enableOtherAPIDiagnostics bool = false
+
 @description('Enable an APIM backend that targets the AI Foundry embeddings endpoint')
 param enableEmbeddingsBackend bool = false
 
@@ -258,7 +261,7 @@ module apimAiSearchIndexApi './api.bicep' = if (enableAzureAISearch) {
     apiDescription: 'Azure AI Search Index Client APIs'
     policyDocument: loadTextContent('./policies/ai-search-index-api-policy.xml')
     enableAPIDeployment: true
-    enableAPIDiagnostics: false
+    enableAPIDiagnostics: enableOtherAPIDiagnostics
   }
   dependsOn: [
     policyFragments
@@ -282,7 +285,7 @@ module apimOpenAIRealTimetApi './api.bicep' = if (enableOpenAIRealtime) {
     serviceUrl: 'wss://to-be-replaced-by-policy'
     apiType: 'websocket'
     apiProtocols: ['wss']
-    enableAPIDiagnostics: false
+    enableAPIDiagnostics: enableOtherAPIDiagnostics
   }
   dependsOn: [
     policyFragments
@@ -303,7 +306,7 @@ module apimDocumentIntelligenceLegacy './api.bicep' = if (enableDocumentIntellig
     apiDescription: 'Uses (/formrecognizer) url path. Extracts content, layout, and structured data from documents.'
     policyDocument: loadTextContent('./policies/doc-intelligence-api-policy.xml')
     enableAPIDeployment: true
-    enableAPIDiagnostics: false
+    enableAPIDiagnostics: enableOtherAPIDiagnostics
   }
   dependsOn: [
     policyFragments
@@ -324,7 +327,7 @@ module apimDocumentIntelligence './api.bicep' = if (enableDocumentIntelligence) 
     apiDescription: 'Uses (/documentintelligence) url path. Extracts content, layout, and structured data from documents.'
     policyDocument: loadTextContent('./policies/doc-intelligence-api-policy.xml')
     enableAPIDeployment: true
-    enableAPIDiagnostics: false
+    enableAPIDiagnostics: enableOtherAPIDiagnostics
   }
   dependsOn: [
     policyFragments
@@ -437,6 +440,7 @@ module apiUniversalLLM './inference-api.bicep' = {
     llmBackends
     llmBackendPools
     llmPolicyFragments
+    apimLogger
   ]
 }
 
@@ -486,6 +490,7 @@ module apiUnifiedAI './unified-ai-api.bicep' = if (enableUnifiedAiApi) {
     llmBackends
     llmBackendPools
     llmPolicyFragments
+    apimLogger
   ]
 }
 
@@ -992,9 +997,11 @@ module weatherAPI './api.bicep' = if (isMCPSampleDeployed) {
     apiDescription: 'Weather API for getting dynamic weather information for a given location.'
     policyDocument: loadTextContent('./sample/weather/policy.xml')
     enableAPIDeployment: true
-    enableAPIDiagnostics: false
+    enableAPIDiagnostics: enableOtherAPIDiagnostics
   }
   dependsOn: [
+    apimLogger
+    apimAzMonitorLogger
   ]
 }
 

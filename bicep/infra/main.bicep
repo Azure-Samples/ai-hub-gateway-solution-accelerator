@@ -307,6 +307,9 @@ param appInsightsLogSettings object = {
   body: { bytes: 0 }
 }
 
+@description('Enable default diagnostics for non-inference APIs')
+param enableOtherAPIDiagnostics bool = false
+
 //
 // COMPUTE SKU & SIZE - SKUs and capacity settings for services
 //
@@ -654,6 +657,7 @@ module resources './resources.bicep' = {
     enableManagedRedis: enableManagedRedis
     azureMonitorLogSettings: azureMonitorLogSettings
     appInsightsLogSettings: appInsightsLogSettings
+    enableOtherAPIDiagnostics: enableOtherAPIDiagnostics
     apimSku: apimSku
     apimSkuUnits: apimSkuUnits
     eventHubCapacityUnits: eventHubCapacityUnits
