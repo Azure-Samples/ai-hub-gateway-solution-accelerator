@@ -1,0 +1,43 @@
+name: Citadel alerting regression
+
+on:
+  pull_request:
+    paths:
+      - 'bicep/infra/app-insights-alert/**'
+      - 'validation/tests/test_citadel_alerting_profile.py'
+      - '.github/workflows/citadel-alerting.yml'
+  push:
+    paths:
+      - 'bicep/infra/app-insights-alert/**'
+      - 'validation/tests/test_citadel_alerting_profile.py'
+      - '.github/workflows/citadel-alerting.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Source regression checks
+        run: python -m unittest discover -s validation/tests -p 'test_citadel_alerting_profile.py' -v
+      - name: Compile Bicep and both parameter files (no Azure deployment)
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -e
+            export AZURE_SUBSCRIPTION_ID=00000000-0000-0000-0000-000000000000
+            export AZURE_RESOURCE_GROUP=validation
+            export APIM_APP_INSIGHTS_NAME=validation
+            export CITADEL_APIM_RESOURCE_ID="/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/validation/providers/Microsoft.ApiManagement/service/validation"
+            export CITADEL_LOG_ANALYTICS_RESOURCE_ID="/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/validation/providers/Microsoft.OperationalInsights/workspaces/validation"
+            export CITADEL_LOG_ANALYTICS_LOCATION=eastus
+            export CITADEL_USAGE_LOGIC_APP_RESOURCE_ID="/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/validation/providers/Microsoft.Web/sites/validation"
+            export CITADEL_MONITORED_API_IDS=validation-api
+            az bicep build --file bicep/infra/app-insights-alert/main.bicep --stdout >/dev/null
+            az bicep build-params --file bicep/infra/app-insights-alert/main.bicepparam --stdout >/dev/null
+            az bicep build-params --file bicep/infra/app-insights-alert/enhanced.bicepparam --stdout >/dev/null
