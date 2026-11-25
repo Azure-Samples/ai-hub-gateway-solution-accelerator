@@ -77,7 +77,11 @@ Each item:
   timeAggregation     : Total (event count over the window)
   windowSize          : ISO 8601 look-back window (e.g. PT5M)
   evaluationFrequency : ISO 8601 evaluation cadence (e.g. PT1M)
-  description         : text included in the notification email''')
+  description         : text included in the notification email
+Optional platform-wide overrides (mutually exclusive, require empty productNameFilter):
+  logQueryOverride    : { scope: resource ID, location: region, query: KQL returning numeric AggregatedValue }
+  nativeMetric        : { scope: resource ID, namespace: provider namespace, name: metric REST name }
+These override alertMode for that entry only. Use alertType: "" for override entries.''')
 param alerts array = [
   {
     name: 'throttling'
@@ -150,19 +154,21 @@ module actionGroup 'modules/action-group.bicep' = {
 // ---- DEFAULT: one scheduled query (log search) alert per entry in `alerts` ----
 // Uses the customMetrics table so it works immediately (no waiting for the metric namespace).
 module logQueryAlertRules 'modules/log-query-alert.bicep' = [
-  for alert in alerts: if (alertMode == 'logQuery') {
+  for alert in alerts: if (contains(alert, 'logQueryOverride') || (!contains(alert, 'nativeMetric') && alertMode == 'logQuery')) {
     name: 'deploy-logalert-${uniqueString(namePrefix, alert.name, appInsightsComponent.id)}'
     scope: alertRg
     params: {
       name: '${namePrefix}-${alert.name}-alert'
-      location: appInsightsComponent.location
+      location: contains(alert, 'logQueryOverride') ? alert.logQueryOverride.location : appInsightsComponent.location
       alertDescription: alert.description
       severity: alert.severity
       enabled: alertsEnabled
-      scopes: [ appInsightsComponent.id ]
+      scopes: [ contains(alert, 'logQueryOverride') ? alert.logQueryOverride.scope : appInsightsComponent.id ]
       evaluationFrequency: alert.evaluationFrequency
       windowSize: alert.windowSize
       metricName: metricName
+      queryOverride: contains(alert, 'logQueryOverride') ? alert.logQueryOverride.query : ''
+      platformScopeValidation: contains(alert, 'logQueryOverride') ? (contains(alert, 'nativeMetric') ? 'Conflicting alert overrides' : productNameFilter) : ''
       operator: alert.operator
       threshold: alert.threshold
       alertType: alert.alertType
@@ -174,7 +180,7 @@ module logQueryAlertRules 'modules/log-query-alert.bicep' = [
 
 // ---- OPT-IN: one metric alert per entry in `alerts` (requires the metric namespace to be registered) ----
 module metricAlertRules 'modules/metric-alert.bicep' = [
-  for alert in alerts: if (alertMode == 'metric') {
+  for alert in alerts: if (!contains(alert, 'logQueryOverride') && (contains(alert, 'nativeMetric') || alertMode == 'metric')) {
     name: 'deploy-metricalert-${uniqueString(namePrefix, alert.name, appInsightsComponent.id)}'
     scope: alertRg
     params: {
@@ -182,15 +188,17 @@ module metricAlertRules 'modules/metric-alert.bicep' = [
       alertDescription: alert.description
       severity: alert.severity
       enabled: alertsEnabled
-      scopes: [ appInsightsComponent.id ]
+      scopes: [ contains(alert, 'nativeMetric') ? alert.nativeMetric.scope : appInsightsComponent.id ]
       evaluationFrequency: alert.evaluationFrequency
       windowSize: alert.windowSize
-      metricNamespace: metricNamespace
-      metricName: metricName
+      metricNamespace: contains(alert, 'nativeMetric') ? alert.nativeMetric.namespace : metricNamespace
+      metricName: contains(alert, 'nativeMetric') ? alert.nativeMetric.name : metricName
+      skipMetricValidation: !contains(alert, 'nativeMetric')
+      platformScopeValidation: contains(alert, 'nativeMetric') ? productNameFilter : ''
       operator: alert.operator
       threshold: alert.threshold
       timeAggregation: alert.timeAggregation
-      alertType: alert.alertType
+      alertType: contains(alert, 'nativeMetric') ? '' : alert.alertType
       productNameFilter: productNameFilter
       actionGroupId: actionGroup.outputs.id
     }
