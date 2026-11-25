@@ -168,7 +168,7 @@ module logQueryAlertRules 'modules/log-query-alert.bicep' = [
       windowSize: alert.windowSize
       metricName: metricName
       queryOverride: contains(alert, 'logQueryOverride') ? alert.logQueryOverride.query : ''
-      platformScopeValidation: contains(alert, 'logQueryOverride') ? (contains(alert, 'nativeMetric') ? 'Conflicting alert overrides' : productNameFilter) : ''
+      platformScopeValidation: contains(alert, 'logQueryOverride') ? (contains(alert, 'nativeMetric') ? 'Conflicting alert overrides' : (empty(trim(alert.logQueryOverride.query)) ? 'Empty query override' : productNameFilter)) : ''
       operator: alert.operator
       threshold: alert.threshold
       alertType: alert.alertType

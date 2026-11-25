@@ -5,7 +5,10 @@ using 'main.bicep'
 var apimId = readEnvironmentVariable('CITADEL_APIM_RESOURCE_ID')
 var workspaceId = readEnvironmentVariable('CITADEL_LOG_ANALYTICS_RESOURCE_ID')
 var workspaceLocation = readEnvironmentVariable('CITADEL_LOG_ANALYTICS_LOCATION')
-var appInsightsId = readEnvironmentVariable('CITADEL_APIM_APP_INSIGHTS_RESOURCE_ID')
+var aiSubscription = readEnvironmentVariable('AZURE_SUBSCRIPTION_ID')
+var aiResourceGroup = readEnvironmentVariable('AZURE_RESOURCE_GROUP')
+var aiName = readEnvironmentVariable('APIM_APP_INSIGHTS_NAME')
+var appInsightsId = '/subscriptions/${aiSubscription}/resourceGroups/${aiResourceGroup}/providers/Microsoft.Insights/components/${aiName}'
 var usageAppId = readEnvironmentVariable('CITADEL_USAGE_LOGIC_APP_RESOURCE_ID')
 // Comma-separated APIM API IDs known to have both Azure Monitor and App Insights diagnostics.
 var monitoredApiIds = readEnvironmentVariable('CITADEL_MONITORED_API_IDS')
@@ -27,9 +30,9 @@ var monitoredApiIds = readEnvironmentVariable('CITADEL_MONITORED_API_IDS')
 // The hub's APIM logs to a component named "appi-apim-<token>" by default.
 // ----------------------------------------------------------------------------
 param appInsights = {
-  subscriptionId: readEnvironmentVariable('AZURE_SUBSCRIPTION_ID', '00000000-0000-0000-0000-000000000000')
-  resourceGroupName: readEnvironmentVariable('AZURE_RESOURCE_GROUP', 'REPLACE')
-  name: readEnvironmentVariable('APIM_APP_INSIGHTS_NAME', 'REPLACE')
+  subscriptionId: aiSubscription
+  resourceGroupName: aiResourceGroup
+  name: aiName
 }
 
 // Resource group for the alert rules + action group (defaults to the App Insights RG).
@@ -48,7 +51,7 @@ param alertEmailAddress = readEnvironmentVariable('ALERT_EMAIL_ADDRESS', 'REPLAC
 // Optional: scope every alert rule to a single access contract (product) name.
 // NOTE: use the APIM product DISPLAY NAME emitted in the productName dimension (space-separated),
 // NOT the hyphenated product id.
-// param productNameFilter = 'LLM Ops AlertProbe DEV'
+// Platform-wide overrides reject a non-empty productNameFilter.
 
 // Naming + metric identity (defaults match the shipped raise-alert-events fragment).
 param namePrefix = 'ai-gateway'
@@ -62,8 +65,8 @@ param alertsEnabled = true
 //   'metric'             — metric alerts on the ai-gateway-alerts namespace (only after it registers).
 param alertMode = 'logQuery'
 
-// Alert rules. The defaults create throttling + backend-failure rules; extend
-// with auth-failure / content-safety / pii-failure entries as needed.
+// Keep the three legacy rules unchanged. Review and remove optional entries whose
+// telemetry prerequisites are not met before deploying this platform-wide profile.
 param alerts = [
   {
     name: 'throttling'
@@ -242,5 +245,28 @@ print AggregatedValue = iff(expected >= 10 and observed == 0, 1, 0)
     windowSize: 'PT5M'
     evaluationFrequency: 'PT1M'
     description: 'PII evaluation failures. Check the configured PII dependency and enforcement. Requires alertOnPiiFailure.'
+  }
+
+  {
+    name: 'guardrail-evaluation-failure'
+    alertType: ''
+    severity: 1
+    operator: 'GreaterThan'
+    threshold: 0
+    timeAggregation: 'Total'
+    windowSize: 'PT15M'
+    evaluationFrequency: 'PT5M'
+    description: 'Server-side content safety policy error. Check whether the required evaluation failed. This excludes ordinary 403 blocks and does not prove all guardrail failures are visible.'
+    logQueryOverride: {
+      scope: workspaceId
+      location: workspaceLocation
+      query: replace('''
+ApiManagementGatewayLogs
+| where _ResourceId =~ "__APIM__"
+| where ResponseCode between (500 .. 599)
+| where LastErrorSource contains "content-safety"
+| summarize AggregatedValue = count()
+''', '__APIM__', apimId)
+    }
   }
 ]
