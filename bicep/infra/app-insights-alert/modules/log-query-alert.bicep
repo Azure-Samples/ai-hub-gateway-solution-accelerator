@@ -59,6 +59,16 @@ param threshold int = 0
 @description('Action group resource ID that receives the notification.')
 param actionGroupId string
 
+@description('Platform-wide overrides require an empty productNameFilter and cannot be combined.')
+@allowed([
+  ''
+])
+param platformScopeValidation string = ''
+
+@description('Optional KQL override returning a numeric AggregatedValue column.')
+param queryOverride string = ''
+
+
 @description('Automatically resolve the alert when the condition clears.')
 param autoMitigate bool = true
 
@@ -87,7 +97,7 @@ resource logQueryRule 'Microsoft.Insights/scheduledQueryRules@2021-08-01' = {
     criteria: {
       allOf: [
         {
-          query: query
+          query: empty(queryOverride) ? query : queryOverride
           timeAggregation: 'Total'
           metricMeasureColumn: 'AggregatedValue'
           operator: operator
