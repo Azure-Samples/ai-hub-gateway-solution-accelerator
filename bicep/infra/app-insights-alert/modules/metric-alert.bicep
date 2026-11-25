@@ -63,6 +63,12 @@ param productNameFilter string = ''
 @description('Action group resource ID that receives the notification.')
 param actionGroupId string
 
+@allowed([''])
+param platformScopeValidation string = ''
+
+param skipMetricValidation bool = true
+
+
 @description('Automatically resolve the alert when the condition clears.')
 param autoMitigate bool = true
 
@@ -109,7 +115,7 @@ resource metricAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
           criterionType: 'StaticThresholdCriterion'
           // The custom metric may not exist yet at first deployment (it appears only
           // after the gateway first emits it). Skip validation so the rule deploys anyway.
-          skipMetricValidation: true
+          skipMetricValidation: skipMetricValidation
           dimensions: dimensions
         }
       ]

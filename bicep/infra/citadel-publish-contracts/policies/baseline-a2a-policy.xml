@@ -17,6 +17,12 @@
 <policies>
     <inbound>
         <base />
+        <!-- Product-scope JWT ownership must be checked before backend Managed Identity. -->
+        <choose>
+            <when condition="@(context.Variables.GetValueOrDefault&lt;string&gt;(&quot;jwtRequired&quot;, &quot;false&quot;).Equals(&quot;true&quot;, StringComparison.OrdinalIgnoreCase))">
+                <include-fragment fragment-id="security-handler" />
+            </when>
+        </choose>
         <!-- Record the asset name so the usage metric can attribute calls -->
         <set-variable name="publishedBackendId" value="@(context.Api?.Name?.ToString() ?? "NA")" />
         <!-- Request uncompressed backend responses so the outbound agent-card rewrite works (find-and-replace

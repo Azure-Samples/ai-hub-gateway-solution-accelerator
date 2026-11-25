@@ -1,0 +1,35 @@
+name: Subscription JWT ownership regression
+
+on:
+  pull_request:
+    paths:
+      - 'bicep/infra/citadel-access-contracts/**'
+      - 'bicep/infra/citadel-publish-contracts/policies/baseline-a2a-policy.xml'
+      - 'bicep/infra/modules/apim/policies/**'
+      - 'validation/tests/test_subscription_jwt_binding.py'
+      - '.github/workflows/subscription-jwt-binding.yml'
+  push:
+    paths:
+      - 'bicep/infra/citadel-access-contracts/**'
+      - 'bicep/infra/citadel-publish-contracts/policies/baseline-a2a-policy.xml'
+      - 'bicep/infra/modules/apim/policies/**'
+      - 'validation/tests/test_subscription_jwt_binding.py'
+      - '.github/workflows/subscription-jwt-binding.yml'
+
+jobs:
+  security-source-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify subscription-bound JWT policy wiring
+        run: python -m unittest discover -s validation/tests -p 'test_subscription_jwt_binding.py' -v
+      - name: Compile Access Contract Bicep modules
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -e
+            az bicep build --file bicep/infra/citadel-access-contracts/main.bicep --stdout >/dev/null
+            az bicep build --file bicep/infra/citadel-access-contracts/modules/apimOnboardService.bicep --stdout >/dev/null
